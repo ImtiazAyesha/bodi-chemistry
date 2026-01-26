@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import {
   FilesetResolver,
@@ -7,15 +7,10 @@ import {
   DrawingUtils,
 } from "@mediapipe/tasks-vision";
 
-// 3D distance calculation for normalized landmarks (x, y, z)
-// MediaPipe provides z coordinate for depth information
-const distance3D = (a, b) => {
-  if (!a || !b) return 0;
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  const dz = (a.z || 0) - (b.z || 0);
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
-};
+// Milestone 2 Imports
+import { calculateDistance, calculateDistance2D, calculateAngle, calculateAngle3Points, formatMetric } from "./utils/geometry";
+import { calculateTotalScore } from "./utils/scoring";
+import DashboardOverlay from "./components/DashboardOverlay";
 
 function App() {
   const webcamRef = useRef(null);
@@ -24,6 +19,24 @@ function App() {
   const faceLandmarkerRef = useRef(null);
   const poseLandmarkerRef = useRef(null);
   const cameraRunningRef = useRef(false);
+
+  // State for Dashboard
+  const [ scanMode, setScanMode ] = useState( 'FRONT' ); // 'FRONT' | 'SIDE'
+  const [ metrics, setMetrics ] = useState( {
+    face: { eyeSym: 0, jawShift: 0, headTilt: 0, nostrilAsym: 0, irisWidth: 0 },
+    body: { shoulderHeight: 0, fhpAngle: 0, pelvicTilt: 0, footOrient: 0 }
+  } );
+  const [ score, setScore ] = useState( { total: 100, face: 100, body: 100 } );
+
+  // Refs for smoothing/throttling
+  const lastInferenceTimeRef = useRef( 0 );
+  const INFERENCE_INTERVAL_MS = 100; // Run inference max 10 times per second (Optimization)
+
+  // FIX: Use a Ref for scanMode to access it inside the loop without re-running useEffect.
+  const scanModeRef = useRef( scanMode );
+  useEffect( () => {
+    scanModeRef.current = scanMode;
+  }, [ scanMode ] );
 
   useEffect(() => {
     let animationFrameId;
@@ -41,7 +54,8 @@ function App() {
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.10/wasm"
       );
 
-      // 2) Face landmarker
+      // 2) Face landmarker (CPU Default)
+      // Removed Delegate: GPU to fix compatibility and allow fallback
       const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath:
@@ -51,7 +65,7 @@ function App() {
         numFaces: 1,
       });
 
-      // 3) Pose landmarker
+      // 3) Pose landmarker (CPU Default)
       const poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath:
@@ -77,110 +91,168 @@ function App() {
           }
 
           const now = performance.now();
+          const shouldRunInference = ( now - lastInferenceTimeRef.current ) >= INFERENCE_INTERVAL_MS;
 
-          try {
-            // Different timestamps to avoid packet mismatch errors
-            const faceResult = faceLandmarkerRef.current.detectForVideo(
-              video,
-              now
-            );
-            const poseResult = poseLandmarkerRef.current.detectForVideo(
-              video,
-              now + 0.0001
-            );
+          // Drawing setup
+          // FIX: Removed manual ctx.translate/scale flip because Canvas CSS has transform: scaleX(-1)
+          // Both Loop Video Draw + Landmarks Draw -> Canvas CSS Flip -> Correct Mirror View
+          ctx.save();
+          ctx.clearRect( 0, 0, canvas.width, canvas.height );
+          ctx.drawImage( video, 0, 0, canvas.width, canvas.height );
 
-            // ========== Task 1.3: 3D Normalization Logic ==========
+          if ( shouldRunInference ) {
+            lastInferenceTimeRef.current = now;
 
-            // FACE NORMALIZATION: Calculate iris width (distance between left and right iris)
-            // Iris landmarks: Left 468, Right 473
-            let irisWidth = 0;
-            if (
-              faceResult.faceLandmarks &&
-              faceResult.faceLandmarks.length > 0
-            ) {
-              const lm = faceResult.faceLandmarks[0];
-              const leftIris = lm[468];
-              const rightIris = lm[473];
-              irisWidth = distance3D(leftIris, rightIris);
-            }
+            try {
+              const faceResult = faceLandmarkerRef.current.detectForVideo( video, now );
+              const poseResult = poseLandmarkerRef.current.detectForVideo( video, now );
 
-            // BODY NORMALIZATION: Calculate shoulder width (distance between left and right shoulder)
-            // Pose landmarks: Left Shoulder 11, Right Shoulder 12
-            let shoulderWidth = 0;
-            let poseLandmarks = null;
-            if (poseResult.landmarks && poseResult.landmarks.length > 0) {
-              poseLandmarks = poseResult.landmarks[0];
-              const leftShoulder = poseLandmarks[11];
-              const rightShoulder = poseLandmarks[12];
-              shoulderWidth = distance3D(leftShoulder, rightShoulder);
-            }
+              let currentFaceMetrics = { ...metrics.face };
+              let currentBodyMetrics = { ...metrics.body };
 
-            // DELIVERABLE: Console log showing normalized distances
-            // These values should stay roughly the same even if user moves closer/farther
-            if (irisWidth > 0 && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
-              const lm = faceResult.faceLandmarks[0];
-              // Example: Normalize face height by iris width
-              const noseTip = lm[1];
-              const chinBottom = lm[152];
-              const rawFaceHeight = distance3D(noseTip, chinBottom);
-              const normalizedFaceHeight = rawFaceHeight / irisWidth;
-              console.log("✓ Face Normalized Distance (face height/iris width):", normalizedFaceHeight.toFixed(4));
-            }
+              // =========================
+              // TASK 2.1 FACE METRICS
+              // =========================
+              if ( faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0 ) {
+                const fl = faceResult.faceLandmarks[ 0 ];
 
-            if (shoulderWidth > 0 && poseLandmarks) {
-              // Example: Normalize torso length by shoulder width
-              const leftShoulder = poseLandmarks[11];
-              const leftHip = poseLandmarks[23];
-              const rawTorsoLength = distance3D(leftShoulder, leftHip);
-              const normalizedTorsoLength = rawTorsoLength / shoulderWidth;
-              console.log("✓ Body Normalized Distance (torso length/shoulder width):", normalizedTorsoLength.toFixed(4));
-            }
+                // 2. Draws - RESTORED FACE MESH
+                drawingUtils.drawConnectors( fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C0", lineWidth: 0.1 } );
+                // drawConnectors for Face Oval
+                drawingUtils.drawConnectors( fl, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL, { color: "#FF0000", lineWidth: 1 } );
 
-            // ========== Drawing ==========
-            ctx.save();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                // RESTORED: Draw Green Dots (Landmarks)
+                drawingUtils.drawLandmarks( fl, { color: "#00FF00", radius: 1 } );
 
-            // Draw face landmarks
-            if (
-              faceResult.faceLandmarks &&
-              faceResult.faceLandmarks.length > 0
-            ) {
-              for (const landmarks of faceResult.faceLandmarks) {
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-                  { color: "#C0C0C0", lineWidth: 0.5 }
-                );
-                drawingUtils.drawConnectors(
-                  landmarks,
-                  FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
-                  { color: "#FF0000", lineWidth: 2 }
-                );
-                drawingUtils.drawLandmarks(landmarks, {
-                  color: "#00FF00",
-                  radius: 1,
-                });
+
+                // 1. Normalization Factor: Iris Width (Left 468, Right 473)
+                // Use 3D distance for robust sizing
+                const irisWidth = calculateDistance( fl[ 468 ], fl[ 473 ] );
+                const normFactor = irisWidth > 0 ? irisWidth : 1;
+
+                // 2. Eye Height Symmetry (Left 33, Right 263)
+                // Compare Y coordinates. 
+                const leftEye = fl[ 33 ];
+                const rightEye = fl[ 263 ];
+                const eyeDiffY = Math.abs( leftEye.y - rightEye.y );
+                const eyeSym = eyeDiffY / normFactor;
+
+                // 3. Jaw Midline Shift (Chin 152, Nose Bridge 6)
+                // Compare X coordinates.
+                const chin = fl[ 152 ];
+                const noseBridge = fl[ 6 ];
+                const jawDiffX = Math.abs( chin.x - noseBridge.x );
+                const jawShift = jawDiffX / normFactor;
+
+                // 4. Head Tilt (Angle between eyes)
+                const tilt = calculateAngle( leftEye, rightEye ); // Should be 0 or 180 depending on order.
+                // Ideally leftEye is x < rightEye x.
+                // calculateAngle(left, right) -> 0 if horizontal.
+                // We want deviation from horizontal.
+                const headTilt = Math.abs( tilt ); // Simplified abs deviation
+
+                // 5. Nostril Asymmetry (NoseTip 1, Left 279, Right 49)
+                const noseTip = fl[ 1 ];
+                const leftNostril = fl[ 279 ];
+                const rightNostril = fl[ 49 ];
+                // Use 3D dist
+                const distL = calculateDistance( noseTip, leftNostril );
+                const distR = calculateDistance( noseTip, rightNostril );
+                const nostrilAsym = Math.abs( distL - distR ) / normFactor;
+
+                currentFaceMetrics = {
+                  eyeSym: formatMetric( eyeSym, 3 ),
+                  jawShift: formatMetric( jawShift, 3 ),
+                  headTilt: formatMetric( headTilt, 1 ),
+                  nostrilAsym: formatMetric( nostrilAsym, 3 ),
+                  irisWidth: irisWidth
+                };
+
+                // Visualize Eye Line (Over mesh)
+                drawingUtils.drawConnectors( [ fl ], [ [ 33, 263 ] ], { color: "#00FF00", lineWidth: 2 } );
+                // Visualize Jaw Line
+                drawingUtils.drawConnectors( [ fl ], [ [ 6, 152 ] ], { color: "#FFFF00", lineWidth: 2 } );
               }
-            }
 
-            // Draw pose landmarks
-            if (poseLandmarks) {
-              drawingUtils.drawLandmarks(poseLandmarks, {
-                color: "#FFFF00",
-                radius: 3,
-              });
-              drawingUtils.drawConnectors(
-                poseLandmarks,
-                PoseLandmarker.POSE_CONNECTIONS,
-                { color: "#00FFFF", lineWidth: 3 }
-              );
-            }
+              // =========================
+              // TASK 2.2 BODY METRICS
+              // =========================
+              if ( poseResult.landmarks && poseResult.landmarks.length > 0 ) {
+                const pl = poseResult.landmarks[ 0 ];
+                const plWorld = poseResult.worldLandmarks[ 0 ];
 
-            ctx.restore();
-          } catch (e) {
-            console.warn("MediaPipe error (ignored):", e);
+                // Draw Pose
+                drawingUtils.drawConnectors( pl, PoseLandmarker.POSE_CONNECTIONS, { color: "#00FFFF", lineWidth: 2 } );
+                drawingUtils.drawLandmarks( pl, { color: "#FFFF00", radius: 3 } );
+
+                // Shoulder Height (Left 11, Right 12) - FRONT VIEW metric
+                const leftShoulder = pl[ 11 ];
+                const rightShoulder = pl[ 12 ];
+                // Normalization: Shoulder Width
+                const shoulderWidth = calculateDistance( leftShoulder, rightShoulder );
+                const bodyNorm = shoulderWidth > 0 ? shoulderWidth : 1;
+
+                const shoulderDiffY = Math.abs( leftShoulder.y - rightShoulder.y );
+                const shoulderHeight = shoulderDiffY / bodyNorm;
+
+                // FHP (Ear 7, Shoulder 11) - SIDE VIEW metric
+                const ear = pl[ 7 ];
+                const fhpAngleRaw = calculateAngle( ear, leftShoulder );
+                const fhpAngle = Math.abs( fhpAngleRaw - 90 );
+
+                // Pelvic Tilt
+                let pelvicMetric = 0;
+                if ( scanModeRef.current === 'FRONT' ) {
+                  const leftHip = pl[ 23 ];
+                  const rightHip = pl[ 24 ];
+                  pelvicMetric = Math.abs( leftHip.y - rightHip.y ) / bodyNorm;
+                } else {
+                  const leftHip = pl[ 23 ];
+                  const leftKnee = pl[ 25 ];
+                  const pelvAngleRaw = calculateAngle( leftHip, leftKnee );
+                  pelvicMetric = Math.abs( pelvAngleRaw - 90 );
+                }
+
+                // Foot Orientation (Toe 31, Heel 29) - SIDE / General
+                const leftHeel = pl[ 29 ];
+                const leftToe = pl[ 31 ];
+                const footAngleRaw = calculateAngle( leftHeel, leftToe );
+                const footOrient = Math.abs( footAngleRaw ); // Simplified
+
+                currentBodyMetrics = {
+                  shoulderHeight: formatMetric( shoulderHeight, 3 ),
+                  fhpAngle: formatMetric( fhpAngle, 1 ),
+                  pelvicTilt: formatMetric( pelvicMetric, 2 ),
+                  footOrient: formatMetric( footOrient, 1 )
+                };
+              }
+
+              // Update State
+              setMetrics( {
+                face: currentFaceMetrics,
+                body: currentBodyMetrics
+              } );
+
+              const newScore = calculateTotalScore( {
+                face: currentFaceMetrics,
+                body: currentBodyMetrics
+              } );
+              setScore( newScore );
+
+              // DEBUG LOGS (Requested)
+              console.log( "=== Bodi Kemistri Frame Stats ===" );
+              console.log( "Scan Mode:", scanModeRef.current );
+              console.log( "Face Metrics:", currentFaceMetrics );
+              console.log( "Body Metrics:", currentBodyMetrics );
+              console.log( "Total Score:", newScore );
+              console.log( "=================================" );
+
+            } catch ( e ) {
+              console.warn( "Inference error:", e );
+            }
           }
+          // Restore not strictly needed if we didn't transform, but good practice if code evolves
+          ctx.restore();
 
           animationFrameId = requestAnimationFrame(renderLoop);
         };
@@ -214,8 +286,18 @@ function App() {
         justifyContent: "center",
         alignItems: "center",
         background: "#111",
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
+      {/* DASHBOARD OVERLAY */ }
+      <DashboardOverlay
+        metrics={ metrics }
+        score={ score }
+        scanMode={ scanMode }
+        setScanMode={ setScanMode }
+      />
+
       <div
         style={{
           position: "relative",
@@ -233,8 +315,8 @@ function App() {
             left: 0,
             width: 640,
             height: 480,
-            transform: "scaleX(-1)",
-            visibility: "hidden",
+            transform: "scaleX(-1)", // Mirror CSS
+            visibility: "hidden", // Hide actual video, draw on canvas
           }}
         />
 
@@ -248,7 +330,7 @@ function App() {
             left: 0,
             width: 640,
             height: 480,
-            transform: "scaleX(-1)",
+            transform: "scaleX(-1)", // Mirror CSS
           }}
         />
       </div>
