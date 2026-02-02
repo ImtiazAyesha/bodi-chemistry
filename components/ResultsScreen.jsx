@@ -1,11 +1,12 @@
 import React from 'react';
 import { generatePDF } from '../utils/pdfGenerator';
+import PatternCard from './PatternCard';
 
 /**
  * Results Screen Component
  * Displays all 4 captured images and calculated metrics
  */
-const ResultsScreen = ({ captureData, questionnaireAnswers, questionnaireScore, onRestart }) => {
+const ResultsScreen = ( { captureData, questionnaireAnswers, questionnaireScore, patternResults, onRestart } ) => {
   // Calculate overall score
   const calculateOverallScore = () => {
     const allMetrics = {
@@ -75,11 +76,11 @@ const ResultsScreen = ({ captureData, questionnaireAnswers, questionnaireScore, 
     bodyScore = Math.max(0, Math.min(100, bodyScore));
     console.log('Body Score After Clamp:', bodyScore.toFixed(2));
 
-    const total = (faceScore * 0.4) + (bodyScore * 0.4) + (questionnaireScore * 0.2);
+    const total = ( faceScore * 0.3 ) + ( bodyScore * 0.5 ) + ( questionnaireScore * 0.2 );
 
     console.log('Final Calculation:', {
-      faceContribution: (faceScore * 0.4).toFixed(2),
-      bodyContribution: (bodyScore * 0.4).toFixed(2),
+      faceContribution: ( faceScore * 0.3 ).toFixed( 2 ),
+      bodyContribution: ( bodyScore * 0.5 ).toFixed( 2 ),
       questionnaireContribution: (questionnaireScore * 0.2).toFixed(2),
       total: total.toFixed(1)
     });
@@ -208,6 +209,75 @@ const ResultsScreen = ({ captureData, questionnaireAnswers, questionnaireScore, 
             </div>
           </div>
         </div>
+
+        {/* Somatic Pattern Analysis Section */ }
+        { patternResults && patternResults.patterns && (
+          <div style={ { marginTop: '50px' } }>
+            <h2 style={ {
+              textAlign: 'center',
+              marginBottom: '10px',
+              color: '#00D9FF',
+              fontSize: '32px',
+              fontWeight: 'bold'
+            } }>
+              🎯 Somatic Pattern Analysis
+            </h2>
+            <p style={ {
+              textAlign: 'center',
+              color: '#aaa',
+              marginBottom: '30px',
+              fontSize: '16px',
+              maxWidth: '800px',
+              margin: '0 auto 30px auto'
+            } }>
+              { patternResults.summary }
+            </p>
+
+            {/* Dominant Pattern Highlight */ }
+            { patternResults.dominantPattern && (
+              <div style={ {
+                background: `linear-gradient(135deg, ${ patternResults.dominantPattern.color }20, transparent)`,
+                border: `3px solid ${ patternResults.dominantPattern.color }`,
+                borderRadius: '16px',
+                padding: '24px',
+                marginBottom: '30px',
+                textAlign: 'center'
+              } }>
+                <div style={ { fontSize: '48px', marginBottom: '12px' } }>
+                  { patternResults.dominantPattern.icon }
+                </div>
+                <h3 style={ {
+                  color: patternResults.dominantPattern.color,
+                  margin: '0 0 8px 0',
+                  fontSize: '24px'
+                } }>
+                  Primary Pattern: { patternResults.dominantPattern.name }
+                </h3>
+                <p style={ { color: '#ccc', margin: 0, fontSize: '16px' } }>
+                  Severity: <strong style={ { color: patternResults.dominantPattern.color } }>
+                    { patternResults.dominantPattern.severity.toUpperCase() }
+                  </strong> ({ patternResults.dominantPattern.score.toFixed( 0 ) }/100)
+                </p>
+              </div>
+            ) }
+
+            {/* All Patterns */ }
+            <div style={ { maxWidth: '900px', margin: '0 auto' } }>
+              { Object.entries( patternResults.patterns )
+                .sort( ( a, b ) => b[ 1 ].score - a[ 1 ].score )
+                .map( ( [ id, pattern ], index ) => {
+                  const rank = pattern.severity !== 'none' ? index + 1 : null;
+                  return (
+                    <PatternCard
+                      key={ id }
+                      pattern={ pattern }
+                      rank={ rank }
+                    />
+                  );
+                } ) }
+            </div>
+          </div>
+        ) }
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '40px' }}>

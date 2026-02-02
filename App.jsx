@@ -10,6 +10,7 @@ import {
 // Utils
 import { calculateDistance, calculateDistance2D, calculateAngle, calculateAngle3Points, formatMetric } from "./utils/geometry";
 import { calculateTotalScore } from "./utils/scoring";
+import analyzePatterns from "./utils/patternAnalyzer";
 
 // Navigation Components
 import LandingPage from "./components/LandingPage";
@@ -78,9 +79,13 @@ function App() {
   const [ stage3Debug, setStage3Debug ] = useState( null );
   const [ stage4Debug, setStage4Debug ] = useState( null );
 
+  // Pattern Analysis Results
+  const [ patternResults, setPatternResults ] = useState( null );
+
   // Refs for render loop
   const lastInferenceTimeRef = useRef( 0 );
   const lastAlignmentCheckRef = useRef( 0 );
+  const renderLoopRef = useRef( null ); // Store render loop function for restart
   const INFERENCE_INTERVAL_MS = 100;
   const ALIGNMENT_CHECK_INTERVAL = 200;
 
@@ -88,6 +93,47 @@ function App() {
   useEffect( () => {
     captureStageRef.current = captureStage;
   }, [ captureStage ] );
+
+  // Restart render loop when unfrozen
+  useEffect( () => {
+    if ( !isFrozen && renderLoopRef.current && appStage === 'CAPTURE' ) {
+      console.log( '🔄 Restarting render loop - screen unfrozen' );
+      renderLoopRef.current();
+    }
+  }, [ isFrozen, appStage ] );
+
+  // Run pattern analysis when entering PROCESSING stage
+  useEffect( () => {
+    if ( appStage === 'PROCESSING' && captureData.stage4.image ) {
+      console.log( '=== STARTING PATTERN ANALYSIS (useEffect) ===' );
+
+      // Combine all metrics for pattern analysis
+      const combinedMetrics = {
+        face: {
+          eyeSym: captureData.stage1.metrics.eyeSym,
+          jawShift: captureData.stage1.metrics.jawShift,
+          headTilt: captureData.stage1.metrics.headTilt,
+          nostrilAsym: captureData.stage1.metrics.nostrilAsym
+        },
+        body: {
+          shoulderHeight: captureData.stage2.metrics.shoulderHeight,
+          fhpAngle: captureData.stage3.metrics.fhpAngle,
+          pelvicTilt: captureData.stage4.metrics.pelvicTilt,
+          kneeAngle: captureData.stage4.metrics.kneeAngle,
+          footArchRatio: captureData.stage4.metrics.footArchRatio
+        }
+      };
+
+      console.log( 'Combined Metrics for Pattern Analysis:', combinedMetrics );
+
+      // Run pattern analysis
+      const patterns = analyzePatterns( combinedMetrics );
+      setPatternResults( patterns );
+
+      console.log( 'Pattern Analysis Complete:', patterns );
+      console.log( '=== PATTERN ANALYSIS END ===\n' );
+    }
+  }, [ appStage, captureData ] );
 
   // Initialize MediaPipe and Camera
   useEffect(() => {
@@ -141,10 +187,10 @@ function App() {
 
           const now = performance.now();
 
-          // Skip inference if screen is frozen
+          // Skip inference if screen is frozen - STOP THE LOOP
           if ( isFrozen ) {
-            animationFrameId = requestAnimationFrame( renderLoop );
-            return;
+            console.log( '🛑 Render loop stopped - screen is frozen' );
+            return; // Don't continue the loop
           }
 
           const shouldRunInference = ( now - lastInferenceTimeRef.current ) >= INFERENCE_INTERVAL_MS;
@@ -325,6 +371,8 @@ function App() {
           animationFrameId = requestAnimationFrame(renderLoop);
         };
 
+        // Store renderLoop in ref for restart capability
+        renderLoopRef.current = renderLoop;
         renderLoop();
       };
 
@@ -726,7 +774,37 @@ function App() {
           }
         } ) );
 
+        // Analyze patterns after all captures complete
         setTimeout( () => {
+          console.log( '=== STARTING PATTERN ANALYSIS ===' );
+
+          // Combine all metrics for pattern analysis
+          const combinedMetrics = {
+            face: {
+              eyeSym: captureData.stage1.metrics.eyeSym,
+              jawShift: captureData.stage1.metrics.jawShift,
+              headTilt: captureData.stage1.metrics.headTilt,
+              nostrilAsym: captureData.stage1.metrics.nostrilAsym
+            },
+            body: {
+              shoulderHeight: captureData.stage2.metrics.shoulderHeight,
+              fhpAngle: captureData.stage3.metrics.fhpAngle,
+              pelvicTilt: metrics.body.pelvicTilt,  // Use current metrics for stage 4
+              kneeAngle: metrics.body.kneeAngle,
+              footArchRatio: metrics.body.footArchRatio
+            }
+          };
+
+          console.log( 'Combined Metrics for Pattern Analysis:', combinedMetrics );
+
+          // Run pattern analysis - TEMP DISABLED
+          // const patterns = analyzePatterns( combinedMetrics );
+          // setPatternResults( patterns );
+          setPatternResults( null );
+
+          // console.log( 'Pattern Analysis Complete:', patterns );
+          console.log( '=== PATTERN ANALYSIS END ===\n' );
+
           setIsFrozen( false );
           setFrozenImage( null );
           setAppStage( 'PROCESSING' );
@@ -798,6 +876,7 @@ function App() {
         captureData={ captureData }
         questionnaireAnswers={ questionnaireAnswers }
         questionnaireScore={ questionnaireScore }
+        patternResults={ patternResults }
         onRestart={ handleRestart }
       />
     );
