@@ -6,7 +6,7 @@ import PatternCard from './PatternCard';
  * Results Screen Component
  * Displays all 4 captured images and calculated metrics
  */
-const ResultsScreen = ( { captureData, questionnaireAnswers, questionnaireScore, patternResults, onRestart } ) => {
+const ResultsScreen = ( { captureData, questionnaireData, patternResults, onRestart } ) => {
   // Calculate overall score
   const calculateOverallScore = () => {
     const allMetrics = {
@@ -25,72 +25,67 @@ const ResultsScreen = ( { captureData, questionnaireAnswers, questionnaireScore,
       }
     };
 
-    console.log('=== RESULTS SCREEN SCORE CALCULATION ===');
+    console.log( '=== RESULTS SCREEN SCORE CALCULATION ===' );
     console.log('All Metrics:', allMetrics);
 
-    // Face Score - UPDATED PENALTIES to match scoring.js
+    // Face Score
     let faceScore = 100;
-    const eyePenalty = Math.abs(allMetrics.face.eyeSym || 0) * 10;      // Was 1000
-    const jawPenalty = Math.abs(allMetrics.face.jawShift || 0) * 10;    // Was 500
-    const tiltPenalty = Math.abs(allMetrics.face.headTilt || 0) * 1;    // Was 2
-    const nostrilPenalty = Math.abs(allMetrics.face.nostrilAsym || 0) * 5;  // Was 1000
+    const eyePenalty = Math.abs( allMetrics.face.eyeSym || 0 ) * 10;
+    const jawPenalty = Math.abs( allMetrics.face.jawShift || 0 ) * 10;
+    const tiltPenalty = Math.abs( allMetrics.face.headTilt || 0 ) * 1;
+    const nostrilPenalty = Math.abs( allMetrics.face.nostrilAsym || 0 ) * 5;
     
-    faceScore -= eyePenalty;
-    faceScore -= jawPenalty;
-    faceScore -= tiltPenalty;
-    faceScore -= nostrilPenalty;
-    
-    console.log('Face Penalties:', {
+    faceScore -= eyePenalty + jawPenalty + tiltPenalty + nostrilPenalty;
+    faceScore = Math.max( 0, Math.min( 100, faceScore ) );
+
+    console.log( 'Face Score:', {
       eyePenalty: eyePenalty.toFixed(2),
       jawPenalty: jawPenalty.toFixed(2),
       tiltPenalty: tiltPenalty.toFixed(2),
       nostrilPenalty: nostrilPenalty.toFixed(2),
-      totalPenalty: (eyePenalty + jawPenalty + tiltPenalty + nostrilPenalty).toFixed(2)
-    });
-    console.log('Face Score Before Clamp:', faceScore.toFixed(2));
-    
-    faceScore = Math.max(0, Math.min(100, faceScore));
-    console.log('Face Score After Clamp:', faceScore.toFixed(2));
+      faceScore: faceScore.toFixed( 1 )
+    } );
 
-    // Body Score - UPDATED PENALTIES to match scoring.js
+    // Body Score
     let bodyScore = 100;
-    const shoulderPenalty = Math.abs(allMetrics.body.shoulderHeight || 0) * 10;  // Was 500
-    const fhpPenalty = Math.abs(allMetrics.body.fhpAngle || 0) * 0.3;            // Was 2
-    const pelvicPenalty = Math.abs(allMetrics.body.pelvicTilt || 0) * 0.3;       // Was 2
-    const footPenalty = Math.abs(allMetrics.body.footOrient || 0) * 0.1;         // Added
+    const shoulderPenalty = Math.abs( allMetrics.body.shoulderHeight || 0 ) * 10;
+    const fhpPenalty = Math.abs( allMetrics.body.fhpAngle || 0 ) * 0.3;
+    const pelvicPenalty = Math.abs( allMetrics.body.pelvicTilt || 0 ) * 0.3;
     
-    bodyScore -= shoulderPenalty;
-    bodyScore -= fhpPenalty;
-    bodyScore -= pelvicPenalty;
-    bodyScore -= footPenalty;
-    
-    console.log('Body Penalties:', {
+    bodyScore -= shoulderPenalty + fhpPenalty + pelvicPenalty;
+    bodyScore = Math.max( 0, Math.min( 100, bodyScore ) );
+
+    console.log( 'Body Score:', {
       shoulderPenalty: shoulderPenalty.toFixed(2),
       fhpPenalty: fhpPenalty.toFixed(2),
       pelvicPenalty: pelvicPenalty.toFixed(2),
-      footPenalty: footPenalty.toFixed(2),
-      totalPenalty: (shoulderPenalty + fhpPenalty + pelvicPenalty + footPenalty).toFixed(2)
-    });
-    console.log('Body Score Before Clamp:', bodyScore.toFixed(2));
-    
-    bodyScore = Math.max(0, Math.min(100, bodyScore));
-    console.log('Body Score After Clamp:', bodyScore.toFixed(2));
+      bodyScore: bodyScore.toFixed( 1 )
+    } );
+
+    // Questionnaire score (average of normalized scores, or 50 if missing)
+    let questionnaireScore = 50;
+    if ( questionnaireData && questionnaireData.normalizedScores ) {
+      const scores = Object.values( questionnaireData.normalizedScores );
+      questionnaireScore = scores.reduce( ( a, b ) => a + b, 0 ) / scores.length;
+    }
+
+    console.log( 'Questionnaire Score:', questionnaireScore.toFixed( 1 ) );
 
     const total = ( faceScore * 0.3 ) + ( bodyScore * 0.5 ) + ( questionnaireScore * 0.2 );
 
-    console.log('Final Calculation:', {
+    console.log( 'Final Wellness Score Calculation:', {
       faceContribution: ( faceScore * 0.3 ).toFixed( 2 ),
       bodyContribution: ( bodyScore * 0.5 ).toFixed( 2 ),
-      questionnaireContribution: (questionnaireScore * 0.2).toFixed(2),
+      questionnaireContribution: ( questionnaireScore * 0.2 ).toFixed( 2 ),
       total: total.toFixed(1)
-    });
-    console.log('=== END RESULTS SCREEN CALCULATION ===\n');
+    } );
+    console.log( '=== END SCORE CALCULATION ===\n' );
 
     return {
       total: total.toFixed(1),
       face: faceScore.toFixed(1),
       body: bodyScore.toFixed(1),
-      questionnaire: questionnaireScore
+      questionnaire: questionnaireScore.toFixed( 1 )
     };
   };
 
@@ -107,41 +102,80 @@ const ResultsScreen = ( { captureData, questionnaireAnswers, questionnaireScore,
         backgroundColor: '#111',
         color: '#FFF',
         overflowY: 'auto',
-        padding: '40px 20px',
-        zIndex: 100
+        padding: 'clamp(20px, 5vw, 40px)',
+        zIndex: 100,
+        boxSizing: 'border-box'
       }}
     >
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
-        <h1 style={{ textAlign: 'center', color: '#00FF00', marginBottom: '10px' }}>
+        <h1 style={ {
+          textAlign: 'center',
+          color: '#00FF00',
+          marginBottom: '10px',
+          fontSize: 'clamp(24px, 5vw, 36px)'
+        } }>
           ✅ Bodi Kemistri Analysis Complete!
         </h1>
-        <h2 style={{ textAlign: 'center', color: '#FFF', marginBottom: '40px' }}>
-          Overall Score: <span style={{ color: '#00AAFF', fontSize: '48px' }}>{score.total}</span>
+        <h2 style={ {
+          textAlign: 'center',
+          color: '#FFF',
+          marginBottom: 'clamp(20px, 5vh, 40px)',
+          fontSize: 'clamp(18px, 3vw, 24px)'
+        } }>
+          Overall Score: <span style={ {
+            color: '#00AAFF',
+            fontSize: 'clamp(32px, 8vw, 48px)'
+          } }>{ score.total }</span>
         </h2>
 
         {/* Score Breakdown */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', marginBottom: '50px' }}>
-          <div style={{ textAlign: 'center' }}>
-            <h3 style={{ color: '#FFA500' }}>Face Score</h3>
-            <p style={{ fontSize: '32px', color: '#00FF00' }}>{score.face}</p>
+        <div style={ {
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 'clamp(20px, 5vw, 40px)',
+          marginBottom: 'clamp(30px, 5vh, 50px)'
+        } }>
+          <div style={ { textAlign: 'center', minWidth: '120px' } }>
+            <h3 style={ {
+              color: '#FFA500',
+              fontSize: 'clamp(16px, 3vw, 20px)'
+            } }>Face Score</h3>
+            <p style={ {
+              fontSize: 'clamp(24px, 5vw, 32px)',
+              color: '#00FF00',
+              margin: '10px 0'
+            } }>{ score.face }</p>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <h3 style={{ color: '#FFA500' }}>Body Score</h3>
-            <p style={{ fontSize: '32px', color: '#00FF00' }}>{score.body}</p>
+          <div style={ { textAlign: 'center', minWidth: '120px' } }>
+            <h3 style={ {
+              color: '#FFA500',
+              fontSize: 'clamp(16px, 3vw, 20px)'
+            } }>Body Score</h3>
+            <p style={ {
+              fontSize: 'clamp(24px, 5vw, 32px)',
+              color: '#00FF00',
+              margin: '10px 0'
+            } }>{ score.body }</p>
           </div>
         </div>
 
         {/* Captured Images Grid */}
-        <h3 style={{ textAlign: 'center', marginBottom: '30px', color: '#00AAFF' }}>
+        <h3 style={ {
+          textAlign: 'center',
+          marginBottom: 'clamp(20px, 4vh, 30px)',
+          color: '#00AAFF',
+          fontSize: 'clamp(20px, 4vw, 28px)'
+        } }>
           Captured Images
         </h3>
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px',
-            marginBottom: '50px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+            gap: 'clamp(15px, 3vw, 20px)',
+            marginBottom: 'clamp(30px, 5vh, 50px)'
           }}
         >
           {/* Stage 1: Face */}
@@ -211,13 +245,13 @@ const ResultsScreen = ( { captureData, questionnaireAnswers, questionnaireScore,
         </div>
 
         {/* Somatic Pattern Analysis Section */ }
-        { patternResults && patternResults.patterns && (
+        { patternResults && patternResults.allPatterns && (
           <div style={ { marginTop: '50px' } }>
             <h2 style={ {
               textAlign: 'center',
               marginBottom: '10px',
               color: '#00D9FF',
-              fontSize: '32px',
+              fontSize: 'clamp(24px, 5vw, 32px)',
               fontWeight: 'bold'
             } }>
               🎯 Somatic Pattern Analysis
@@ -226,50 +260,53 @@ const ResultsScreen = ( { captureData, questionnaireAnswers, questionnaireScore,
               textAlign: 'center',
               color: '#aaa',
               marginBottom: '30px',
-              fontSize: '16px',
+              fontSize: 'clamp(14px, 2.5vw, 16px)',
               maxWidth: '800px',
               margin: '0 auto 30px auto'
             } }>
-              { patternResults.summary }
+              Integrated analysis combining body posture (50%), facial alignment (30%), and self-assessment (20%)
             </p>
 
-            {/* Dominant Pattern Highlight */ }
-            { patternResults.dominantPattern && (
+            {/* Primary Pattern Highlight */ }
+            { patternResults.primaryPattern && (
               <div style={ {
-                background: `linear-gradient(135deg, ${ patternResults.dominantPattern.color }20, transparent)`,
-                border: `3px solid ${ patternResults.dominantPattern.color }`,
+                background: `linear-gradient(135deg, #667eea20, transparent)`,
+                border: `3px solid #667eea`,
                 borderRadius: '16px',
-                padding: '24px',
+                padding: 'clamp(20px, 4vw, 24px)',
                 marginBottom: '30px',
                 textAlign: 'center'
               } }>
-                <div style={ { fontSize: '48px', marginBottom: '12px' } }>
-                  { patternResults.dominantPattern.icon }
+                <div style={ { fontSize: 'clamp(32px, 8vw, 48px)', marginBottom: '12px' } }>
+                  🎯
                 </div>
                 <h3 style={ {
-                  color: patternResults.dominantPattern.color,
+                  color: '#667eea',
                   margin: '0 0 8px 0',
-                  fontSize: '24px'
+                  fontSize: 'clamp(20px, 4vw, 24px)'
                 } }>
-                  Primary Pattern: { patternResults.dominantPattern.name }
+                  Primary Pattern: { patternResults.primaryPattern.name }
                 </h3>
-                <p style={ { color: '#ccc', margin: 0, fontSize: '16px' } }>
-                  Severity: <strong style={ { color: patternResults.dominantPattern.color } }>
-                    { patternResults.dominantPattern.severity.toUpperCase() }
-                  </strong> ({ patternResults.dominantPattern.score.toFixed( 0 ) }/100)
+                <p style={ { color: '#ccc', margin: 0, fontSize: 'clamp(14px, 2.5vw, 16px)' } }>
+                  Severity: <strong style={ { color: '#667eea' } }>
+                    { patternResults.primaryPattern.severity.toUpperCase() }
+                  </strong> ({ patternResults.primaryPattern.score.toFixed( 0 ) }/100)
+                </p>
+                <p style={ { color: '#aaa', margin: '8px 0 0 0', fontSize: 'clamp(12px, 2vw, 14px)' } }>
+                  Confidence: { patternResults.confidence.level } ({ patternResults.confidence.percentage }%)
                 </p>
               </div>
             ) }
 
             {/* All Patterns */ }
             <div style={ { maxWidth: '900px', margin: '0 auto' } }>
-              { Object.entries( patternResults.patterns )
-                .sort( ( a, b ) => b[ 1 ].score - a[ 1 ].score )
-                .map( ( [ id, pattern ], index ) => {
+              { patternResults.allPatterns
+                .sort( ( a, b ) => b.score - a.score )
+                .map( ( pattern, index ) => {
                   const rank = pattern.severity !== 'none' ? index + 1 : null;
                   return (
                     <PatternCard
-                      key={ id }
+                      key={ pattern.id }
                       pattern={ pattern }
                       rank={ rank }
                     />
@@ -280,28 +317,47 @@ const ResultsScreen = ( { captureData, questionnaireAnswers, questionnaireScore,
         ) }
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '40px' }}>
+        <div style={ {
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 'clamp(15px, 3vw, 20px)',
+          marginTop: 'clamp(30px, 5vh, 40px)',
+          padding: '0 10px'
+        } }>
           <button
             onClick={onRestart}
             style={{
-              padding: '15px 40px',
-              fontSize: '18px',
+              padding: 'clamp(12px, 2.5vh, 15px) clamp(30px, 6vw, 40px)',
+              fontSize: 'clamp(16px, 3vw, 18px)',
               fontWeight: 'bold',
               backgroundColor: '#00AAFF',
               color: '#FFF',
               border: 'none',
               borderRadius: '10px',
               cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(0,170,255,0.4)'
+              boxShadow: '0 4px 15px rgba(0,170,255,0.4)',
+              transition: 'all 0.3s ease',
+              flex: '1 1 auto',
+              minWidth: 'fit-content',
+              maxWidth: '300px'
+            } }
+            onMouseEnter={ ( e ) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(0,170,255,0.6)';
+            } }
+            onMouseLeave={ ( e ) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(0,170,255,0.4)';
             }}
           >
             🔄 Start New Analysis
           </button>
           <button
-            onClick={() => generatePDF(captureData, questionnaireAnswers, score)}
+            onClick={ () => generatePDF( captureData, questionnaireData, patternResults, score ) }
             style={{
-              padding: '15px 40px',
-              fontSize: '18px',
+              padding: 'clamp(12px, 2.5vh, 15px) clamp(30px, 6vw, 40px)',
+              fontSize: 'clamp(16px, 3vw, 18px)',
               fontWeight: 'bold',
               backgroundColor: '#00FF00',
               color: '#000',
@@ -309,7 +365,10 @@ const ResultsScreen = ( { captureData, questionnaireAnswers, questionnaireScore,
               borderRadius: '10px',
               cursor: 'pointer',
               boxShadow: '0 4px 15px rgba(0,255,0,0.4)',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              flex: '1 1 auto',
+              minWidth: 'fit-content',
+              maxWidth: '300px'
             }}
             onMouseEnter={(e) => {
               e.target.style.transform = 'translateY(-2px)';

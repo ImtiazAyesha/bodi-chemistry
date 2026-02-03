@@ -20,7 +20,21 @@ export const SOMATIC_PATTERNS = {
         weight: 0.35, 
         source: 'body',
         threshold: 15,  // degrees
-        normalize: (value) => Math.min(100, (Math.abs(value) / 30) * 100)
+        // FIXED: Higher CVA angle (60-90°) = BETTER posture = LOWER score
+        // Lower CVA angle (<40°) = WORSE posture = HIGHER score
+        normalize: ( value ) => {
+          if ( value === null || value === undefined ) return 50;
+          // Excellent posture (60-90°) → Low dysfunction score (0-10)
+          if ( value >= 60 ) return Math.max( 0, 10 - ( ( value - 60 ) / 3 ) );
+          // Normal posture (50-60°) → Low-moderate dysfunction (10-30)
+          if ( value >= 50 ) return 30 - ( ( value - 50 ) * 2 );
+          // Mild FHP (45-50°) → Moderate dysfunction (30-50)
+          if ( value >= 45 ) return 50 - ( ( value - 45 ) * 4 );
+          // Moderate FHP (40-45°) → High dysfunction (50-70)
+          if ( value >= 40 ) return 70 - ( ( value - 40 ) * 4 );
+          // Severe FHP (<40°) → Very high dysfunction (70-100)
+          return Math.min( 100, 70 + ( ( 40 - value ) * 2 ) );
+        }
       },
       shoulderHeight: { 
         weight: 0.25, 
@@ -94,7 +108,19 @@ export const SOMATIC_PATTERNS = {
         weight: 0.30, 
         source: 'body',
         threshold: 10,
-        normalize: (value) => Math.min(100, (Math.abs(value) / 25) * 100)
+        // FIXED: Realistic pelvic tilt ranges (0-15° typical, not 0-47°)
+        normalize: ( value ) => {
+          if ( value === null || value === undefined ) return 50;
+          const absValue = Math.abs( value );
+          // Normal: 0-3° (level hips)
+          if ( absValue <= 3 ) return 0;
+          // Mild: 3-8°
+          if ( absValue <= 8 ) return 30;
+          // Moderate: 8-15°
+          if ( absValue <= 15 ) return 60;
+          // Severe: >15°
+          return Math.min( 100, 60 + ( ( absValue - 15 ) * 2.5 ) );
+        }
       },
       kneeAngle: { 
         weight: 0.25, 
@@ -163,7 +189,15 @@ export const SOMATIC_PATTERNS = {
         weight: 0.50,  // Higher weight as primary indicator
         source: 'body',
         threshold: 20,
-        normalize: (value) => Math.min(100, (Math.abs(value) / 35) * 100)
+        // FIXED: Same as above - higher CVA = better posture
+        normalize: ( value ) => {
+          if ( value === null || value === undefined ) return 50;
+          if ( value >= 60 ) return Math.max( 0, 10 - ( ( value - 60 ) / 3 ) );
+          if ( value >= 50 ) return 30 - ( ( value - 50 ) * 2 );
+          if ( value >= 45 ) return 50 - ( ( value - 45 ) * 4 );
+          if ( value >= 40 ) return 70 - ( ( value - 40 ) * 4 );
+          return Math.min( 100, 70 + ( ( 40 - value ) * 2 ) );
+        }
       },
       shoulderHeight: { 
         weight: 0.30, 
@@ -229,7 +263,15 @@ export const SOMATIC_PATTERNS = {
         weight: 0.25,  // Proxy for lateral shift
         source: 'body',
         threshold: 8,
-        normalize: (value) => Math.min(100, (Math.abs(value) / 20) * 100)
+        // FIXED: Same realistic ranges
+        normalize: ( value ) => {
+          if ( value === null || value === undefined ) return 50;
+          const absValue = Math.abs( value );
+          if ( absValue <= 3 ) return 0;
+          if ( absValue <= 8 ) return 30;
+          if ( absValue <= 15 ) return 60;
+          return Math.min( 100, 60 + ( ( absValue - 15 ) * 2.5 ) );
+        }
       },
       headTilt: { 
         weight: 0.20, 
