@@ -1,7 +1,8 @@
 import React from 'react';
 
 /**
- * Stage 2: Upper Body Front Ghost - Simple outline style with countdown
+ * Stage 2: Upper Body Front Ghost - Realistic upper body front silhouette
+ * Based on provided silhouette image
  */
 const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }) => {
   const strokeColor = isAligned ? '#00FF00' : '#B0B0B0';
@@ -11,9 +12,7 @@ const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }
   const progress = (holdDuration / 3000) * 100;
   const countdown = Math.ceil((3000 - holdDuration) / 1000);
 
-  // Extract feedback from debug info
   const feedbackMessage = stage2Debug?.feedbackMessage || '';
-  const showFeedback = !isAligned && feedbackMessage;
 
   return (
     <svg
@@ -32,132 +31,205 @@ const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }
       {/* Instruction */}
       <text
         x="480"
-        y="60"
+        y="50"
         textAnchor="middle"
         fill={strokeColor}
-        fontSize="32"
+        fontSize="28"
         fontWeight="bold"
       >
-        {isAligned ? '✓ Aligned - Hold Still!' : 'Position upper body in outline'}
+        { isAligned ? '✓ Perfect! Hold Still!' : 'Position your upper body in the outline' }
       </text>
 
-      {/* Head - smaller for upper body view */}
-      <ellipse
-        cx="480"
-        cy="150"
-        rx="80"
-        ry="95"
-        fill={fillColor}
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-      />
+      {/* UPPER BODY FRONT SILHOUETTE - Centered */ }
+      <g transform="translate(480, 360)">
+        {/* Head - realistic oval */ }
+        <ellipse
+          cx="0"
+          cy="-180"
+          rx="65"
+          ry="85"
+          fill={ fillColor }
+          stroke={ strokeColor }
+          strokeWidth={ strokeWidth }
+        />
 
-      {/* Neck */}
-      <rect
-        x="450"
-        y="235"
-        width="60"
-        height="50"
-        fill={fillColor}
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        rx="10"
-      />
+        {/* Ears */ }
+        <ellipse
+          cx="-58"
+          cy="-180"
+          rx="12"
+          ry="22"
+          fill={ fillColor }
+          stroke={ strokeColor }
+          strokeWidth={ strokeWidth }
+        />
+        <ellipse
+          cx="58"
+          cy="-180"
+          rx="12"
+          ry="22"
+          fill={ fillColor }
+          stroke={ strokeColor }
+          strokeWidth={ strokeWidth }
+        />
 
-      {/* Torso - simple rounded rectangle, BIGGER */}
-      <path
-        d="M 330 280 
-           L 310 520 
-           Q 310 560, 340 580 
-           L 620 580 
-           Q 650 560, 650 520 
-           L 630 280 
-           Z"
-        fill={fillColor}
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-      />
+        {/* Neck - tapered */ }
+        <path
+          d="M -28 -100 L -32 -60 L 32 -60 L 28 -100 Z"
+          fill={ fillColor }
+          stroke={ strokeColor }
+          strokeWidth={ strokeWidth }
+        />
 
-      {/* Arms - simple lines */}
-      <path
-        d="M 330 300 L 270 480"
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-      />
-      <path
-        d="M 630 300 L 690 480"
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-      />
+        {/* Shoulders - wide curved shape */ }
+        <path
+          d="M -32 -60 
+             Q -50 -55, -90 -50
+             Q -130 -45, -150 -35
+             L -150 -10
+             L -90 -10
+             Q -70 -15, -50 -20
+             L -50 20
+             Z"
+          fill={ fillColor }
+          stroke={ strokeColor }
+          strokeWidth={ strokeWidth }
+        />
+        <path
+          d="M 32 -60 
+             Q 50 -55, 90 -50
+             Q 130 -45, 150 -35
+             L 150 -10
+             L 90 -10
+             Q 70 -15, 50 -20
+             L 50 20
+             Z"
+          fill={ fillColor }
+          stroke={ strokeColor }
+          strokeWidth={ strokeWidth }
+        />
 
-      {/* DYNAMIC DIRECTIONAL ARROWS */}
-      {!isAligned && (
-        <>
-          {(feedbackMessage === 'MOVE LEFT' || feedbackMessage === 'A BIT LEFT') && (
-            <g opacity="0.9">
-              <path d="M 200 380 L 140 380 L 155 365 M 140 380 L 155 395" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
-              <circle cx="170" cy="380" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
-              <text x="170" y="395" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">←</text>
-            </g>
-          )}
-          {(feedbackMessage === 'MOVE RIGHT' || feedbackMessage === 'A BIT RIGHT') && (
-            <g opacity="0.9">
-              <path d="M 760 380 L 820 380 L 805 365 M 820 380 L 805 395" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
-              <circle cx="790" cy="380" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
-              <text x="790" y="395" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">→</text>
-            </g>
-          )}
-          {(feedbackMessage === 'MOVE UP' || feedbackMessage === 'A BIT UP') && (
-            <g opacity="0.9">
-              <path d="M 480 150 L 480 90 L 465 105 M 480 90 L 495 105" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
-              <circle cx="480" cy="120" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
-              <text x="480" y="135" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">↑</text>
-            </g>
-          )}
-          {(feedbackMessage === 'MOVE DOWN' || feedbackMessage === 'A BIT DOWN') && (
-            <g opacity="0.9">
-              <path d="M 480 620 L 480 680 L 465 665 M 480 680 L 495 665" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
-              <circle cx="480" cy="650" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
-              <text x="480" y="665" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">↓</text>
-            </g>
-          )}
-        </>
-      )}
+        {/* Torso - trapezoid shape (wider at top, narrower at waist) */ }
+        <path
+          d="M -50 20
+             L -75 180
+             Q -75 190, -65 190
+             L 65 190
+             Q 75 190, 75 180
+             L 50 20
+             Z"
+          fill={ fillColor }
+          stroke={ strokeColor }
+          strokeWidth={ strokeWidth }
+        />
 
-      {/* Countdown Display */}
-      {isAligned && holdDuration > 0 && (
-        <>
-          <circle
-            cx="480"
-            cy="380"
-            r="90"
-            fill="none"
-            stroke="#00FF00"
-            strokeWidth="8"
-            strokeDasharray={`${progress * 5.65} 565`}
-            transform="rotate(-90 480 380)"
-            opacity="0.8"
-          />
-          <text
-            x="480"
-            y="400"
-            textAnchor="middle"
-            fill="#00FF00"
-            fontSize="72"
-            fontWeight="bold"
-            style={{ filter: 'drop-shadow(0 0 10px rgba(0,255,0,0.8))' }}
-          >
-            {countdown}
-          </text>
-        </>
-      )}
+        {/* Left Arm */ }
+        <path
+          d="M -150 -10
+             L -160 50
+             L -170 120
+             L -165 180
+             Q -165 190, -155 190
+             L -125 190
+             Q -115 190, -115 180
+             L -110 120
+             L -100 50
+             L -90 -10
+             Z"
+          fill={ fillColor }
+          stroke={ strokeColor }
+          strokeWidth={ strokeWidth }
+        />
+
+        {/* Right Arm */ }
+        <path
+          d="M 150 -10
+             L 160 50
+             L 170 120
+             L 165 180
+             Q 165 190, 155 190
+             L 125 190
+             Q 115 190, 115 180
+             L 110 120
+             L 100 50
+             L 90 -10
+             Z"
+          fill={ fillColor }
+          stroke={ strokeColor }
+          strokeWidth={ strokeWidth }
+        />
+
+        {/* Wrist details */ }
+        <ellipse cx="-140" cy="185" rx="20" ry="12" fill={ fillColor } stroke={ strokeColor } strokeWidth={ strokeWidth * 0.7 } opacity="0.6" />
+        <ellipse cx="140" cy="185" rx="20" ry="12" fill={ fillColor } stroke={ strokeColor } strokeWidth={ strokeWidth * 0.7 } opacity="0.6" />
+
+        {/* DYNAMIC DIRECTIONAL ARROWS */ }
+        { !isAligned && (
+          <>
+            { ( feedbackMessage === 'MOVE LEFT' || feedbackMessage === 'A BIT LEFT' ) && (
+              <g opacity="0.9">
+                <path d="M -330 0 L -390 0 L -375 -15 M -390 0 L -375 15" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
+                <circle cx="-360" cy="0" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
+                <text x="-360" y="15" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">←</text>
+              </g>
+            ) }
+            { ( feedbackMessage === 'MOVE RIGHT' || feedbackMessage === 'A BIT RIGHT' ) && (
+              <g opacity="0.9">
+                <path d="M 330 0 L 390 0 L 375 -15 M 390 0 L 375 15" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
+                <circle cx="360" cy="0" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
+                <text x="360" y="15" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">→</text>
+              </g>
+            ) }
+            { ( feedbackMessage === 'MOVE UP' || feedbackMessage === 'A BIT UP' ) && (
+              <g opacity="0.9">
+                <path d="M 0 -300 L 0 -360 L -15 -345 M 0 -360 L 15 -345" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
+                <circle cx="0" cy="-330" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
+                <text x="0" y="-315" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">↑</text>
+              </g>
+            ) }
+            { ( feedbackMessage === 'MOVE DOWN' || feedbackMessage === 'A BIT DOWN' ) && (
+              <g opacity="0.9">
+                <path d="M 0 260 L 0 320 L -15 305 M 0 320 L 15 305" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
+                <circle cx="0" cy="290" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
+                <text x="0" y="305" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">↓</text>
+              </g>
+            ) }
+          </>
+        ) }
+
+        {/* Countdown Display */ }
+        { isAligned && holdDuration > 0 && (
+          <>
+            <circle
+              cx="0"
+              cy="0"
+              r="90"
+              fill="none"
+              stroke="#00FF00"
+              strokeWidth="8"
+              strokeDasharray={ `${ progress * 5.65 } 565` }
+              transform="rotate(-90)"
+              opacity="0.8"
+            />
+            <text
+              x="0"
+              y="20"
+              textAnchor="middle"
+              fill="#00FF00"
+              fontSize="72"
+              fontWeight="bold"
+              style={ { filter: 'drop-shadow(0 0 10px rgba(0,255,0,0.8))' } }
+            >
+              { countdown }
+            </text>
+          </>
+        ) }
+      </g>
 
       {/* Stage Indicator */}
       <text
         x="480"
-        y="680"
+        y="690"
         textAnchor="middle"
         fill={strokeColor}
         fontSize="28"

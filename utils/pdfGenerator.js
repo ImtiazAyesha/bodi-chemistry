@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
+import { QUESTIONNAIRE_DATA } from '../config/questionnaireData.js';
 
-export const generatePDF = (captureData, questionnaireAnswers, scores) => {
+export const generatePDF = ( captureData, questionnaireData, patternResults, scores ) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -21,7 +22,7 @@ export const generatePDF = (captureData, questionnaireAnswers, scores) => {
   yPos += 10;
   
   doc.setFontSize(18);
-  doc.text('ASSESSMENT REPORT', pageWidth / 2, yPos, { align: 'center' });
+  doc.text( 'SOMATIC PATTERN ASSESSMENT', pageWidth / 2, yPos, { align: 'center' } );
   yPos += 15;
 
   // Date
@@ -40,6 +41,53 @@ export const generatePDF = (captureData, questionnaireAnswers, scores) => {
   doc.line(20, yPos, pageWidth - 20, yPos);
   yPos += 10;
 
+  // PATTERN ANALYSIS SECTION (if available)
+  if ( patternResults && patternResults.primaryPattern ) {
+    doc.setFontSize( 16 );
+    doc.setFont( undefined, 'bold' );
+    doc.text( 'PATTERN CLASSIFICATION', 20, yPos );
+    yPos += 10;
+
+    doc.setFontSize( 14 );
+    doc.setFont( undefined, 'bold' );
+    doc.text( `Primary Pattern: ${ patternResults.primaryPattern.name }`, 30, yPos );
+    yPos += 7;
+
+    doc.setFontSize( 12 );
+    doc.setFont( undefined, 'normal' );
+    doc.text( `Score: ${ patternResults.primaryPattern.score.toFixed( 1 ) }/100`, 40, yPos );
+    yPos += 6;
+    doc.text( `Severity: ${ patternResults.primaryPattern.severity.toUpperCase() }`, 40, yPos );
+    yPos += 10;
+
+    if ( patternResults.secondaryPattern ) {
+      doc.setFontSize( 14 );
+      doc.setFont( undefined, 'bold' );
+      doc.text( `Secondary Pattern: ${ patternResults.secondaryPattern.name }`, 30, yPos );
+      yPos += 7;
+
+      doc.setFontSize( 12 );
+      doc.setFont( undefined, 'normal' );
+      doc.text( `Score: ${ patternResults.secondaryPattern.score.toFixed( 1 ) }/100`, 40, yPos );
+      yPos += 6;
+      doc.text( `Severity: ${ patternResults.secondaryPattern.severity.toUpperCase() }`, 40, yPos );
+      yPos += 10;
+    }
+
+    // Confidence
+    if ( patternResults.confidence ) {
+      doc.setFontSize( 12 );
+      doc.setFont( undefined, 'bold' );
+      doc.text( `Confidence: ${ patternResults.confidence.level } (${ patternResults.confidence.percentage }%)`, 30, yPos );
+      yPos += 10;
+    }
+
+    // Separator
+    doc.setLineWidth( 0.5 );
+    doc.line( 20, yPos, pageWidth - 20, yPos );
+    yPos += 10;
+  }
+
   // SCORES SECTION
   doc.setFontSize(16);
   doc.setFont(undefined, 'bold');
@@ -52,12 +100,12 @@ export const generatePDF = (captureData, questionnaireAnswers, scores) => {
   yPos += 7;
   doc.text(`Body Score: ${scores.body}/100`, 30, yPos);
   yPos += 7;
-  doc.text(`Questionnaire Score: ${Math.round(scores.questionnaire)}/100`, 30, yPos);
+  doc.text( `Questionnaire Score: ${ scores.questionnaire }/100`, 30, yPos );
   yPos += 10;
 
   doc.setFont(undefined, 'bold');
   doc.setFontSize(14);
-  doc.text(`TOTAL SCORE: ${scores.total}/100`, 30, yPos);
+  doc.text( `OVERALL SCORE: ${ scores.total }/100`, 30, yPos );
   yPos += 15;
 
   // Separator
@@ -111,46 +159,68 @@ export const generatePDF = (captureData, questionnaireAnswers, scores) => {
   doc.text('QUESTIONNAIRE RESPONSES', 20, yPos);
   yPos += 10;
 
-  const questions = [
-    "Do you experience frequent headaches?",
-    "Do you have neck pain or stiffness?",
-    "Do you experience lower back pain?",
-    "Do you have shoulder pain or tension?",
-    "Do you spend more than 6 hours per day sitting?",
-    "Do you use a computer or phone for extended periods?",
-    "Do you exercise regularly (3+ times per week)?",
-    "Do you have difficulty sleeping due to discomfort?",
-    "Do you experience knee pain?",
-    "Do you have flat feet or high arches?",
-    "Do you experience hip pain or tightness?",
-    "Do you have jaw pain or TMJ issues?",
-    "Do you carry a heavy bag on one shoulder regularly?",
-    "Do you wear high heels frequently?",
-    "Do you have good posture awareness?",
-    "Do you stretch or do mobility work regularly?",
-    "Do you experience numbness or tingling in your hands/feet?",
-    "Do you have a history of injuries affecting your posture?",
-    "Do you feel balanced when standing on one leg?",
-    "Do you have breathing difficulties or shallow breathing?"
-  ];
+  // If we have the new questionnaire data format
+  if ( questionnaireData && questionnaireData.answers && QUESTIONNAIRE_DATA ) {
+    doc.setFontSize( 9 );
+    doc.setFont( undefined, 'normal' );
 
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'normal');
+    questionnaireData.answers.forEach( ( answer, index ) => {
+      if ( !answer ) return; // Skip unanswered questions
 
-  questions.forEach((question, index) => {
-    const qNum = index + 1;
-    const answer = questionnaireAnswers[qNum] || 'N/A';
-    
-    if (yPos > pageHeight - 20) {
-      doc.addPage();
-      yPos = 20;
+      const questionObj = QUESTIONNAIRE_DATA[ index ];
+      if ( !questionObj ) return;
+
+      const qNum = index + 1;
+      const selectedOption = questionObj.options.find( opt => opt.label === answer );
+
+      if ( yPos > pageHeight - 30 ) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Question text
+      doc.setFont( undefined, 'bold' );
+      const questionLines = doc.splitTextToSize( `Q${ qNum }: ${ questionObj.question }`, pageWidth - 40 );
+      doc.text( questionLines, 20, yPos );
+      yPos += questionLines.length * 4;
+
+      // Answer text
+      doc.setFont( undefined, 'normal' );
+      if ( selectedOption ) {
+        const answerLines = doc.splitTextToSize( `Answer: ${ answer } - ${ selectedOption.text }`, pageWidth - 40 );
+        doc.text( answerLines, 30, yPos );
+        yPos += answerLines.length * 4 + 3;
+      } else {
+        doc.text( `Answer: ${ answer }`, 30, yPos );
+        yPos += 7;
+      }
+    } );
+
+    // Add questionnaire scores
+    if ( questionnaireData.normalizedScores ) {
+      yPos += 10;
+      if ( yPos > pageHeight - 50 ) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize( 14 );
+      doc.setFont( undefined, 'bold' );
+      doc.text( 'QUESTIONNAIRE PATTERN SCORES', 20, yPos );
+      yPos += 10;
+
+      doc.setFontSize( 10 );
+      doc.setFont( undefined, 'normal' );
+      doc.text( `Upper Compression: ${ questionnaireData.normalizedScores.upperCompression.toFixed( 1 ) }%`, 30, yPos );
+      yPos += 6;
+      doc.text( `Lower Compression: ${ questionnaireData.normalizedScores.lowerCompression.toFixed( 1 ) }%`, 30, yPos );
+      yPos += 6;
+      doc.text( `Thoracic Collapse: ${ questionnaireData.normalizedScores.thoracicCollapse.toFixed( 1 ) }%`, 30, yPos );
+      yPos += 6;
+      doc.text( `Lateral Asymmetry: ${ questionnaireData.normalizedScores.lateralAsymmetry.toFixed( 1 ) }%`, 30, yPos );
+      yPos += 10;
     }
-
-    doc.text(`Q${qNum}: ${question}`, 20, yPos);
-    yPos += 5;
-    doc.text(`A${qNum}: ${answer.toUpperCase()}`, 30, yPos);
-    yPos += 8;
-  });
+  }
 
   // New page for recommendations
   doc.addPage();
@@ -165,21 +235,59 @@ export const generatePDF = (captureData, questionnaireAnswers, scores) => {
   doc.setFontSize(10);
   doc.setFont(undefined, 'normal');
 
-  const totalScore = parseFloat(scores.total);
-  let recommendations = '';
+  // Pattern-specific recommendations
+  if ( patternResults && patternResults.primaryPattern ) {
+    const patternName = patternResults.primaryPattern.name;
+    const severity = patternResults.primaryPattern.severity;
 
-  if (totalScore >= 90) {
-    recommendations = 'Excellent posture! Continue your current habits and maintain regular exercise.';
-  } else if (totalScore >= 75) {
-    recommendations = 'Good posture with minor areas for improvement. Focus on strengthening exercises and regular stretching.';
-  } else if (totalScore >= 60) {
-    recommendations = 'Moderate posture concerns detected. Consider consulting a physical therapist for personalized guidance.';
-  } else {
-    recommendations = 'Significant posture issues identified. We strongly recommend professional assessment and treatment.';
+    doc.setFont( undefined, 'bold' );
+    doc.text( `For ${ patternName } (${ severity }):`, 20, yPos );
+    yPos += 7;
+    doc.setFont( undefined, 'normal' );
+
+    let patternRecs = [];
+
+    if ( patternName.includes( 'Upper Compression' ) ) {
+      patternRecs = [
+        '• Practice diaphragmatic breathing exercises daily',
+        '• Release tension in neck, jaw, and shoulders with gentle stretches',
+        '• Work on softening the upper body through yoga or tai chi',
+        '• Consider massage therapy or craniosacral work',
+        '• Practice mindfulness to reduce stress-holding patterns'
+      ];
+    } else if ( patternName.includes( 'Lower Compression' ) ) {
+      patternRecs = [
+        '• Strengthen core and pelvic floor muscles',
+        '• Practice hip-opening stretches and mobility work',
+        '• Work on ankle and foot mobility',
+        '• Consider gait analysis and corrective exercises',
+        '• Focus on grounding and stability exercises'
+      ];
+    } else if ( patternName.includes( 'Thoracic Collapse' ) ) {
+      patternRecs = [
+        '• Practice chest-opening stretches and back extensions',
+        '• Strengthen upper back and shoulder blade muscles',
+        '• Work on improving breathing capacity',
+        '• Consider postural awareness training',
+        '• Practice exercises that promote spinal extension'
+      ];
+    } else if ( patternName.includes( 'Lateral Asymmetry' ) ) {
+      patternRecs = [
+        '• Work on balancing left and right sides of the body',
+        '• Practice single-leg balance and stability exercises',
+        '• Address any rotational imbalances',
+        '• Consider manual therapy for structural alignment',
+        '• Focus on symmetrical movement patterns'
+      ];
+    }
+
+    patternRecs.forEach( rec => {
+      yPos = addText( rec, 20, yPos, pageWidth - 40, 10 );
+      yPos += 5;
+    } );
+
+    yPos += 5;
   }
-
-  yPos = addText(recommendations, 20, yPos, pageWidth - 40, 10);
-  yPos += 10;
 
   // General recommendations
   doc.setFont(undefined, 'bold');
@@ -191,8 +299,9 @@ export const generatePDF = (captureData, questionnaireAnswers, scores) => {
     '• Take regular breaks from sitting every 30-60 minutes',
     '• Practice good ergonomics at your workstation',
     '• Engage in regular strength and flexibility exercises',
-    '• Consider professional posture assessment if pain persists',
-    '• Stay hydrated and maintain a healthy weight'
+    '• Consider professional somatic therapy or bodywork',
+    '• Stay hydrated and maintain a healthy weight',
+    '• Practice body awareness and mindful movement'
   ];
 
   generalRecs.forEach(rec => {

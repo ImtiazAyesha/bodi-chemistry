@@ -1,105 +1,206 @@
 import React, { useState } from 'react';
-
-const QUESTIONS = [
-  { id: 1, text: "Do you experience frequent headaches?", type: "yesno" },
-  { id: 2, text: "Do you have neck pain or stiffness?", type: "yesno" },
-  { id: 3, text: "Do you experience lower back pain?", type: "yesno" },
-  { id: 4, text: "Do you have shoulder pain or tension?", type: "yesno" },
-  { id: 5, text: "Do you spend more than 6 hours per day sitting?", type: "yesno" },
-  { id: 6, text: "Do you use a computer or phone for extended periods?", type: "yesno" },
-  { id: 7, text: "Do you exercise regularly (3+ times per week)?", type: "yesno" },
-  { id: 8, text: "Do you have difficulty sleeping due to discomfort?", type: "yesno" },
-  { id: 9, text: "Do you experience knee pain?", type: "yesno" },
-  { id: 10, text: "Do you have flat feet or high arches?", type: "yesno" },
-  { id: 11, text: "Do you experience hip pain or tightness?", type: "yesno" },
-  { id: 12, text: "Do you have jaw pain or TMJ issues?", type: "yesno" },
-  { id: 13, text: "Do you carry a heavy bag on one shoulder regularly?", type: "yesno" },
-  { id: 14, text: "Do you wear high heels frequently?", type: "yesno" },
-  { id: 15, text: "Do you have good posture awareness?", type: "yesno" },
-  { id: 16, text: "Do you stretch or do mobility work regularly?", type: "yesno" },
-  { id: 17, text: "Do you experience numbness or tingling in your hands/feet?", type: "yesno" },
-  { id: 18, text: "Do you have a history of injuries affecting your posture?", type: "yesno" },
-  { id: 19, text: "Do you feel balanced when standing on one leg?", type: "yesno" },
-  { id: 20, text: "Do you have breathing difficulties or shallow breathing?", type: "yesno" }
-];
+import { QUESTIONNAIRE_DATA, PATTERN_NAMES } from '../config/questionnaireData.js';
+import { calculateQuestionnaireScores } from '../utils/questionnaireScoring.js';
 
 const Questionnaire = ({ onComplete }) => {
-  const [answers, setAnswers] = useState({});
-  const [currentPage, setCurrentPage] = useState(0);
-  const questionsPerPage = 5;
-  const totalPages = Math.ceil(QUESTIONS.length / questionsPerPage);
+  const [ currentQuestionIndex, setCurrentQuestionIndex ] = useState( 0 );
+  const [ answers, setAnswers ] = useState( Array( 20 ).fill( null ) );
+  const [ showReview, setShowReview ] = useState( false );
 
-  const handleAnswer = (questionId, answer) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: answer
-    }));
-  };
+  const currentQuestion = QUESTIONNAIRE_DATA[ currentQuestionIndex ];
+  const progress = ( ( currentQuestionIndex + 1 ) / 20 ) * 100;
+  const answeredCount = answers.filter( a => a !== null ).length;
 
-  const calculateScore = () => {
-    // Scoring logic: 
-    // Positive answers (good habits): Q7, Q15, Q16, Q19 give +5 points each
-    // Negative answers (pain/issues): All others give -2.5 points each
-    // Start at 50, adjust based on answers
-    
-    let score = 50;
-    const positiveQuestions = [7, 15, 16, 19];
-    
-    Object.entries(answers).forEach(([qId, answer]) => {
-      const questionId = parseInt(qId);
-      if (positiveQuestions.includes(questionId)) {
-        // Good habits
-        score += answer === 'yes' ? 5 : -2.5;
+  const handleAnswer = ( optionLabel ) => {
+    // Store the answer
+    const newAnswers = [ ...answers ];
+    newAnswers[ currentQuestionIndex ] = optionLabel;
+    setAnswers( newAnswers );
+
+    // Auto-advance to next question after short delay
+    setTimeout( () => {
+      if ( currentQuestionIndex < 19 ) {
+        setCurrentQuestionIndex( currentQuestionIndex + 1 );
       } else {
-        // Pain/issues (yes is bad)
-        score += answer === 'yes' ? -2.5 : 2.5;
+        // Last question answered - show review or complete
+        setShowReview( true );
       }
-    });
-
-    return Math.max(0, Math.min(100, score));
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages - 1) {
-      setCurrentPage(prev => prev + 1);
-    }
+    }, 300 );
   };
 
   const handlePrevious = () => {
-    if (currentPage > 0) {
-      setCurrentPage(prev => prev - 1);
+    if ( currentQuestionIndex > 0 ) {
+      setCurrentQuestionIndex( currentQuestionIndex - 1 );
+      setShowReview( false );
+    }
+  };
+
+  const handleNext = () => {
+    if ( currentQuestionIndex < 19 ) {
+      setCurrentQuestionIndex( currentQuestionIndex + 1 );
     }
   };
 
   const handleSubmit = () => {
-    const score = calculateScore();
-    onComplete(answers, score);
+    // Calculate scores
+    const result = calculateQuestionnaireScores( answers );
+
+    // Pass results to parent component
+    onComplete( {
+      answers,
+      rawScores: result.rawScores,
+      normalizedScores: result.normalizedScores,
+      metadata: result.metadata
+    } );
   };
 
-  const startIndex = currentPage * questionsPerPage;
-  const endIndex = startIndex + questionsPerPage;
-  const currentQuestions = QUESTIONS.slice(startIndex, endIndex);
-  const allAnswered = QUESTIONS.every(q => answers[q.id]);
-  const currentPageAnswered = currentQuestions.every(q => answers[q.id]);
+  const handleReviewAnswer = ( index ) => {
+    setCurrentQuestionIndex( index );
+    setShowReview( false );
+  };
 
+  // Review Screen
+  if ( showReview ) {
+    return (
+      <div style={ {
+        width: '100vw',
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: 'clamp(20px, 5vw, 40px)',
+        fontFamily: 'Arial, sans-serif',
+        boxSizing: 'border-box'
+      } }>
+        <div style={ {
+          maxWidth: '900px',
+          margin: '0 auto',
+          background: 'white',
+          borderRadius: 'clamp(12px, 3vw, 20px)',
+          padding: 'clamp(20px, 5vw, 40px)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+        } }>
+          <h1 style={ {
+            fontSize: 'clamp(24px, 5vw, 32px)',
+            fontWeight: 'bold',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '10px',
+            textAlign: 'center'
+          } }>
+            Review Your Answers
+          </h1>
+
+          <p style={ {
+            textAlign: 'center',
+            color: '#666',
+            marginBottom: '30px',
+            fontSize: 'clamp(14px, 2.5vw, 16px)'
+          } }>
+            { answeredCount }/20 questions answered • Click any answer to change it
+          </p>
+
+          {/* Answer Summary */ }
+          <div style={ {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: '15px',
+            marginBottom: '30px'
+          } }>
+            { QUESTIONNAIRE_DATA.map( ( q, index ) => (
+              <div
+                key={ q.id }
+                onClick={ () => handleReviewAnswer( index ) }
+                style={ {
+                  padding: '15px',
+                  background: answers[ index ] ? '#f0f4ff' : '#fff5f5',
+                  border: '2px solid',
+                  borderColor: answers[ index ] ? '#667eea' : '#ffcccc',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'center'
+                } }
+              >
+                <div style={ { fontSize: '14px', color: '#666', marginBottom: '5px' } }>
+                  Question { index + 1 }
+                </div>
+                <div style={ {
+                  fontSize: '24px',
+                  fontWeight: 'bold',
+                  color: answers[ index ] ? '#667eea' : '#ff6b6b'
+                } }>
+                  { answers[ index ] || '—' }
+                </div>
+              </div>
+            ) ) }
+          </div>
+
+          {/* Action Buttons */ }
+          <div style={ { display: 'flex', gap: '15px', justifyContent: 'center' } }>
+            <button
+              onClick={ () => setShowReview( false ) }
+              style={ {
+                padding: '15px 30px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                border: '2px solid #667eea',
+                background: 'white',
+                color: '#667eea',
+                borderRadius: '50px',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              } }
+            >
+              ← Back to Questions
+            </button>
+
+            <button
+              onClick={ handleSubmit }
+              disabled={ answeredCount < 20 }
+              style={ {
+                padding: '15px 40px',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                border: 'none',
+                background: answeredCount === 20
+                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                  : '#ccc',
+                color: 'white',
+                borderRadius: '50px',
+                cursor: answeredCount === 20 ? 'pointer' : 'not-allowed',
+                boxShadow: answeredCount === 20 ? '0 10px 30px rgba(102, 126, 234, 0.4)' : 'none',
+                transition: 'all 0.3s ease'
+              } }
+            >
+              Continue to Photo Assessment →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Question Screen
   return (
     <div style={{
       width: '100vw',
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '40px 20px',
-      fontFamily: 'Arial, sans-serif'
+      padding: 'clamp(20px, 5vw, 40px)',
+      fontFamily: 'Arial, sans-serif',
+      boxSizing: 'border-box'
     }}>
       <div style={{
         maxWidth: '800px',
         margin: '0 auto',
         background: 'white',
-        borderRadius: '20px',
-        padding: '40px',
+        borderRadius: 'clamp(12px, 3vw, 20px)',
+        padding: 'clamp(20px, 5vw, 40px)',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
       }}>
+        {/* Header */ }
         <h1 style={{
-          fontSize: '36px',
+          fontSize: 'clamp(20px, 4vw, 28px)',
           fontWeight: 'bold',
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           WebkitBackgroundClip: 'text',
@@ -107,157 +208,210 @@ const Questionnaire = ({ onComplete }) => {
           marginBottom: '10px',
           textAlign: 'center'
         }}>
-          Health Questionnaire
+          Somatic Pattern Assessment
         </h1>
 
         <p style={{
           textAlign: 'center',
           color: '#666',
           marginBottom: '30px',
-          fontSize: '16px'
+          fontSize: 'clamp(14px, 2.5vw, 16px)'
         }}>
-          Page {currentPage + 1} of {totalPages} • {Object.keys(answers).length}/{QUESTIONS.length} answered
+          Question { currentQuestionIndex + 1 } of 20 • { answeredCount } answered
         </p>
 
         {/* Progress Bar */}
         <div style={{
           width: '100%',
-          height: '8px',
+          height: '10px',
           background: '#e0e0e0',
           borderRadius: '10px',
-          marginBottom: '30px',
+          marginBottom: '40px',
           overflow: 'hidden'
         }}>
           <div style={{
-            width: `${(Object.keys(answers).length / QUESTIONS.length) * 100}%`,
+            width: `${ progress }%`,
             height: '100%',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             transition: 'width 0.3s ease'
           }} />
         </div>
 
-        {/* Questions */}
-        <div style={{ marginBottom: '30px' }}>
-          {currentQuestions.map((question, index) => (
-            <div key={question.id} style={{
-              marginBottom: '25px',
-              padding: '20px',
-              background: answers[question.id] ? '#f8f9fa' : 'white',
-              border: '2px solid',
-              borderColor: answers[question.id] ? '#667eea' : '#e0e0e0',
-              borderRadius: '10px',
-              transition: 'all 0.3s ease'
-            }}>
-              <p style={{
-                fontSize: '18px',
-                color: '#333',
-                marginBottom: '15px',
-                fontWeight: '500'
-              }}>
-                {startIndex + index + 1}. {question.text}
-              </p>
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <button
-                  onClick={() => handleAnswer(question.id, 'yes')}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    border: '2px solid',
-                    borderColor: answers[question.id] === 'yes' ? '#667eea' : '#ddd',
-                    background: answers[question.id] === 'yes' ? '#667eea' : 'white',
-                    color: answers[question.id] === 'yes' ? 'white' : '#333',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={() => handleAnswer(question.id, 'no')}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    border: '2px solid',
-                    borderColor: answers[question.id] === 'no' ? '#667eea' : '#ddd',
-                    background: answers[question.id] === 'no' ? '#667eea' : 'white',
-                    color: answers[question.id] === 'no' ? 'white' : '#333',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  No
-                </button>
-              </div>
-            </div>
-          ))}
+        {/* Question */ }
+        <div style={ {
+          marginBottom: '30px',
+          padding: 'clamp(15px, 3vw, 25px)',
+          background: '#f8f9fa',
+          borderRadius: '15px',
+          border: '2px solid #e0e0e0'
+        } }>
+          <h2 style={ {
+            fontSize: 'clamp(18px, 3.5vw, 22px)',
+            color: '#333',
+            fontWeight: '600',
+            lineHeight: '1.5',
+            margin: 0
+          } }>
+            { currentQuestion.question }
+          </h2>
         </div>
 
-        {/* Navigation Buttons */}
-        <div style={{ display: 'flex', gap: '15px', justifyContent: 'space-between' }}>
+        {/* Options */ }
+        <div style={ { marginBottom: '40px' } }>
+          { currentQuestion.options.map( ( option ) => {
+            const isSelected = answers[ currentQuestionIndex ] === option.label;
+
+            return (
+              <button
+                key={ option.label }
+                onClick={ () => handleAnswer( option.label ) }
+                style={ {
+                  width: '100%',
+                  padding: 'clamp(15px, 3vw, 20px) clamp(20px, 4vw, 25px)',
+                  marginBottom: '15px',
+                  fontSize: 'clamp(14px, 2.5vw, 16px)',
+                  textAlign: 'left',
+                  border: '3px solid',
+                  borderColor: isSelected ? '#667eea' : '#e0e0e0',
+                  background: isSelected ? '#f0f4ff' : 'white',
+                  color: '#333',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 'clamp(10px, 2vw, 15px)',
+                  lineHeight: '1.6',
+                  boxSizing: 'border-box'
+                } }
+                onMouseEnter={ ( e ) => {
+                  if ( !isSelected ) {
+                    e.currentTarget.style.borderColor = '#667eea';
+                    e.currentTarget.style.background = '#fafbff';
+                  }
+                } }
+                onMouseLeave={ ( e ) => {
+                  if ( !isSelected ) {
+                    e.currentTarget.style.borderColor = '#e0e0e0';
+                    e.currentTarget.style.background = 'white';
+                  }
+                } }
+              >
+                <span style={ {
+                  fontSize: 'clamp(16px, 3vw, 20px)',
+                  fontWeight: 'bold',
+                  color: isSelected ? '#667eea' : '#999',
+                  minWidth: 'clamp(25px, 5vw, 30px)',
+                  flexShrink: 0
+                } }>
+                  { option.label })
+                </span>
+                <span style={ { flex: 1 } }>
+                  { option.text }
+                </span>
+                { isSelected && (
+                  <span style={ {
+                    fontSize: '20px',
+                    color: '#667eea'
+                  } }>
+                    ✓
+                  </span>
+                ) }
+              </button>
+            );
+          } ) }
+        </div>
+
+        {/* Navigation */ }
+        <div style={ {
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 'clamp(10px, 2vw, 15px)'
+        } }>
           <button
-            onClick={handlePrevious}
-            disabled={currentPage === 0}
-            style={{
-              padding: '15px 30px',
-              fontSize: '16px',
+            onClick={ handlePrevious }
+            disabled={ currentQuestionIndex === 0 }
+            style={ {
+              padding: 'clamp(10px, 2vh, 12px) clamp(20px, 4vw, 25px)',
+              fontSize: 'clamp(14px, 2.5vw, 16px)',
               fontWeight: 'bold',
               border: '2px solid #667eea',
               background: 'white',
               color: '#667eea',
               borderRadius: '50px',
-              cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
-              opacity: currentPage === 0 ? 0.5 : 1,
-              transition: 'all 0.3s ease'
-            }}
+              cursor: currentQuestionIndex === 0 ? 'not-allowed' : 'pointer',
+              opacity: currentQuestionIndex === 0 ? 0.4 : 1,
+              transition: 'all 0.3s ease',
+              flex: '1 1 auto',
+              minWidth: 'fit-content'
+            } }
           >
             ← Previous
           </button>
 
-          {currentPage < totalPages - 1 ? (
+          <button
+            onClick={ () => setShowReview( true ) }
+            style={{
+              padding: 'clamp(10px, 2vh, 12px) clamp(20px, 4vw, 25px)',
+              fontSize: 'clamp(12px, 2vw, 14px)',
+              fontWeight: 'bold',
+              border: '2px solid #999',
+              background: 'white',
+              color: '#666',
+              borderRadius: '50px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              flex: '1 1 auto',
+              minWidth: 'fit-content',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Review ({ answeredCount }/20)
+          </button>
+
+          { currentQuestionIndex < 19 ? (
             <button
-              onClick={handleNext}
-              disabled={!currentPageAnswered}
-              style={{
-                padding: '15px 30px',
-                fontSize: '16px',
+              onClick={ handleNext }
+              style={ {
+                padding: 'clamp(10px, 2vh, 12px) clamp(20px, 4vw, 25px)',
+                fontSize: 'clamp(14px, 2.5vw, 16px)',
                 fontWeight: 'bold',
                 border: 'none',
-                background: currentPageAnswered ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ccc',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 color: 'white',
                 borderRadius: '50px',
-                cursor: currentPageAnswered ? 'pointer' : 'not-allowed',
-                transition: 'all 0.3s ease'
-              }}
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                transition: 'all 0.3s ease',
+                flex: '1 1 auto',
+                minWidth: 'fit-content'
+              } }
             >
               Next →
             </button>
           ) : (
             <button
-              onClick={handleSubmit}
-              disabled={!allAnswered}
-              style={{
-                padding: '15px 30px',
-                fontSize: '16px',
+                onClick={ () => setShowReview( true ) }
+                style={ {
+                  padding: 'clamp(10px, 2vh, 12px) clamp(20px, 4vw, 25px)',
+                  fontSize: 'clamp(14px, 2.5vw, 16px)',
                 fontWeight: 'bold',
                 border: 'none',
-                background: allAnswered ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ccc',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 color: 'white',
                 borderRadius: '50px',
-                cursor: allAnswered ? 'pointer' : 'not-allowed',
-                boxShadow: allAnswered ? '0 10px 30px rgba(102, 126, 234, 0.4)' : 'none',
-                transition: 'all 0.3s ease'
-              }}
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                transition: 'all 0.3s ease',
+                flex: '1 1 auto',
+                minWidth: 'fit-content'
+              } }
             >
-              Continue to Instructions →
+                Review Answers →
             </button>
-          )}
+          ) }
         </div>
       </div>
     </div>

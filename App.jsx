@@ -8,8 +8,11 @@ import {
 } from "@mediapipe/tasks-vision";
 
 // Utils
-import { calculateDistance, calculateDistance2D, calculateAngle, calculateAngle3Points, formatMetric } from "./utils/geometry";
+import { calculateDistance, calculateDistance2D, calculateAngle, calculateAngle3Points, calculateCraniovertebralAngle, calculateShoulderHeightAsymmetry, calculateFootArchBothSides, calculatePelvicTilt, interpretPelvicTilt, formatMetric } from "./utils/geometry";
 import { calculateTotalScore } from "./utils/scoring";
+import analyzePatterns from "./utils/patternAnalyzer";
+import { calculateQuestionnaireScores } from "./utils/questionnaireScoring";
+import integrateAllModalities from "./utils/integratedPatternFusion";
 
 // Navigation Components
 import LandingPage from "./components/LandingPage";
@@ -36,9 +39,9 @@ function App() {
   const [ appStage, setAppStage ] = useState( 'LANDING' );
   // Possible values: 'LANDING' → 'QUESTIONNAIRE' → 'INSTRUCTIONS' → 'CAPTURE' → 'PROCESSING' → 'RESULTS'
 
-  // Questionnaire Data
-  const [ questionnaireAnswers, setQuestionnaireAnswers ] = useState( {} );
-  const [ questionnaireScore, setQuestionnaireScore ] = useState( 50 );
+  // Questionnaire Data - New format for pattern-based scoring
+  const [ questionnaireData, setQuestionnaireData ] = useState( null );
+  // Structure: { answers: [], rawScores: {}, normalizedScores: {}, metadata: {} }
 
   // 4-Stage Capture System
   const [ captureStage, setCaptureStage ] = useState( 'STAGE_1_FACE' );
@@ -78,9 +81,13 @@ function App() {
   const [ stage3Debug, setStage3Debug ] = useState( null );
   const [ stage4Debug, setStage4Debug ] = useState( null );
 
+  // Pattern Analysis Results
+  const [ patternResults, setPatternResults ] = useState( null );
+
   // Refs for render loop
   const lastInferenceTimeRef = useRef( 0 );
   const lastAlignmentCheckRef = useRef( 0 );
+  const renderLoopRef = useRef( null ); // Store render loop function for restart
   const INFERENCE_INTERVAL_MS = 100;
   const ALIGNMENT_CHECK_INTERVAL = 200;
 
@@ -88,6 +95,50 @@ function App() {
   useEffect( () => {
     captureStageRef.current = captureStage;
   }, [ captureStage ] );
+
+  // Restart render loop when unfrozen
+  useEffect( () => {
+    if ( !isFrozen && renderLoopRef.current && appStage === 'CAPTURE' ) {
+      console.log( '🔄 Restarting render loop - screen unfrozen' );
+      renderLoopRef.current();
+    }
+  }, [ isFrozen, appStage ] );
+
+  // Run INTEGRATED pattern analysis when entering PROCESSING stage
+  useEffect( () => {
+    if ( appStage === 'PROCESSING' && captureData.stage4.image && questionnaireData ) {
+      console.log( '=== STARTING INTEGRATED PATTERN ANALYSIS (useEffect) ===' );
+
+      // Combine all metrics for pattern analysis
+      const bodyMetrics = {
+        shoulderHeight: captureData.stage2.metrics.shoulderHeight,
+        fhpAngle: captureData.stage3.metrics.fhpAngle,
+        pelvicTilt: captureData.stage4.metrics.pelvicTilt,
+        kneeAngle: captureData.stage4.metrics.kneeAngle,
+        footArchRatio: captureData.stage4.metrics.footArchRatio
+      };
+
+      const faceMetrics = {
+        eyeSym: captureData.stage1.metrics.eyeSym,
+        jawShift: captureData.stage1.metrics.jawShift,
+        headTilt: captureData.stage1.metrics.headTilt,
+        nostrilAsym: captureData.stage1.metrics.nostrilAsym
+      };
+
+      const questionnaireScores = questionnaireData.normalizedScores;
+
+      console.log( 'Body Metrics:', bodyMetrics );
+      console.log( 'Face Metrics:', faceMetrics );
+      console.log( 'Questionnaire Scores:', questionnaireScores );
+
+      // Run INTEGRATED pattern fusion (Body 50%, Face 30%, Questionnaire 20%)
+      const integratedResult = integrateAllModalities( bodyMetrics, faceMetrics, questionnaireScores );
+      setPatternResults( integratedResult );
+
+      console.log( 'Integrated Pattern Analysis Complete:', integratedResult );
+      console.log( '=== INTEGRATED PATTERN ANALYSIS END ===\n' );
+    }
+  }, [ appStage, captureData, questionnaireData ] );
 
   // Initialize MediaPipe and Camera
   useEffect(() => {
@@ -141,10 +192,10 @@ function App() {
 
           const now = performance.now();
 
-          // Skip inference if screen is frozen
+          // Skip inference if screen is frozen - STOP THE LOOP
           if ( isFrozen ) {
-            animationFrameId = requestAnimationFrame( renderLoop );
-            return;
+            console.log( '🛑 Render loop stopped - screen is frozen' );
+            return; // Don't continue the loop
           }
 
           const shouldRunInference = ( now - lastInferenceTimeRef.current ) >= INFERENCE_INTERVAL_MS;
@@ -228,48 +279,77 @@ function App() {
                   drawingUtils.drawLandmarks( pl, { color: "#FFFF00", radius: 3 } );
                 }
 
-                const leftShoulder = pl[ 11 ];
-                const rightShoulder = pl[ 12 ];
-                const shoulderWidth = calculateDistance( leftShoulder, rightShoulder );
-                const bodyNorm = shoulderWidth > 0 ? shoulderWidth : 1;
+                // METRIC 4: Shoulder Height Asymmetry (Normalized by Body Height)
+                // Uses Left Shoulder (11), Right Shoulder (12), Ankles (27, 28)
+                // Expected: <2% (normal), 2-4% (mild), 4-6% (moderate), >6% (severe)
+                const shoulderHeight = calculateShoulderHeightAsymmetry( pl );
 
-                const shoulderDiffY = Math.abs( leftShoulder.y - rightShoulder.y );
-                const shoulderHeight = shoulderDiffY / bodyNorm;
+                // Handle null return (missing landmarks)
+                if ( shoulderHeight === null ) {
+                  console.warn( 'Could not calculate shoulder asymmetry - missing landmarks' );
+                }
 
+                // METRIC 5: Forward Head Posture (Craniovertebral Angle - CVA)
+                // Uses Nose (0), Ear (7), Shoulder (11)
+                // Expected: 50-60° (normal), <40° (severe FHP)
+                const nose = pl[ 0 ];
                 const ear = pl[ 7 ];
-                const fhpAngleRaw = calculateAngle( ear, leftShoulder );
-                const fhpAngle = Math.abs( fhpAngleRaw - 90 );
+                const leftShoulder = pl[ 11 ]; // Left shoulder landmark
+                const fhpAngle = calculateCraniovertebralAngle( nose, ear, leftShoulder );
 
-                const leftHip = pl[ 23 ];
-                const leftKnee = pl[ 25 ];
-                const pelvAngleRaw = calculateAngle( leftHip, leftKnee );
-                const pelvicTilt = Math.abs( pelvAngleRaw - 90 );
+                // Handle null return (missing landmarks)
+                if ( fhpAngle === null ) {
+                  console.warn( 'Could not calculate CVA - missing landmarks' );
+                }
+
+                // METRIC 6: Anterior Pelvic Tilt
+                // Uses Hip (23), Knee (25) for side view
+                // Expected: 5-12° (normal), >15° (hyperlordotic), <5° (posterior tilt)
+                const pelvicTilt = calculatePelvicTilt( pl, 'side' );
+
+                // Get interpretation
+                const pelvicInterpretation = interpretPelvicTilt( pelvicTilt, 'side' );
+
+                // Handle null return (missing landmarks)
+                if ( pelvicTilt === null ) {
+                  console.warn( 'Could not calculate pelvic tilt - missing landmarks' );
+                }
+
+                // Log interpretation for debugging
+                console.log( 'Pelvic Tilt Analysis:', {
+                  angle: pelvicTilt,
+                  level: pelvicInterpretation.level,
+                  description: pelvicInterpretation.description,
+                  score: pelvicInterpretation.score
+                } );
 
                 // METRIC 7: Knee Valgus Angle (Joint Angle at Knee)
                 // Uses Hip (23) -> Knee (25) -> Ankle (27)
                 // Expected: 165-180° (170-180° is normal, 165-170° is mild valgus)
+                const leftHip = pl[ 23 ]; // Left hip landmark
+                const leftKnee = pl[ 25 ]; // Left knee landmark
                 const leftAnkle = pl[ 27 ];
                 const kneeAngle = calculateAngle3Points( leftHip, leftKnee, leftAnkle );
 
-                // METRIC 8: Foot Arch Collapse Ratio
-                // Uses Ankle (27), Heel (29), Toe (31)
-                // Expected: 0.20-0.40 (0.30-0.40 is normal, lower = flat foot)
-                const leftHeel = pl[ 29 ];
-                const leftToe = pl[ 31 ];
+                // METRIC 8: Foot Arch Collapse Ratio (NEW METHOD)
+                // Uses Ankle (27/28), Heel (29/30), Foot Index (31/32)
+                // Expected: 0.30-0.40 (normal arch), 0.20-0.30 (mild pronation), <0.20 (severe flat foot)
+                // NEW: Vertical arch height ratio (navicular to heel / ankle to heel)
+                const footArchData = calculateFootArchBothSides( pl );
+                const footArchRatio = footArchData.average;
 
-                // Calculate baseline distance (heel to toe)
-                const baselineDistance = calculateDistance2D( leftHeel, leftToe );
+                // Handle null return (missing landmarks)
+                if ( footArchRatio === null ) {
+                  console.warn( 'Could not calculate foot arch ratio - missing landmarks' );
+                }
 
-                // Calculate perpendicular distance from ankle to heel-toe line
-                // Point-to-line distance formula
-                const A = leftToe.y - leftHeel.y;
-                const B = leftHeel.x - leftToe.x;
-                const C = leftToe.x * leftHeel.y - leftHeel.x * leftToe.y;
-                const archHeightPerpendicular = Math.abs( A * leftAnkle.x + B * leftAnkle.y + C ) /
-                  Math.sqrt( A * A + B * B );
-
-                // Calculate foot arch ratio
-                const footArchRatio = baselineDistance > 0 ? archHeightPerpendicular / baselineDistance : 0;
+                // Log both feet for debugging
+                console.log( 'Foot Arch Analysis:', {
+                  left: footArchData.left,
+                  right: footArchData.right,
+                  average: footArchData.average,
+                  asymmetry: footArchData.asymmetry
+                } );
 
                 currentBodyMetrics = {
                   shoulderHeight: formatMetric( shoulderHeight, 3 ),
@@ -325,6 +405,8 @@ function App() {
           animationFrameId = requestAnimationFrame(renderLoop);
         };
 
+        // Store renderLoop in ref for restart capability
+        renderLoopRef.current = renderLoop;
         renderLoop();
       };
 
@@ -492,10 +574,10 @@ function App() {
           return false;
         }
 
-        // Check for side view - STRICT threshold for true side profile
+        // Check for side view - MODERATE threshold for side profile
         // In side view, hips appear close together (overlapping)
         const hipDistance4 = Math.abs( leftHip4.x - rightHip4.x );
-        const isSideView4 = hipDistance4 < 0.12; // STRICT - must be true side view
+        const isSideView4 = hipDistance4 < 0.15; // MODERATE - more forgiving than before (was 0.12)
 
 
         const hipCenterX4 = ( leftHip4.x + rightHip4.x ) / 2;
@@ -726,7 +808,43 @@ function App() {
           }
         } ) );
 
+        // Analyze patterns after all captures complete
         setTimeout( () => {
+          console.log( '=== STARTING PATTERN ANALYSIS ===' );
+
+          // Combine all metrics for pattern analysis
+          const combinedMetrics = {
+            face: {
+              eyeSym: captureData.stage1.metrics.eyeSym,
+              jawShift: captureData.stage1.metrics.jawShift,
+              headTilt: captureData.stage1.metrics.headTilt,
+              nostrilAsym: captureData.stage1.metrics.nostrilAsym
+            },
+            body: {
+              shoulderHeight: captureData.stage2.metrics.shoulderHeight,
+              fhpAngle: captureData.stage3.metrics.fhpAngle,
+              pelvicTilt: metrics.body.pelvicTilt,  // Use current metrics for stage 4
+              kneeAngle: metrics.body.kneeAngle,
+              footArchRatio: metrics.body.footArchRatio
+            }
+          };
+
+          console.log( 'Combined Metrics for Pattern Analysis:', combinedMetrics );
+
+          // Run integrated pattern analysis (Body 50%, Face 30%, Questionnaire 20%)
+          console.log( '=== CALLING INTEGRATED PATTERN FUSION ===' );
+          const integratedResults = integrateAllModalities(
+            combinedMetrics.body,
+            combinedMetrics.face,
+            questionnaireData.normalizedScores
+          );
+
+          console.log( 'Integrated Pattern Results:', integratedResults );
+          setPatternResults( integratedResults );
+
+          // console.log( 'Pattern Analysis Complete:', patterns );
+          console.log( '=== PATTERN ANALYSIS END ===\n' );
+
           setIsFrozen( false );
           setFrozenImage( null );
           setAppStage( 'PROCESSING' );
@@ -775,9 +893,9 @@ function App() {
   if ( appStage === 'QUESTIONNAIRE' ) {
     return (
       <Questionnaire
-        onComplete={ ( answers, score ) => {
-          setQuestionnaireAnswers( answers );
-          setQuestionnaireScore( score );
+        onComplete={ ( questionnaireResult ) => {
+          console.log( 'Questionnaire Complete:', questionnaireResult );
+          setQuestionnaireData( questionnaireResult );
           setAppStage( 'INSTRUCTIONS' );
         } }
       />
@@ -796,8 +914,8 @@ function App() {
     return (
       <ResultsScreen
         captureData={ captureData }
-        questionnaireAnswers={ questionnaireAnswers }
-        questionnaireScore={ questionnaireScore }
+        questionnaireData={ questionnaireData }
+        patternResults={ patternResults }
         onRestart={ handleRestart }
       />
     );
@@ -809,20 +927,25 @@ function App() {
     <div
       style={{
         height: "100vh",
+        width: "100vw",
         margin: 0,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         background: "#111",
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        padding: '10px'
       }}
     >
       <div
         style={{
           position: "relative",
-          width: 960,
-          height: 720,
+          width: '100%',
+          maxWidth: '960px',
+          height: 'auto',
+          aspectRatio: '4/3',
+          maxHeight: 'calc(100vh - 20px)'
         }}
       >
         <Webcam
@@ -833,8 +956,8 @@ function App() {
             position: "absolute",
             top: 0,
             left: 0,
-            width: 960,
-            height: 720,
+            width: '100%',
+            height: '100%',
             transform: "scaleX(-1)",
             visibility: "hidden",
           }}
@@ -848,8 +971,8 @@ function App() {
             position: "absolute",
             top: 0,
             left: 0,
-            width: 960,
-            height: 720,
+            width: '100%',
+            height: '100%',
             transform: "scaleX(-1)",
           } }
         />
@@ -866,8 +989,8 @@ function App() {
             position: 'absolute',
             top: 0,
             left: 0,
-            width: 960,
-            height: 720,
+            width: '100%',
+            height: '100%',
             zIndex: 15,
             backgroundColor: '#000'
           } }>
@@ -877,6 +1000,7 @@ function App() {
               style={ {
                 width: '100%',
                 height: '100%',
+                objectFit: 'cover',
                 transform: 'scaleX(-1)'
               } }
             />
@@ -885,7 +1009,7 @@ function App() {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              fontSize: '64px',
+              fontSize: 'clamp(32px, 8vw, 64px)',
               color: '#00FF00',
               fontWeight: 'bold',
               textShadow: '0 0 30px rgba(0,255,0,0.9)',
@@ -900,19 +1024,20 @@ function App() {
         { !isFrozen && (
           <div style={ {
             position: 'absolute',
-            bottom: 30,
+            bottom: 'clamp(15px, 3vh, 30px)',
             left: '50%',
             transform: 'translateX(-50%)',
-            padding: '15px 30px',
+            padding: 'clamp(10px, 2vh, 15px) clamp(20px, 4vw, 30px)',
             backgroundColor: 'rgba(0,0,0,0.85)',
             borderRadius: '12px',
             color: '#FFF',
-            fontSize: '20px',
+            fontSize: 'clamp(14px, 2.5vw, 20px)',
             fontWeight: 'bold',
             zIndex: 20,
             border: isAligned ? '2px solid #00FF00' : '2px solid #666',
             boxShadow: isAligned ? '0 0 20px rgba(0,255,0,0.5)' : 'none',
-            transition: 'all 0.3s ease'
+            transition: 'all 0.3s ease',
+            whiteSpace: 'nowrap'
           } }>
             { isAligned ? (
               <span style={ { color: '#00FF00' } }>
@@ -955,14 +1080,14 @@ function App() {
             onClick={ () => setShowLandmarks( !showLandmarks ) }
             style={ {
               position: 'absolute',
-              top: 20,
-              right: 20,
-              padding: '10px 20px',
+              top: 'clamp(10px, 2vh, 20px)',
+              right: 'clamp(10px, 2vw, 20px)',
+              padding: 'clamp(8px, 1.5vh, 10px) clamp(15px, 3vw, 20px)',
               backgroundColor: showLandmarks ? '#00FF00' : '#666',
               color: showLandmarks ? '#000' : '#FFF',
               border: 'none',
               borderRadius: '8px',
-              fontSize: '14px',
+              fontSize: 'clamp(12px, 2vw, 14px)',
               fontWeight: 'bold',
               cursor: 'pointer',
               zIndex: 20,
