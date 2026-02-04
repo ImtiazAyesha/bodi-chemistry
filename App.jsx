@@ -710,19 +710,43 @@ function App() {
   // Helper function to capture clean frame without landmarks
   const captureCleanFrame = () => {
     const video = webcamRef.current?.video;
-    if ( !video ) return null;
+    if ( !video ) {
+      console.error( '❌ Video ref not available for capture' );
+      return null;
+    }
 
-    // Create a temporary canvas for clean capture
+    // FIXED: Use actual video dimensions instead of fixed 960x720
     const tempCanvas = document.createElement( 'canvas' );
-    tempCanvas.width = 960;
-    tempCanvas.height = 720;
+    tempCanvas.width = video.videoWidth || 960;
+    tempCanvas.height = video.videoHeight || 720;
     const tempCtx = tempCanvas.getContext( '2d' );
 
-    // Draw only the video frame (no landmarks)
-    tempCtx.drawImage( video, 0, 0, 960, 720 );
+    // Draw full video frame (no landmarks)
+    tempCtx.drawImage( video, 0, 0, tempCanvas.width, tempCanvas.height );
 
-    // Return clean image data URL
-    return tempCanvas.toDataURL( 'image/png' );
+    // Log capture dimensions for debugging
+    console.log( `✅ Captured image: ${ tempCanvas.width }×${ tempCanvas.height }px` );
+
+    // Show flash effect
+    showFlashEffect();
+
+    // Return clean image data URL with high quality
+    return tempCanvas.toDataURL( 'image/jpeg', 0.95 );
+  };
+
+  // Flash effect on capture
+  const showFlashEffect = () => {
+    const flash = document.createElement( 'div' );
+    flash.style.cssText = `
+      position: fixed;
+      inset: 0;
+      background: white;
+      z-index: 9999;
+      pointer-events: none;
+      animation: flash 0.3s ease-out;
+    `;
+    document.body.appendChild( flash );
+    setTimeout( () => flash.remove(), 300 );
   };
 
   // Capture handler
@@ -1001,10 +1025,15 @@ function App() {
               src={ frozenImage }
               alt="Captured"
               style={ {
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transform: 'scaleX(-1)'
+                maxWidth: '100%',
+                maxHeight: '100%',
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain', // FIXED: Show full image without cropping
+                objectPosition: 'center',
+                transform: 'scaleX(-1)',
+                margin: 'auto',
+                display: 'block'
               } }
             />
             <div style={ {
