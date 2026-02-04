@@ -64,7 +64,7 @@ const Questionnaire = ({ onComplete }) => {
     return (
       <div style={ {
         width: '100vw',
-        minHeight: '100vh',
+        minHeight: '100dvh', // FIXED: Dynamic viewport height for mobile
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         padding: 'clamp(20px, 5vw, 40px)',
         fontFamily: 'Arial, sans-serif',
@@ -184,7 +184,7 @@ const Questionnaire = ({ onComplete }) => {
   return (
     <div style={{
       width: '100vw',
-      minHeight: '100vh',
+      minHeight: '100dvh', // FIXED: Dynamic viewport height for mobile
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       padding: 'clamp(20px, 5vw, 40px)',
       fontFamily: 'Arial, sans-serif',

@@ -926,26 +926,27 @@ function App() {
   return (
     <div
       style={{
-        height: "100vh",
+        height: "100dvh", // FIXED: Dynamic viewport height for mobile
         width: "100vw",
         margin: 0,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         background: "#111",
-        position: 'relative',
+        position: 'fixed', // FIXED: Fixed positioning for full screen
+        top: 0,
+        left: 0,
         overflow: 'hidden',
-        padding: '10px'
+        padding: 0 // FIXED: Remove padding for full screen
       }}
     >
       <div
         style={{
           position: "relative",
           width: '100%',
-          maxWidth: '960px',
-          height: 'auto',
-          aspectRatio: '4/3',
-          maxHeight: 'calc(100vh - 20px)'
+          height: '100%', // FIXED: Fill parent container
+          maxWidth: '100vw',
+          maxHeight: '100dvh' // FIXED: Use dynamic viewport height
         }}
       >
         <Webcam
@@ -958,10 +959,12 @@ function App() {
             left: 0,
             width: '100%',
             height: '100%',
-            transform: "scaleX(-1)",
-            visibility: "hidden",
+            objectFit: 'cover', // FIXED: Cover entire container, no black bars
+            transform: "scaleX(-1)", // Mirror for selfie view
+            visibility: "hidden"
           }}
         />
+
 
         <canvas
           ref={canvasRef}
