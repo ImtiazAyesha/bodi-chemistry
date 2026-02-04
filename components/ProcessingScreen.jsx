@@ -13,7 +13,7 @@ const ProcessingScreen = ({ onComplete }) => {
   return (
     <div style={{
       width: '100vw',
-      height: '100vh',
+      height: '100dvh', // FIXED: Dynamic viewport height for mobile
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       display: 'flex',
       alignItems: 'center',
