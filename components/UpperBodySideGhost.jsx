@@ -19,10 +19,12 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
     <svg
       style={{
         position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 'auto',
+        height: '100dvh',
+        maxHeight: '100dvh',
         pointerEvents: 'none',
         zIndex: 10
       }}
