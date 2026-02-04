@@ -51,27 +51,34 @@ const InstructionPage = ({ onStart }) => {
   return (
     <div style={{
       width: '100vw',
-      minHeight: '100vh',
+      minHeight: '100dvh', // FIXED: Dynamic viewport height for mobile
+      height: 'auto', // FIXED: Allow content to expand beyond viewport
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '40px 20px',
-      fontFamily: 'Arial, sans-serif'
+      padding: 'clamp(1rem, 4vw, 2.5rem) clamp(1rem, 3vw, 1.25rem)', // FIXED: Responsive padding
+      fontFamily: 'Arial, sans-serif',
+      overflowY: 'auto', // FIXED: Enable vertical scrolling
+      overflowX: 'hidden',
+      WebkitOverflowScrolling: 'touch', // FIXED: Smooth scrolling on iOS
+      boxSizing: 'border-box',
+      paddingBottom: 'clamp(2rem, 5vw, 3rem)' // FIXED: Extra space at bottom
     }}>
       <div style={{
         maxWidth: '1000px',
         margin: '0 auto',
         background: 'white',
         borderRadius: '20px',
-        padding: '50px',
+        padding: 'clamp(1.5rem, 5vw, 3.125rem)', // FIXED: Responsive padding (24px-50px)
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
       }}>
         <h1 style={{
-          fontSize: '42px',
+          fontSize: 'clamp(1.75rem, 6vw, 2.625rem)', // FIXED: Responsive font (28px-42px)
           fontWeight: 'bold',
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
-          marginBottom: '15px',
-          textAlign: 'center'
+          marginBottom: 'clamp(0.75rem, 2vw, 0.9375rem)', // FIXED: Responsive margin
+          textAlign: 'center',
+          lineHeight: '1.2'
         }}>
           Capture Instructions
         </h1>
@@ -79,8 +86,8 @@ const InstructionPage = ({ onStart }) => {
         <p style={{
           textAlign: 'center',
           color: '#666',
-          fontSize: '18px',
-          marginBottom: '40px',
+          fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)', // FIXED: Responsive font (14px-18px)
+          marginBottom: 'clamp(1.5rem, 4vw, 2.5rem)', // FIXED: Responsive margin
           lineHeight: '1.6'
         }}>
           You're about to complete 4 photo captures. Follow the on-screen guides and hold each pose for 2 seconds.
@@ -91,13 +98,23 @@ const InstructionPage = ({ onStart }) => {
           background: '#fff3cd',
           border: '2px solid #ffc107',
           borderRadius: '10px',
-          padding: '20px',
-          marginBottom: '40px'
+          padding: 'clamp(1rem, 3vw, 1.25rem)', // FIXED: Responsive padding (16px-20px)
+          marginBottom: 'clamp(1.5rem, 4vw, 2.5rem)' // FIXED: Responsive margin
         }}>
-          <h3 style={{ color: '#856404', marginBottom: '10px', fontSize: '18px' }}>
+          <h3 style={ {
+            color: '#856404',
+            marginBottom: 'clamp(0.5rem, 2vw, 0.625rem)', // FIXED: Responsive margin
+            fontSize: 'clamp(1rem, 2.5vw, 1.125rem)' // FIXED: Responsive font (16px-18px)
+          } }>
             ⚠️ Important Tips
           </h3>
-          <ul style={{ color: '#856404', lineHeight: '1.8', paddingLeft: '20px', margin: 0 }}>
+          <ul style={ {
+            color: '#856404',
+            lineHeight: '1.8',
+            paddingLeft: '20px',
+            margin: 0,
+            fontSize: 'clamp(0.875rem, 2vw, 1rem)' // FIXED: Responsive font (14px-16px)
+          } }>
             <li>Ensure good lighting in your room</li>
             <li>Stand about 6 feet away from your camera</li>
             <li>Wear fitted clothing for accurate analysis</li>
@@ -108,28 +125,28 @@ const InstructionPage = ({ onStart }) => {
         {/* Stages Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '20px',
-          marginBottom: '40px'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', // FIXED: Smaller min width for mobile
+          gap: 'clamp(0.75rem, 3vw, 1.25rem)', // FIXED: Responsive gap (12px-20px)
+          marginBottom: 'clamp(1.5rem, 4vw, 2.5rem)' // FIXED: Responsive margin
         }}>
           {stages.map((stage) => (
             <div key={stage.number} style={{
               background: '#f8f9fa',
               borderRadius: '15px',
-              padding: '25px',
+              padding: 'clamp(1rem, 3vw, 1.5625rem)', // FIXED: Responsive padding (16px-25px)
               border: '2px solid #e0e0e0',
               transition: 'all 0.3s ease'
             }}>
               <div style={{
-                fontSize: '48px',
+                fontSize: 'clamp(2.5rem, 8vw, 3rem)', // FIXED: Responsive icon (40px-48px)
                 textAlign: 'center',
-                marginBottom: '15px'
+                marginBottom: 'clamp(0.75rem, 2vw, 0.9375rem)' // FIXED: Responsive margin
               }}>
                 {stage.icon}
               </div>
               
               <h3 style={{
-                fontSize: '18px',
+                fontSize: 'clamp(1rem, 2.5vw, 1.125rem)', // FIXED: Responsive font (16px-18px)
                 fontWeight: 'bold',
                 color: '#333',
                 textAlign: 'center',
@@ -139,10 +156,10 @@ const InstructionPage = ({ onStart }) => {
               </h3>
               
               <p style={{
-                fontSize: '16px',
+                fontSize: 'clamp(0.875rem, 2vw, 1rem)', // FIXED: Responsive font (14px-16px)
                 color: '#667eea',
                 textAlign: 'center',
-                marginBottom: '15px',
+                marginBottom: 'clamp(0.75rem, 2vw, 0.9375rem)', // FIXED: Responsive margin
                 fontWeight: '600'
               }}>
                 {stage.title}
@@ -152,7 +169,7 @@ const InstructionPage = ({ onStart }) => {
                 listStyle: 'none',
                 padding: 0,
                 margin: 0,
-                fontSize: '14px',
+                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)', // FIXED: Responsive font (12px-14px)
                 color: '#666',
                 lineHeight: '1.8'
               }}>
@@ -171,8 +188,8 @@ const InstructionPage = ({ onStart }) => {
           onClick={onStart}
           style={{
             width: '100%',
-            padding: '20px',
-            fontSize: '22px',
+            padding: 'clamp(1rem, 3vw, 1.25rem)', // FIXED: Responsive padding (16px-20px)
+            fontSize: 'clamp(1.125rem, 3vw, 1.375rem)', // FIXED: Responsive font (18px-22px)
             fontWeight: 'bold',
             border: 'none',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -180,7 +197,8 @@ const InstructionPage = ({ onStart }) => {
             borderRadius: '50px',
             cursor: 'pointer',
             boxShadow: '0 10px 30px rgba(102, 126, 234, 0.4)',
-            transition: 'all 0.3s ease'
+            transition: 'all 0.3s ease',
+            touchAction: 'manipulation' // FIXED: Better touch response
           }}
           onMouseEnter={(e) => {
             e.target.style.transform = 'translateY(-2px)';
@@ -197,8 +215,8 @@ const InstructionPage = ({ onStart }) => {
         <p style={{
           textAlign: 'center',
           color: '#999',
-          fontSize: '14px',
-          marginTop: '20px'
+          fontSize: 'clamp(0.75rem, 2vw, 0.875rem)', // FIXED: Responsive font (12px-14px)
+          marginTop: 'clamp(1rem, 3vw, 1.25rem)' // FIXED: Responsive margin
         }}>
           📸 Total capture time: ~2 minutes
         </p>
