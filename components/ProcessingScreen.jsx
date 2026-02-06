@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
 
 const ProcessingScreen = ({ onComplete }) => {
   useEffect(() => {
@@ -11,118 +12,79 @@ const ProcessingScreen = ({ onComplete }) => {
   }, [onComplete]);
 
   return (
-    <div style={{
-      width: '100vw',
-      height: '100dvh', // FIXED: Dynamic viewport height for mobile
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'Arial, sans-serif'
-    }}>
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.95)',
-        padding: '60px 80px',
-        borderRadius: '20px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        textAlign: 'center',
-        maxWidth: '500px'
-      }}>
-        {/* Animated Spinner */}
-        <div style={{
-          width: '80px',
-          height: '80px',
-          margin: '0 auto 30px',
-          border: '6px solid #f3f3f3',
-          borderTop: '6px solid #667eea',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
+    <div className="min-h-screen bg-[#020617] relative overflow-hidden flex items-center justify-center p-4">
+      {/* Background Layers */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.1),_transparent_70%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none" />
 
-        <style>
-          {`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-            @keyframes pulse {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.5; }
-            }
-          `}
-        </style>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative z-10 max-w-md w-full backdrop-blur-xl bg-[#0B1221]/80 border border-cyan-500/10 rounded-2xl p-8 sm:p-12 text-center shadow-2xl shadow-cyan-900/20"
+      >
+        {/* Animated Scanner Visual */}
+        <div className="relative w-24 h-24 mx-auto mb-8">
+          <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20" />
+          <div className="absolute inset-0 rounded-full border-t-2 border-cyan-400 animate-spin" />
+          <div className="absolute inset-4 rounded-full border-2 border-cyan-500/10" />
+          <div className="absolute inset-4 rounded-full border-b-2 border-cyan-300 animate-spin-reverse" />
 
-        <h1 style={{
-          fontSize: '36px',
-          fontWeight: 'bold',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          marginBottom: '20px'
-        }}>
-          Analyzing Your Posture
-        </h1>
-
-        <p style={{
-          fontSize: '18px',
-          color: '#666',
-          marginBottom: '30px',
-          lineHeight: '1.6'
-        }}>
-          Our AI is processing your captures and calculating your personalized assessment...
-        </p>
-
-        <div style={{
-          background: '#f8f9fa',
-          padding: '20px',
-          borderRadius: '10px',
-          textAlign: 'left'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '12px',
-            animation: 'pulse 1.5s ease-in-out infinite'
-          }}>
-            <span style={{ fontSize: '20px', marginRight: '10px' }}>✓</span>
-            <span style={{ color: '#333', fontSize: '16px' }}>Processing face metrics...</span>
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '12px',
-            animation: 'pulse 1.5s ease-in-out 0.3s infinite'
-          }}>
-            <span style={{ fontSize: '20px', marginRight: '10px' }}>✓</span>
-            <span style={{ color: '#333', fontSize: '16px' }}>Analyzing body alignment...</span>
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '12px',
-            animation: 'pulse 1.5s ease-in-out 0.6s infinite'
-          }}>
-            <span style={{ fontSize: '20px', marginRight: '10px' }}>✓</span>
-            <span style={{ color: '#333', fontSize: '16px' }}>Calculating scores...</span>
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            animation: 'pulse 1.5s ease-in-out 0.9s infinite'
-          }}>
-            <span style={{ fontSize: '20px', marginRight: '10px' }}>✓</span>
-            <span style={{ color: '#333', fontSize: '16px' }}>Generating report...</span>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
           </div>
         </div>
 
-        <p style={{
-          marginTop: '25px',
-          color: '#999',
-          fontSize: '14px'
-        }}>
-          This will only take a moment...
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight">
+          analyzing <span className="text-cyan-400">biometrics</span>
+        </h1>
+
+        <p className="text-slate-400 text-sm mb-8 font-light">
+          Our AI is processing your captures and calculating your personalized assessment...
         </p>
-      </div>
+
+        <div className="bg-slate-900/50 rounded-lg p-6 border border-white/5 text-left space-y-4">
+          {[
+            "Processing face metrics...",
+            "Analyzing body alignment...",
+            "Calculating scores...",
+            "Generating report..."
+          ].map((text, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.8, duration: 0.5 }}
+              className="flex items-center gap-3 text-sm"
+            >
+              <div className="w-4 h-4 rounded-full bg-cyan-900/50 border border-cyan-500/30 flex items-center justify-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: i * 0.8 + 0.2 }}
+                  className="w-2 h-2 bg-cyan-400 rounded-full"
+                />
+              </div>
+              <span className={`font-mono ${i === 3 ? 'text-cyan-200 animate-pulse' : 'text-slate-300'}`}>
+                {text}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+
+        <p className="mt-8 text-xs text-slate-600 font-mono text-center">
+          ESTIMATED TIME: ~12 SECONDS
+        </p>
+      </motion.div>
+
+      <style>{`
+        @keyframes spin-reverse {
+          from { transform: rotate(360deg); }
+          to { transform: rotate(0deg); }
+        }
+        .animate-spin-reverse {
+          animation: spin-reverse 3s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };

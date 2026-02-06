@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getSeverityColor, getSeverityLabel } from '../config/patterns.config';
 
 /**
@@ -7,241 +8,185 @@ import { getSeverityColor, getSeverityLabel } from '../config/patterns.config';
  */
 const PatternCard = ({ pattern, rank }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  const severityColor = getSeverityColor(pattern.severity);
+
+  // Map color names/hex to Tailwind classes or CSS variables for custom colors if needed
   const severityLabel = getSeverityLabel(pattern.severity);
   const isActive = pattern.severity !== 'none';
 
   return (
-    <div 
-      style={{
-        border: `2px solid ${isActive ? pattern.color : '#ddd'}`,
-        borderRadius: '12px',
-        padding: '20px',
-        marginBottom: '16px',
-        background: isActive 
-          ? `linear-gradient(135deg, ${pattern.color}15, transparent)`
-          : '#f9f9f9',
-        cursor: isActive ? 'pointer' : 'default',
-        transition: 'all 0.3s ease',
-        opacity: isActive ? 1 : 0.6,
-        transform: isExpanded ? 'scale(1.02)' : 'scale(1)',
-        boxShadow: isExpanded ? '0 8px 16px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.05)'
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: isActive ? 1 : 0.6, y: 0 }}
+      whileHover={{ scale: isActive ? 1.02 : 1 }}
+      className={`
+        relative overflow-hidden rounded-xl border transition-all duration-300 h-full flex flex-col
+        ${isActive
+          ? 'bg-[#0B1221]/80 backdrop-blur-sm border-cyan-500/30 shadow-lg shadow-cyan-900/5 cursor-pointer'
+          : 'bg-slate-900/20 border-white/5 cursor-default'}
+      `}
+      onClick={(e) => {
+        if (isActive) {
+          e.stopPropagation();
+          setIsExpanded(!isExpanded);
+        }
       }}
-      onClick={() => isActive && setIsExpanded(!isExpanded)}
+      style={{
+        borderColor: isActive ? pattern.color : '',
+      }}
     >
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-          {/* Rank Badge (only for active patterns) */}
-          {isActive && rank && (
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              background: pattern.color,
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              fontSize: '16px'
-            }}>
-              {rank}
+      {/* Active Glow Background */}
+      {isActive && (
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{ background: `linear-gradient(135deg, ${pattern.color}, transparent)` }}
+        />
+      )}
+
+      <div className="relative z-10 p-5 flex flex-col flex-1">
+        {/* Top Header - Icon and Score */}
+        <div className="flex justify-between items-start gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            {/* Rank Badge */}
+            {isActive && rank && (
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-white shadow-lg text-[10px]"
+                style={{ backgroundColor: pattern.color }}
+              >
+                {rank}
+              </div>
+            )}
+            <span className="text-3xl drop-shadow-md">{pattern.icon || '⚡'}</span>
+          </div>
+
+          <div className="text-right">
+            <div
+              className="text-2xl font-black leading-none"
+              style={{ color: pattern.color || '#94a3b8' }}
+            >
+              {pattern.score?.toFixed(0)}%
             </div>
-          )}
-          
-          {/* Icon */}
-          <span style={{ fontSize: '32px' }}>{pattern.icon}</span>
-          
-          {/* Name and Description */}
-          <div style={{ flex: 1 }}>
-            <h3 style={{ 
-              margin: 0, 
-              color: isActive ? pattern.color : '#666',
-              fontSize: '18px',
-              fontWeight: 'bold'
-            }}>
-              {pattern.name}
-            </h3>
-            <p style={{ 
-              margin: '4px 0 0 0', 
-              fontSize: '14px', 
-              color: '#666',
-              lineHeight: '1.4'
-            }}>
-              {pattern.description}
-            </p>
+            <div
+              className="text-[10px] uppercase font-bold tracking-wider mt-1"
+              style={{ color: pattern.color || '#64748b' }}
+            >
+              {severityLabel}
+            </div>
           </div>
         </div>
-        
-        {/* Score and Severity */}
-        <div style={{ textAlign: 'right', minWidth: '80px' }}>
-          <div style={{
-            fontSize: '32px',
-            fontWeight: 'bold',
-            color: severityColor,
-            lineHeight: '1'
-          }}>
-            {pattern.score.toFixed(0)}
-          </div>
-          <div style={{
-            fontSize: '11px',
-            textTransform: 'uppercase',
-            color: severityColor,
-            fontWeight: 'bold',
-            marginTop: '4px',
-            letterSpacing: '0.5px'
-          }}>
-            {severityLabel}
-          </div>
+
+        {/* Content */}
+        <div className="flex-1">
+          <h3
+            className="font-bold text-base leading-tight mb-2"
+            style={{ color: isActive ? pattern.color : '#94a3b8' }}
+          >
+            {pattern.name}
+          </h3>
+          <p className="text-slate-500 text-[11px] leading-relaxed line-clamp-2">
+            {pattern.description}
+          </p>
         </div>
+
+        {/* Expand Indicator */}
+        {isActive && (
+          <div className="text-center mt-4 pt-3 border-t border-white/5 group">
+            <span className="text-[10px] text-slate-600 uppercase tracking-widest group-hover:text-cyan-400 transition-colors flex items-center justify-center gap-1">
+              {isExpanded ? 'Hide Details' : 'View Factors'}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+              >
+                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+              </svg>
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Expand Indicator */}
-      {isActive && (
-        <div style={{
-          textAlign: 'center',
-          marginTop: '12px',
-          color: '#999',
-          fontSize: '12px',
-          fontWeight: '500'
-        }}>
-          {isExpanded ? '▲ Click to collapse' : '▼ Click for details'}
-        </div>
-      )}
-
       {/* Expanded Content */}
-      {isExpanded && isActive && (
-        <div style={{ 
-          marginTop: '20px', 
-          paddingTop: '20px', 
-          borderTop: `2px solid ${pattern.color}40`,
-          animation: 'fadeIn 0.3s ease'
-        }}>
-          {/* Metric Breakdown */}
-          <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ 
-              margin: '0 0 12px 0',
-              color: pattern.color,
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}>
-              📊 Contributing Factors
-            </h4>
-            <div style={{ 
-              background: 'white',
-              borderRadius: '8px',
-              padding: '12px',
-              border: '1px solid #eee'
-            }}>
-              {pattern.metricBreakdown.slice(0, 5).map((metric, idx) => (
-                <div 
-                  key={idx} 
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '10px 0',
-                    borderBottom: idx < 4 ? '1px solid #f0f0f0' : 'none'
-                  }}
+      <AnimatePresence>
+        {isExpanded && isActive && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="relative z-10 border-t border-white/5 bg-[#020617]/50"
+          >
+            <div className="p-5 space-y-6">
+              {/* Metrics */}
+              <div>
+                <h4
+                  className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2"
+                  style={{ color: pattern.color }}
                 >
-                  <div style={{ flex: 1 }}>
-                    <span style={{ 
-                      fontWeight: '500',
-                      color: '#333'
-                    }}>
-                      {metric.name}
-                    </span>
-                    <span style={{
-                      marginLeft: '8px',
-                      fontSize: '12px',
-                      color: '#999'
-                    }}>
-                      (weight: {(metric.weight * 100).toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                      width: '60px',
-                      height: '8px',
-                      background: '#f0f0f0',
-                      borderRadius: '4px',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        width: `${Math.min(100, metric.normalizedValue)}%`,
-                        height: '100%',
-                        background: metric.exceedsThreshold ? '#f44336' : pattern.color,
-                        transition: 'width 0.3s ease'
-                      }} />
-                    </div>
-                    <span style={{
-                      fontWeight: 'bold',
-                      color: metric.exceedsThreshold ? '#f44336' : '#666',
-                      minWidth: '40px',
-                      textAlign: 'right'
-                    }}>
-                      {metric.normalizedValue.toFixed(0)}
-                      {metric.exceedsThreshold && ' ⚠️'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                  📊 Contributing Factors
+                </h4>
 
-          {/* Recommendations */}
-          {pattern.recommendations && pattern.recommendations.length > 0 && (
-            <div>
-              <h4 style={{ 
-                margin: '0 0 12px 0',
-                color: pattern.color,
-                fontSize: '16px',
-                fontWeight: 'bold'
-              }}>
-                💡 Recommended Actions
-              </h4>
-              <div style={{
-                background: 'white',
-                borderRadius: '8px',
-                padding: '16px',
-                border: '1px solid #eee'
-              }}>
-                <ul style={{ 
-                  margin: 0, 
-                  paddingLeft: '20px',
-                  listStyleType: 'none'
-                }}>
-                  {pattern.recommendations.map((rec, idx) => (
-                    <li 
-                      key={idx} 
-                      style={{ 
-                        marginBottom: '10px',
-                        color: '#444',
-                        lineHeight: '1.6',
-                        position: 'relative',
-                        paddingLeft: '24px'
-                      }}
-                    >
-                      <span style={{
-                        position: 'absolute',
-                        left: 0,
-                        color: pattern.color,
-                        fontWeight: 'bold'
-                      }}>
-                        {idx === 0 ? '→' : '•'}
-                      </span>
-                      {rec}
-                    </li>
+                <div className="space-y-3 bg-[#0B1221] p-4 rounded-lg border border-white/5">
+                  {(pattern.metricBreakdown || []).slice(0, 5).map((metric, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs sm:text-sm">
+                      <div className="flex-1 pr-4">
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span className="text-slate-300 font-medium">{metric.name}</span>
+                          <span className="text-slate-600 text-[10px] font-mono">
+                            (w: {(metric.weight * 100).toFixed(0)}%)
+                          </span>
+                        </div>
+
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(100, metric.normalizedValue)}%` }}
+                            className="h-full rounded-full"
+                            style={{
+                              backgroundColor: metric.exceedsThreshold ? '#ef4444' : pattern.color
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="text-right font-mono font-bold min-w-[30px]" style={{ color: metric.exceedsThreshold ? '#ef4444' : pattern.color }}>
+                        {metric.normalizedValue?.toFixed(0)}
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                  {(!pattern.metricBreakdown || pattern.metricBreakdown.length === 0) && (
+                    <p className="text-slate-500 text-xs italic">Loading analysis data...</p>
+                  )}
+                </div>
               </div>
+
+              {/* Recommendations */}
+              {pattern.recommendations && pattern.recommendations.length > 0 && (
+                <div>
+                  <h4
+                    className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2"
+                    style={{ color: pattern.color }}
+                  >
+                    💡 Action Plan
+                  </h4>
+
+                  <ul className="space-y-2 bg-[#0B1221] p-4 rounded-lg border border-white/5 text-sm text-slate-400">
+                    {pattern.recommendations.map((rec, idx) => (
+                      <li key={idx} className="flex gap-3 items-start">
+                        <span style={{ color: pattern.color }} className="mt-1">
+                          {idx === 0 ? '✦' : '•'}
+                        </span>
+                        <span className={idx === 0 ? 'text-slate-200 font-medium' : ''}>
+                          {rec}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
