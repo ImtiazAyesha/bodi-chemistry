@@ -1,19 +1,17 @@
 import React from 'react';
 
 /**
- * Stage 3: Upper Body Side Ghost - Simple side profile outline with countdown
+ * Stage 3: Upper Body Side Ghost - Realistic Human Proportions
  */
 const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null }) => {
-  const strokeColor = isAligned ? '#00FF00' : '#B0B0B0';
-  const strokeWidth = 3;
-  const fillColor = 'rgba(200, 200, 200, 0.15)';
-  
+  // Color scheme from LandingPage - Professional cyan/blue/slate
+  const primaryColor = isAligned ? '#06B6D4' : '#64748B';
+  const successColor = '#06B6D4';
+  const guidanceColor = '#F59E0B';
+
   const progress = (holdDuration / 3000) * 100;
   const countdown = Math.ceil((3000 - holdDuration) / 1000);
-
-  // Extract feedback from debug info
   const feedbackMessage = stage3Debug?.feedbackMessage || '';
-  const showFeedback = !isAligned && feedbackMessage;
 
   return (
     <svg
@@ -31,187 +29,141 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
       viewBox="0 0 960 720"
       preserveAspectRatio="xMidYMid meet"
     >
-      {/* Instruction Banner */}
-      <rect
-        x="0"
-        y="0"
-        width="960"
-        height="90"
-        fill="rgba(255, 140, 0, 0.9)"
-      />
-      <text
-        x="480"
-        y="35"
-        textAnchor="middle"
-        fill="#FFF"
-        fontSize="32"
-        fontWeight="bold"
-      >
-        🔄 TURN TO YOUR RIGHT SIDE
-      </text>
-      <text
-        x="480"
-        y="70"
-        textAnchor="middle"
-        fill="#FFF"
-        fontSize="24"
-      >
-        {isAligned ? '✓ Perfect! Hold Still!' : 'Position upper body in outline'}
-      </text>
-
-      {/* Simple side profile - MUCH WIDER and TALLER */}
-      <g transform="translate(480, 400)">
-        {/* Head - side view - BIGGER */}
-        <ellipse
-          cx="0"
-          cy="-250"
-          rx="120"
-          ry="140"
-          fill={fillColor}
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
+      {/* Top Instruction - Clean & Minimal */}
+      <g>
+        <rect x="230" y="20" width="500" height="70" rx="8"
+          fill="rgba(2, 6, 23, 0.85)"
+          stroke={primaryColor}
+          strokeWidth="2"
+          opacity="0.95"
         />
-        
-        {/* Neck - WIDER */}
+        <text
+          x="480"
+          y="48"
+          textAnchor="middle"
+          fill={isAligned ? successColor : '#94A3B8'}
+          fontSize="18"
+          fontWeight="600"
+          letterSpacing="1"
+          style={{ textTransform: 'uppercase' }}
+        >
+          Step 3: Side Profile
+        </text>
+        <text
+          x="480"
+          y="72"
+          textAnchor="middle"
+          fill={isAligned ? successColor : '#E2E8F0'}
+          fontSize="24"
+          fontWeight="bold"
+        >
+          {isAligned ? '✓ Hold Position' : 'Turn to Your Right Side'}
+        </text>
+      </g>
+
+      {/* REALISTIC UPPER BODY SIDE SILHOUETTE */}
+      <g transform="translate(480, 390)">
+        {/* Glow effect when aligned */}
+        {isAligned && (
+          <ellipse
+            cx="0"
+            cy="0"
+            rx="140"
+            ry="320"
+            fill="none"
+            stroke={successColor}
+            strokeWidth="20"
+            opacity="0.15"
+            filter="blur(20px)"
+          />
+        )}
+
+        {/* Unified Realistic Side Profile Silhouette */}
         <path
-          d="M -30 -130 L -40 -80"
+          d="M 10 -280 
+             Q 55 -280 55 -230 
+             L 65 -220 L 55 -210 
+             Q 55 -180 35 -165 
+             Q 30 -140 35 -120 
+             C 55 -100 65 -60 60 -20 
+             Q 55 40 50 145 
+             L -20 145 
+             Q -35 100 -30 60 
+             Q -35 -20 -30 -80 
+             Q -35 -130 -40 -160 
+             Q -50 -200 10 -280 Z"
+          fill="rgba(6, 182, 212, 0.08)"
+          stroke={primaryColor}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={isAligned ? "0" : "10 5"}
+        />
+
+        {/* Arm Hints */}
+        <path
+          d="M 15 -80 Q 25 -40 25 20 L 20 100"
+          stroke={primaryColor}
+          strokeWidth="2"
+          strokeDasharray={isAligned ? "0" : "5 5"}
           fill="none"
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
+          opacity="0.5"
         />
 
-        {/* Back/Spine - WIDER curve */}
-        <path
-          d="M -60 -70 Q -80 0, -90 80 Q -95 160, -85 230"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-        />
+        {/* Rotation indicator */}
+        {!isAligned && feedbackMessage.includes('TURN') && (
+          <g>
+            <circle cx="0" cy="-50" r="60" fill="none" stroke={guidanceColor} strokeWidth="3" strokeDasharray="8 4" opacity="0.6">
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 0 -50"
+                to="360 0 -50"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+            </circle>
+            <text x="0" y="-35" textAnchor="middle" fill={guidanceColor} fontSize="32" fontWeight="bold">↻</text>
+          </g>
+        )}
 
-        {/* Chest/Front - MUCH WIDER curve */}
-        <path
-          d="M 10 -70 Q 70 -20, 85 60 Q 95 140, 80 210"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-        />
-
-        {/* Torso fill - WIDER */}
-        <path
-          d="M 10 -70 Q 70 -20, 85 60 Q 95 140, 80 210 
-             L -85 230 Q -95 160, -90 80 Q -80 0, -60 -70 Z"
-          fill={fillColor}
-          stroke="none"
-        />
-
-        {/* Shoulder - BIGGER */}
-        <ellipse
-          cx="-25"
-          cy="-60"
-          rx="70"
-          ry="60"
-          fill={fillColor}
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-        />
-
-        {/* Arm - simple line */}
-        <path
-          d="M -75 -40 L -90 80"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-        />
-
-        {/* Belly - WIDER */}
-        <path
-          d="M 80 210 Q 90 240, 75 260"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-        />
-        
-        {/* DYNAMIC DIRECTIONAL ARROWS */}
-        {!isAligned && (
+        {/* Center Alignment Indicator */}
+        {!isAligned && !feedbackMessage.includes('TURN') && (
           <>
-            {(feedbackMessage === 'MOVE LEFT' || feedbackMessage === 'A BIT LEFT') && (
-              <g opacity="0.9">
-                <path d="M 200 350 L 140 350 L 155 335 M 140 350 L 155 365" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
-                <circle cx="170" cy="350" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
-                <text x="170" y="365" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">←</text>
-              </g>
-            )}
-            {(feedbackMessage === 'MOVE RIGHT' || feedbackMessage === 'A BIT RIGHT') && (
-              <g opacity="0.9">
-                <path d="M 760 350 L 820 350 L 805 335 M 820 350 L 805 365" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
-                <circle cx="790" cy="350" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
-                <text x="790" y="365" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">→</text>
-              </g>
-            )}
-            {(feedbackMessage === 'MOVE UP' || feedbackMessage === 'A BIT UP') && (
-              <g opacity="0.9">
-                <path d="M 480 120 L 480 60 L 465 75 M 480 60 L 495 75" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
-                <circle cx="480" cy="90" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
-                <text x="480" y="105" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">↑</text>
-              </g>
-            )}
-            {(feedbackMessage === 'MOVE DOWN' || feedbackMessage === 'A BIT DOWN') && (
-              <g opacity="0.9">
-                <path d="M 480 620 L 480 680 L 465 665 M 480 680 L 495 665" stroke="#FF6B00" strokeWidth="8" fill="none" strokeLinecap="round" />
-                <circle cx="480" cy="650" r="50" fill="rgba(255, 107, 0, 0.2)" stroke="#FF6B00" strokeWidth="4" />
-                <text x="480" y="665" textAnchor="middle" fill="#FF6B00" fontSize="24" fontWeight="bold">↓</text>
-              </g>
-            )}
-            {feedbackMessage === 'TURN TO YOUR RIGHT SIDE' && (
-              <g opacity="0.8">
-                <path d="M 600 350 L 660 350 L 645 335 M 660 350 L 645 365" stroke="#FFD700" strokeWidth="4" fill="none" strokeLinecap="round" />
-                <text x="630" y="340" textAnchor="middle" fill="#FFD700" fontSize="20" fontWeight="bold">TURN</text>
-                <text x="630" y="365" textAnchor="middle" fill="#FFD700" fontSize="16">RIGHT</text>
-              </g>
-            )}
+            <line x1="0" y1="-300" x2="0" y2="-330" stroke={guidanceColor} strokeWidth="2" strokeDasharray="4 4" opacity="0.6" />
+            <circle cx="0" cy="0" r="8" fill={guidanceColor} opacity="0.4">
+              <animate attributeName="r" values="8;12;8" dur="1.5s" repeatCount="indefinite" />
+            </circle>
           </>
         )}
 
         {/* Countdown Display */}
         {isAligned && holdDuration > 0 && (
-          <>
+          <g>
+            <circle cx="0" cy="0" r="110" fill="none" stroke={successColor} strokeWidth="3" opacity="0.2" />
             <circle
               cx="0"
-              cy="50"
-              r="90"
+              cy="0"
+              r="100"
               fill="none"
-              stroke="#00FF00"
-              strokeWidth="8"
-              strokeDasharray={`${progress * 5.65} 565`}
-              transform="rotate(-90 0 50)"
-              opacity="0.8"
+              stroke={successColor}
+              strokeWidth="6"
+              strokeDasharray={`${progress * 6.28} 628`}
+              strokeLinecap="round"
+              transform="rotate(-90)"
+              opacity="0.9"
             />
-            <text
-              x="0"
-              y="70"
-              textAnchor="middle"
-              fill="#00FF00"
-              fontSize="72"
-              fontWeight="bold"
-              style={{ filter: 'drop-shadow(0 0 10px rgba(0,255,0,0.8))' }}
+            <text x="0" y="20" textAnchor="middle" fill={successColor} fontSize="80" fontWeight="bold"
+              style={{ filter: 'drop-shadow(0 0 20px rgba(6,182,212,0.8))' }}
             >
               {countdown}
             </text>
-          </>
+            <text x="0" y="65" textAnchor="middle" fill={successColor} fontSize="18" fontWeight="600" opacity="0.8">
+              Hold still...
+            </text>
+          </g>
         )}
       </g>
-
-      {/* Stage Indicator */}
-      <text
-        x="480"
-        y="690"
-        textAnchor="middle"
-        fill={strokeColor}
-        fontSize="28"
-        fontWeight="bold"
-      >
-        Stage 3 of 4: Upper Body Side
-      </text>
     </svg>
   );
 };
