@@ -481,13 +481,17 @@ function CapturePage() {
                     feedbackIcon1 = noseTip.y < 0.20 ? '⬇️' : '⬆️';
                 }
 
+                // Check if face landmarks are detected (required for visible analysis)
+                const hasFaceLandmarks = faceLandmarks && faceLandmarks.length > 0;
+                const aligned1 = isXAligned1 && isYAligned1 && hasFaceLandmarks;
+
                 setStage1Debug({
-                    aligned: isXAligned1 && isYAligned1,
-                    feedbackMessage: feedbackMsg1,
-                    feedbackIcon: feedbackIcon1
+                    aligned: aligned1,
+                    feedbackMessage: hasFaceLandmarks ? feedbackMsg1 : 'FACE NOT DETECTED',
+                    feedbackIcon: hasFaceLandmarks ? feedbackIcon1 : '⚠️'
                 });
 
-                return isXAligned1 && isYAligned1;
+                return aligned1;
 
             case 'STAGE_2_UPPER_FRONT':
                 // FULL BODY FRONT CAPTURE - Use torso center for alignment
@@ -539,15 +543,19 @@ function CapturePage() {
                     feedbackIcon2 = torsoCenterY < 0.30 ? '⬆️' : '⬇️';
                 }
 
+                // Check if pose landmarks are detected (required for visible analysis)
+                const hasPoseLandmarks2 = poseLandmarks && poseLandmarks.length > 0;
+                const aligned2 = isXAligned2 && isYAligned2 && hasPoseLandmarks2;
+
                 setStage2Debug({
-                    aligned: isXAligned2 && isYAligned2,
-                    feedbackMessage: feedbackMsg2,
-                    feedbackIcon: feedbackIcon2,
+                    aligned: aligned2,
+                    feedbackMessage: hasPoseLandmarks2 ? feedbackMsg2 : 'BODY NOT DETECTED',
+                    feedbackIcon: hasPoseLandmarks2 ? feedbackIcon2 : '⚠️',
                     torsoCenterX: torsoCenterX.toFixed( 3 ),
                     torsoCenterY: torsoCenterY.toFixed( 3 )
                 });
 
-                return isXAligned2 && isYAligned2;
+                return aligned2;
 
             case 'STAGE_3_UPPER_SIDE':
                 // RIGHT SIDE PROFILE DETECTION - Fixed to reject left side and partial turns
@@ -615,10 +623,18 @@ function CapturePage() {
                 } else if (!isVerticallyCentered) {
                     feedbackMsg3 = shoulderCenterY3 < 0.25 ? (shoulderCenterY3 < 0.15 ? 'MOVE DOWN' : 'A BIT DOWN') : (shoulderCenterY3 > 0.65 ? 'MOVE UP' : 'A BIT UP');
                 }
-                setStage3Debug( { aligned: isSideView && isRightSide && isInFrame, feedbackMessage: feedbackMsg3, feedbackIcon: '' } );
+                // Check if pose landmarks are detected (required for visible analysis)
+                const hasPoseLandmarks3 = poseLandmarks && poseLandmarks.length > 0;
+                const aligned3 = isSideView && isRightSide && isInFrame && hasPoseLandmarks3;
 
-                // FIXED: Check shoulder distance AND right side direction AND frame position (nose check removed for UX)
-                return isSideView && isRightSide && isInFrame;
+                setStage3Debug( {
+                    aligned: aligned3,
+                    feedbackMessage: hasPoseLandmarks3 ? feedbackMsg3 : 'BODY NOT DETECTED',
+                    feedbackIcon: hasPoseLandmarks3 ? '' : '⚠️'
+                } );
+
+                // FIXED: Check shoulder distance AND right side direction AND frame position AND landmarks
+                return aligned3;
 
             case 'STAGE_4_LOWER_SIDE':
                 // FIXED: Comprehensive side detection with Z-depth + feet verification
@@ -730,13 +746,16 @@ function CapturePage() {
                 }
 
                 // ✅ FINAL ALIGNMENT CHECK (All conditions must pass)
-                const aligned = isSideView4 && isRightSide4 && feetAligned && isInFrame4;
+                // CRITICAL: Also check that pose landmarks are detected (for landmark visibility in captured image)
+                const hasValidLandmarks = poseLandmarks && poseLandmarks.length > 0;
+                const aligned = isSideView4 && isRightSide4 && feetAligned && isInFrame4 && hasValidLandmarks;
 
                 console.log( '%c\n🎯 FINAL ALIGNMENT RESULT:', 'color: #F59E0B; font-weight: bold; font-size: 13px' );
                 console.log( '   ✓ Side View:', isSideView4 ? '✅ PASS' : '❌ FAIL', `(hip distance: ${ hipDistance4.toFixed( 3 ) } < 0.10)` );
                 console.log( '   ✓ Right Side:', isRightSide4 ? '✅ PASS' : '❌ FAIL', `(Z-depth: ${ zDepthDifference.toFixed( 3 ) } < -0.05)` );
                 console.log( '   ✓ Feet Aligned:', feetAligned ? '✅ PASS' : '❌ FAIL', footDistance4 !== null ? `(foot distance: ${ footDistance4.toFixed( 3 ) } < 0.12)` : '(not detected)' );
                 console.log( '   ✓ In Frame:', isInFrame4 ? '✅ PASS' : '❌ FAIL', `(X: ${ hipCenterX4.toFixed( 3 ) }, Y: ${ hipCenterY4.toFixed( 3 ) })` );
+                console.log( '   ✓ Landmarks Detected:', hasValidLandmarks ? '✅ PASS' : '❌ FAIL', '(required for visible analysis)' );
                 console.log( '%c   → ALIGNED: ' + ( aligned ? '✅ YES - COUNTDOWN STARTING!' : '❌ NO - ADJUST POSITION' ), aligned ? 'color: #10B981; font-weight: bold' : 'color: #EF4444; font-weight: bold' );
 
                 // Add distance warning
@@ -744,6 +763,13 @@ function CapturePage() {
                     console.log( '%c   ⚠️ WARNING: You might be TOO FAR from camera!', 'color: #F59E0B; font-weight: bold' );
                     console.log( '      Hip distance looks like side view, but Z-depth says front-facing.' );
                     console.log( '      This happens when you\'re far away - hips appear close but you\'re actually facing front.' );
+                }
+
+                // Add landmark warning
+                if ( !aligned && !hasValidLandmarks ) {
+                    console.log( '%c   ⚠️ WARNING: No pose landmarks detected!', 'color: #EF4444; font-weight: bold' );
+                    console.log( '      Cannot capture without landmarks - they are needed for analysis visualization.' );
+                    console.log( '      Make sure your full body is visible in the frame.' );
                 }
 
                 // Enhanced Feedback Messages (PRIORITY ORDER)
@@ -1128,7 +1154,6 @@ function CapturePage() {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover', // FIXED: Cover entire screen for consistency
                         transform: "scaleX(-1)",
                         objectFit: 'cover' // FIXED: Match video objectFit
                     }}
