@@ -1,217 +1,216 @@
 import React from 'react';
 
 /**
- * Stage 1: Face Ghost - Professional & User-Friendly
- * Redesigned with cyan/blue color scheme and improved UX
+ * Face Ghost - Professional Structure with Div Banner
+ * Consistent positioning across all devices
  */
 const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
-  // Color scheme from LandingPage - Professional cyan/blue/slate
-  const primaryColor = isAligned ? '#06B6D4' : '#64748B'; // cyan-500 : slate-500
-  const accentColor = '#3B82F6'; // blue-500
-  const successColor = '#06B6D4'; // cyan-400
-  const guidanceColor = '#F59E0B'; // amber-500 for guidance
+  const primaryColor = isAligned ? '#06B6D4' : '#64748B';
+  const successColor = '#06B6D4';
+  const guidanceColor = '#F59E0B';
 
   const progress = (holdDuration / 3000) * 100;
   const countdown = Math.ceil((3000 - holdDuration) / 1000);
   const feedbackMessage = stage1Debug?.feedbackMessage || '';
 
   return (
-    <svg
-      style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 'auto',
-        height: '100dvh',
-        maxHeight: '100dvh',
-        pointerEvents: 'none',
-        zIndex: 10,
-      }}
-      viewBox="0 0 960 720"
-      preserveAspectRatio="xMidYMid meet"
-    >
-      {/* Top Instruction - Clean & Minimal */}
-      <g>
-        <rect x="230" y="20" width="500" height="70" rx="8"
-          fill="rgba(2, 6, 23, 0.85)"
-          stroke={primaryColor}
-          strokeWidth="2"
-          opacity="0.95"
-        />
-        <text
-          x="480"
-          y="48"
-          textAnchor="middle"
-          fill={isAligned ? successColor : '#94A3B8'}
-          fontSize="18"
-          fontWeight="600"
-          letterSpacing="1"
-          style={{ textTransform: 'uppercase' }}
-        >
-          Step 1: Face Alignment
-        </text>
-        <text
-          x="480"
-          y="72"
-          textAnchor="middle"
-          fill={isAligned ? successColor : '#E2E8F0'}
-          fontSize="24"
-          fontWeight="bold"
-        >
-          {isAligned ? '✓ Hold Position' : 'Align Face with Outline'}
-        </text>
-      </g>
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100dvh',
+      pointerEvents: 'none',
+      zIndex: 10,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }}>
+      {/* Top badges - Separate pills */}
+      <div style={{
+        marginTop: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '12px',
+        width: '100%',
+        pointerEvents: 'none'
+      }}>
+        {/* Step Badge */}
+        <div style={{
+          backgroundColor: 'rgba(2, 6, 23, 0.85)',
+          backdropFilter: 'blur(12px)',
+          border: `1px solid ${isAligned ? successColor : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: '100px',
+          padding: '6px 16px',
+          boxShadow: isAligned ? `0 0 20px ${successColor}30` : '0 4px 20px rgba(0,0,0,0.4)',
+          transition: 'all 0.4s ease',
+          pointerEvents: 'auto'
+        }}>
+          <span style={{
+            color: isAligned ? successColor : '#94A3B8',
+            fontSize: '12px',
+            fontWeight: '700',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            fontFamily: 'monospace'
+          }}>
+            Step 1: Face Alignment
+          </span>
+        </div>
 
-      {/* HEAD AND SHOULDERS SILHOUETTE - Enhanced */}
-      <g transform="translate(480, 360)">
-        {/* Glow effect when aligned */}
-        {isAligned && (
-          <ellipse
-            cx="0"
-            cy="-50"
-            rx="200"
-            ry="250"
-            fill="none"
-            stroke={successColor}
-            strokeWidth="20"
-            opacity="0.15"
-            filter="blur(20px)"
-          />
-        )}
+        {/* Guidance Pill */}
+        <div style={{
+          backgroundColor: 'rgba(2, 6, 23, 0.9)',
+          backdropFilter: 'blur(12px)',
+          border: `2px solid ${primaryColor}`,
+          borderRadius: '100px',
+          padding: '10px 20px', // Responsive padding
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: 'auto',
+          minWidth: '240px', // Slightly smaller min-width
+          maxWidth: '90vw', // Ensure it doesn't overflow
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            color: isAligned ? successColor : '#E2E8F0',
+            fontSize: 'clamp(16px, 4.5vw, 20px)', // Responsive font size
+            fontWeight: '800',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            textAlign: 'center'
+          }}>
+            {isAligned ? '✓ Perfect! Hold Position' : (feedbackMessage || 'Align Face with Outline')}
 
-        {/* Realistic Head & Neck Silhouette */}
-        <path
-          d="M 0 -190 
-             C 65 -190 95 -140 95 -80 
-             C 95 -20 65 35 0 50 
-             C -65 35 -95 -20 -95 -80 
-             C -95 -140 -65 -190 0 -190 Z"
-          fill="rgba(6, 182, 212, 0.08)"
-          stroke={primaryColor}
-          strokeWidth="3"
-          strokeDasharray={isAligned ? "0" : "10 5"}
-        >
-          {!isAligned && (
-            <animate
-              attributeName="stroke-opacity"
-              values="0.4;1;0.4"
-              dur="2s"
-              repeatCount="indefinite"
+            {!isAligned && feedbackMessage && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px',
+                backgroundColor: `${guidanceColor}20`,
+                borderRadius: '50%',
+                border: `1px solid ${guidanceColor}40`
+              }}>
+                <svg width="18" height="18" viewBox="0 0 20 20">
+                  <g transform="translate(10, 10)">
+                    {(feedbackMessage.toLowerCase().includes('up')) && (
+                      <path d="M 0 -6 L -5 1 L -2 1 L -2 6 L 2 6 L 2 1 L 5 1 Z" fill={guidanceColor}>
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('down')) && (
+                      <path d="M 0 6 L -5 -1 L -2 -1 L -2 -6 L 2 -6 L 2 -1 L 5 -1 Z" fill={guidanceColor}>
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('left')) && (
+                      <path d="M -6 0 L 1 -5 L 1 -2 L 6 -2 L 6 2 L 1 2 L 1 5 Z" fill={guidanceColor}>
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('right')) && (
+                      <path d="M 6 0 L -1 -5 L -1 -2 L -6 -2 L -6 2 L -1 2 L -1 5 Z" fill={guidanceColor}>
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('closer')) && (
+                      <path d="M -7 0 L -1 -4 L -1 -1 L 1 -1 L 1 -4 L 7 0 L 1 4 L 1 1 L -1 1 L -1 4 Z" fill={guidanceColor}>
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('back')) && (
+                      <g>
+                        <path d="M -1 0 L -7 -4 L -7 -1 L -9 -1 L -9 1 L -7 1 L -7 4 Z" fill={guidanceColor} />
+                        <path d="M 1 0 L 7 -4 L 7 -1 L 9 -1 L 9 1 L 7 1 L 7 4 Z" fill={guidanceColor} />
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
+                      </g>
+                    )}
+                  </g>
+                </svg>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* SVG Face Outline - Perfectly centered & viewport-safe */}
+      <svg
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 'auto',
+          height: '100dvh',
+          maxWidth: '100vw',
+          maxHeight: '100dvh',
+          pointerEvents: 'none',
+        }}
+        viewBox="0 0 480 960"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <defs>
+          {/* Viewport-Safe Clip: Keeps the head prominently visible while preventing overflow */}
+          <clipPath id="head-mask">
+            <ellipse cx="0" cy="-80" rx="200" ry="260" />
+          </clipPath>
+        </defs>
+
+        {/* FACE SILHOUETTE - Positioned to avoid banner overlap (y=580) */}
+        <g transform="translate(240, 580)" clipPath="url(#head-mask)">
+
+          {/* Centered Glow effect */}
+          {isAligned && (
+            <ellipse cx="0" cy="-80" rx="220" ry="280"
+              fill="none" stroke={successColor}
+              strokeWidth="28" opacity="0.12"
+              filter="blur(28px)"
             />
           )}
-        </path>
 
-        {/* Ears Detail */}
-        <path d="M -95 -90 Q -105 -80 -95 -60" stroke={primaryColor} strokeWidth="3" fill="none" opacity="0.6" />
-        <path d="M 95 -90 Q 105 -80 95 -60" stroke={primaryColor} strokeWidth="3" fill="none" opacity="0.6" />
-
-        {/* Neck & Shoulders */}
-        <path
-          d="M -45 40 
-             Q -50 100 -180 120 
-             L -180 180 
-             L 180 180 
-             L 180 120 
-             Q 50 100 45 40 Z"
-          fill="rgba(6, 182, 212, 0.08)"
-          stroke={primaryColor}
-          strokeWidth="3"
-          strokeDasharray={isAligned ? "0" : "10 5"}
-        />
-
-        {/* Center Alignment Indicator */}
-        {!isAligned && (
-          <>
-            <line x1="0" y1="-200" x2="0" y2="-230" stroke={guidanceColor} strokeWidth="2" strokeDasharray="4 4" opacity="0.6" />
-            <circle cx="0" cy="-80" r="8" fill={guidanceColor} opacity="0.4">
-              <animate attributeName="r" values="8;12;8" dur="1.5s" repeatCount="indefinite" />
-            </circle>
-          </>
-        )}
-
-        {/* IMPROVED DIRECTIONAL GUIDANCE - Modern & Clear */}
-        {!isAligned && feedbackMessage && (
-          <g>
-            {/* Guidance Box */}
-            <rect x="-120" y="240" width="240" height="55" rx="8"
-              fill="rgba(2, 6, 23, 0.9)"
-              stroke={guidanceColor}
-              strokeWidth="2"
-            />
-            <text x="0" y="273" textAnchor="middle"
-              fill={guidanceColor}
-              fontSize="22"
-              fontWeight="bold"
-            >
-              {feedbackMessage}
-            </text>
-          </g>
-        )}
-
-        {/* Countdown Display - Modern Circular Progress */}
-        {isAligned && holdDuration > 0 && (
-          <g>
-            {/* Outer glow circle */}
-            <circle
-              cx="0"
-              cy="-80"
-              r="110"
-              fill="none"
-              stroke={successColor}
-              strokeWidth="3"
-              opacity="0.2"
-            />
-            {/* Progress ring */}
-            <circle
-              cx="0"
-              cy="-80"
-              r="100"
-              fill="none"
-              stroke={successColor}
-              strokeWidth="6"
-              strokeDasharray={`${progress * 6.28} 628`}
+          {/* Large immersive scale (15.5x) tuned for all viewport aspect ratios */}
+          <g transform="scale(15.5) translate(-103.1, -18)">
+            <path
+              d="M104.265,117.959c-0.304,3.58,2.126,22.529,3.38,29.959c0.597,3.52,2.234,9.255,1.645,12.3 c-0.841,4.244-1.084,9.736-0.621,12.934c0.292,1.942,1.211,10.899-0.104,14.175c-0.688,1.718-1.949,10.522-1.949,10.522 c-3.285,8.294-1.431,7.886-1.431,7.886c1.017,1.248,2.759,0.098,2.759,0.098c1.327,0.846,2.246-0.201,2.246-0.201 c1.139,0.943,2.467-0.116,2.467-0.116c1.431,0.743,2.758-0.627,2.758-0.627c0.822,0.414,1.023-0.109,1.023-0.109 c2.466-0.158-1.376-8.05-1.376-8.05c-0.92-7.088,0.913-11.033,0.913-11.033c6.004-17.805,6.309-22.53,3.909-29.24 c-0.676-1.937-0.847-2.704-0.536-3.545c0.719-1.941,0.195-9.748,1.072-12.848c1.692-5.979,3.361-21.142,4.231-28.217 c1.169-9.53-4.141-22.308-4.141-22.308c-1.163-5.2,0.542-23.727,0.542-23.727c2.381,3.705,2.29,10.245,2.29,10.245 c-0.378,6.859,5.541,17.342,5.541,17.342c2.844,4.332,3.921,8.442,3.921,8.747c0,1.248-0.273,4.269-0.273,4.269l0.109,2.631 c0.049,0.67,0.426,2.977,0.365,4.092c-0.444,6.862,0.646,5.571,0.646,5.571c0.92,0,1.931-5.522,1.931-5.522 c0,1.424-0.348,5.687,0.42,7.295c0.919,1.918,1.595-0.329,1.607-0.78c0.243-8.737,0.768-6.448,0.768-6.448 c0.511,7.088,1.139,8.689,2.265,8.135c0.853-0.407,0.073-8.506,0.073-8.506c1.461,4.811,2.569,5.577,2.569,5.577 c2.411,1.693,0.92-2.983,0.585-3.909c-1.784-4.92-1.839-6.625-1.839-6.625c2.229,4.421,3.909,4.257,3.909,4.257 c2.174-0.694-1.9-6.954-4.287-9.953c-1.218-1.528-2.789-3.574-3.245-4.789c-0.743-2.058-1.304-8.674-1.304-8.674 c-0.225-7.807-2.155-11.198-2.155-11.198c-3.3-5.282-3.921-15.135-3.921-15.135l-0.146-16.635 c-1.157-11.347-9.518-11.429-9.518-11.429c-8.451-1.258-9.627-3.988-9.627-3.988c-1.79-2.576-0.767-7.514-0.767-7.514 c1.485-1.208,2.058-4.415,2.058-4.415c2.466-1.891,2.345-4.658,1.206-4.628c-0.914,0.024-0.707-0.733-0.707-0.733 C115.068,0.636,104.01,0,104.01,0h-1.688c0,0-11.063,0.636-9.523,13.089c0,0,0.207,0.758-0.715,0.733 c-1.136-0.03-1.242,2.737,1.215,4.628c0,0,0.572,3.206,2.058,4.415c0,0,1.023,4.938-0.767,7.514c0,0-1.172,2.73-9.627,3.988 c0,0-8.375,0.082-9.514,11.429l-0.158,16.635c0,0-0.609,9.853-3.922,15.135c0,0-1.921,3.392-2.143,11.198 c0,0-0.563,6.616-1.303,8.674c-0.451,1.209-2.021,3.255-3.249,4.789c-2.408,2.993-6.455,9.24-4.29,9.953 c0,0,1.689,0.164,3.909-4.257c0,0-0.046,1.693-1.827,6.625c-0.35,0.914-1.839,5.59,0.573,3.909c0,0,1.117-0.767,2.569-5.577 c0,0-0.779,8.099,0.088,8.506c1.133,0.555,1.751-1.047,2.262-8.135c0,0,0.524-2.289,0.767,6.448 c0.012,0.451,0.673,2.698,1.596,0.78c0.779-1.608,0.429-5.864,0.429-7.295c0,0,0.999,5.522,1.933,5.522 c0,0,1.099,1.291,0.648-5.571c-0.073-1.121,0.32-3.422,0.369-4.092l0.106-2.631c0,0-0.274-3.014-0.274-4.269 c0-0.311,1.078-4.415,3.921-8.747c0,0,5.913-10.488,5.532-17.342c0,0-0.082-6.54,2.299-10.245c0,0,1.69,18.526,0.545,23.727 c0,0-5.319,12.778-4.146,22.308c0.864,7.094,2.53,22.237,4.226,28.217c0.886,3.094,0.362,10.899,1.072,12.848 c0.32,0.847,0.152,1.627-0.536,3.545c-2.387,6.71-2.083,11.436,3.921,29.24c0,0,1.848,3.945,0.914,11.033 c0,0-3.836,7.892-1.379,8.05c0,0,0.192,0.523,1.023,0.109c0,0,1.327,1.37,2.761,0.627c0,0,1.328,1.06,2.463,0.116 c0,0,0.91,1.047,2.237,0.201c0,0,1.742,1.175,2.777-0.098c0,0,1.839,0.408-1.435-7.886c0,0-1.254-8.793-1.945-10.522 c-1.318-3.275-0.387-12.251-0.106-14.175c0.453-3.216,0.21-8.695-0.618-12.934c-0.606-3.038,1.035-8.774,1.641-12.3 c1.245-7.423,3.685-26.373,3.38-29.959l1.008,0.354C103.809,118.312,104.265,117.959,104.265,117.959z"
+              fill="rgba(6, 182, 212, 0.08)"
+              stroke={primaryColor}
+              strokeWidth="0.19"
               strokeLinecap="round"
-              transform="rotate(-90)"
-              opacity="0.9"
-            >
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                from="-90 0 -80"
-                to="-90 0 -80"
-                dur="0.1s"
-                repeatCount="indefinite"
-              />
-            </circle>
-            {/* Countdown number */}
-            <text
-              x="0"
-              y="-60"
-              textAnchor="middle"
-              fill={successColor}
-              fontSize="80"
-              fontWeight="bold"
-              style={{ filter: 'drop-shadow(0 0 20px rgba(6,182,212,0.8))' }}
-            >
-              {countdown}
-            </text>
-            <text
-              x="0"
-              y="-15"
-              textAnchor="middle"
-              fill={successColor}
-              fontSize="18"
-              fontWeight="600"
-              opacity="0.8"
-            >
-              Hold still...
-            </text>
+              strokeLinejoin="round"
+            />
           </g>
-        )}
-      </g>
 
-    </svg>
+          {/* COUNTDOWN */}
+          {isAligned && holdDuration > 0 && (
+            <g>
+              <text x="0" y="-32" textAnchor="middle"
+                fill={successColor}
+                fontSize="100"
+                fontWeight="bold"
+                style={{ filter: 'drop-shadow(0 0 32px rgba(6,182,212,0.9))' }}
+              >
+                {countdown}
+              </text>
+              <text x="0" y="18" textAnchor="middle"
+                fill={successColor}
+                fontSize="20"
+                fontWeight="500"
+                opacity="0.85"
+              >
+                Hold still
+              </text>
+            </g>
+          )}
+        </g>
+      </svg>
+    </div>
   );
 };
 
