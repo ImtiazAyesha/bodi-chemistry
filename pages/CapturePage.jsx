@@ -467,23 +467,23 @@ function CapturePage() {
                 // Get shoulder and hip landmarks
                 const leftShoulder = poseLandmarks[11];
                 const rightShoulder = poseLandmarks[12];
-                const leftHip = poseLandmarks[23];
-                const rightHip = poseLandmarks[24];
+                const leftHip = poseLandmarks[ 23 ];
+                const rightHip = poseLandmarks[ 24 ];
 
                 // Validate all landmarks exist
-                if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) return false;
+                if ( !leftShoulder || !rightShoulder || !leftHip || !rightHip ) return false;
 
                 // Calculate shoulder center
                 const shoulderCenterX = (leftShoulder.x + rightShoulder.x) / 2;
                 const shoulderCenterY = (leftShoulder.y + rightShoulder.y) / 2;
 
                 // Calculate hip center
-                const hipCenterX = (leftHip.x + rightHip.x) / 2;
-                const hipCenterY = (leftHip.y + rightHip.y) / 2;
+                const hipCenterX = ( leftHip.x + rightHip.x ) / 2;
+                const hipCenterY = ( leftHip.y + rightHip.y ) / 2;
 
                 // Calculate torso center (midpoint between shoulders and hips)
-                const torsoCenterX = (shoulderCenterX + hipCenterX) / 2;
-                const torsoCenterY = (shoulderCenterY + hipCenterY) / 2;
+                const torsoCenterX = ( shoulderCenterX + hipCenterX ) / 2;
+                const torsoCenterY = ( shoulderCenterY + hipCenterY ) / 2;
 
                 // Full body alignment: centered horizontally, middle of frame vertically
                 const isXAligned2 = torsoCenterX >= 0.42 && torsoCenterX <= 0.58;
@@ -494,7 +494,7 @@ function CapturePage() {
                 let feedbackIcon2 = '';
 
                 if (!isXAligned2) {
-                    if (torsoCenterX < 0.40) {
+                    if ( torsoCenterX < 0.40 ) {
                         feedbackMsg2 = torsoCenterX < 0.30 ? 'MOVE LEFT' : 'A BIT LEFT';
                     } else {
                         feedbackMsg2 = torsoCenterX > 0.70 ? 'MOVE RIGHT' : 'A BIT RIGHT';
@@ -502,7 +502,7 @@ function CapturePage() {
                     feedbackIcon2 = torsoCenterX < 0.40 ? '⬅' : '➡️';
                 } else if (!isYAligned2) {
                     // For full body, use distance-based feedback instead of up/down
-                    if (torsoCenterY < 0.30) {
+                    if ( torsoCenterY < 0.30 ) {
                         feedbackMsg2 = torsoCenterY < 0.20 ? 'STEP BACK' : 'A BIT BACK';
                     } else {
                         feedbackMsg2 = torsoCenterY > 0.60 ? 'COME CLOSER' : 'A BIT CLOSER';
@@ -514,8 +514,8 @@ function CapturePage() {
                     aligned: isXAligned2 && isYAligned2,
                     feedbackMessage: feedbackMsg2,
                     feedbackIcon: feedbackIcon2,
-                    torsoCenterX: torsoCenterX.toFixed(3),
-                    torsoCenterY: torsoCenterY.toFixed(3)
+                    torsoCenterX: torsoCenterX.toFixed( 3 ),
+                    torsoCenterY: torsoCenterY.toFixed( 3 )
                 });
 
                 return isXAligned2 && isYAligned2;
@@ -529,8 +529,8 @@ function CapturePage() {
                 const leftShoulder3 = poseLandmarks[11];
                 const rightShoulder3 = poseLandmarks[12];
 
-                if (!leftShoulder3 || !rightShoulder3) {
-                    console.log('Stage 3 Debug: Shoulders not detected');
+                if ( !leftShoulder3 || !rightShoulder3 ) {
+                    console.log( 'Stage 3 Debug: Shoulders not detected' );
                     return false;
                 }
 
@@ -559,8 +559,8 @@ function CapturePage() {
                 console.log('Stage 3 Debug:', {
                     shoulderDistance: shoulderDistance.toFixed(3),
                     isSideView,
-                    leftShoulderZ: leftShoulderZ.toFixed(3),
-                    rightShoulderZ: rightShoulderZ.toFixed(3),
+                    leftShoulderZ: leftShoulderZ.toFixed( 3 ),
+                    rightShoulderZ: rightShoulderZ.toFixed( 3 ),
                     isRightSide,
                     shoulderCenterX: shoulderCenterX3.toFixed(3),
                     shoulderCenterY: shoulderCenterY3.toFixed(3),
@@ -571,32 +571,32 @@ function CapturePage() {
                 });
 
                 // EXPLICIT CHECK - Print why alignment is failing
-                if (!isSideView) console.warn('❌ STAGE 3: Not in side view! shoulderDistance =', shoulderDistance);
-                if (!isRightSide) console.warn('❌ STAGE 3: Not right side! leftZ =', leftShoulderZ, 'rightZ =', rightShoulderZ);
-                if (!isInFrame) console.warn('❌ STAGE 3: Not in frame! isHorizontallyCentered =', isHorizontallyCentered, 'isVerticallyCentered =', isVerticallyCentered);
+                if ( !isSideView ) console.warn( '❌ STAGE 3: Not in side view! shoulderDistance =', shoulderDistance );
+                if ( !isRightSide ) console.warn( '❌ STAGE 3: Not right side! leftZ =', leftShoulderZ, 'rightZ =', rightShoulderZ );
+                if ( !isInFrame ) console.warn( '❌ STAGE 3: Not in frame! isHorizontallyCentered =', isHorizontallyCentered, 'isVerticallyCentered =', isVerticallyCentered );
 
                 // Generate granular feedback for Stage 3
                 let feedbackMsg3 = '';
                 if (!isSideView) {
                     feedbackMsg3 = 'TURN TO YOUR RIGHT SIDE';
-                } else if (!isRightSide) {
+                } else if ( !isRightSide ) {
                     feedbackMsg3 = 'TURN TO YOUR RIGHT (NOT LEFT)';
                 } else if (!isHorizontallyCentered) {
                     feedbackMsg3 = shoulderCenterX3 < 0.35 ? (shoulderCenterX3 < 0.25 ? 'MOVE LEFT' : 'A BIT LEFT') : (shoulderCenterX3 > 0.75 ? 'MOVE RIGHT' : 'A BIT RIGHT');
                 } else if (!isVerticallyCentered) {
                     feedbackMsg3 = shoulderCenterY3 < 0.25 ? (shoulderCenterY3 < 0.15 ? 'MOVE DOWN' : 'A BIT DOWN') : (shoulderCenterY3 > 0.65 ? 'MOVE UP' : 'A BIT UP');
                 }
-                setStage3Debug({ aligned: isSideView && isRightSide && isInFrame, feedbackMessage: feedbackMsg3, feedbackIcon: '' });
+                setStage3Debug( { aligned: isSideView && isRightSide && isInFrame, feedbackMessage: feedbackMsg3, feedbackIcon: '' } );
 
                 // FIXED: Check shoulder distance AND right side direction AND frame position (nose check removed for UX)
                 return isSideView && isRightSide && isInFrame;
 
             case 'STAGE_4_LOWER_SIDE':
                 // FIXED: Comprehensive side detection with Z-depth + feet verification
-                console.log('%c========== STAGE 4: LOWER BODY SIDE ==========', 'color: #9333EA; font-weight: bold; font-size: 14px');
+                console.log( '%c========== STAGE 4: LOWER BODY SIDE ==========', 'color: #9333EA; font-weight: bold; font-size: 14px' );
 
                 if (!poseLandmarks) {
-                    console.log('%c❌ No pose landmarks detected', 'color: #EF4444');
+                    console.log( '%c❌ No pose landmarks detected', 'color: #EF4444' );
                     return false;
                 }
 
@@ -605,25 +605,25 @@ function CapturePage() {
 
                 // Check if hips are detected
                 if (!leftHip4 || !rightHip4) {
-                    console.log('%c❌ Hip landmarks not detected', 'color: #EF4444');
-                    console.log('   Left Hip (#23):', leftHip4 ? '✅ Detected' : '❌ Missing');
-                    console.log('   Right Hip (#24):', rightHip4 ? '✅ Detected' : '❌ Missing');
+                    console.log( '%c❌ Hip landmarks not detected', 'color: #EF4444' );
+                    console.log( '   Left Hip (#23):', leftHip4 ? '✅ Detected' : '❌ Missing' );
+                    console.log( '   Right Hip (#24):', rightHip4 ? '✅ Detected' : '❌ Missing' );
                     return false;
                 }
 
-                console.log('%c📍 Hip Landmarks Detected:', 'color: #10B981; font-weight: bold');
-                console.log('   Left Hip (#23):', { x: leftHip4.x.toFixed(3), y: leftHip4.y.toFixed(3), z: (leftHip4.z || 0).toFixed(3) });
-                console.log('   Right Hip (#24):', { x: rightHip4.x.toFixed(3), y: rightHip4.y.toFixed(3), z: (rightHip4.z || 0).toFixed(3) });
+                console.log( '%c📍 Hip Landmarks Detected:', 'color: #10B981; font-weight: bold' );
+                console.log( '   Left Hip (#23):', { x: leftHip4.x.toFixed( 3 ), y: leftHip4.y.toFixed( 3 ), z: ( leftHip4.z || 0 ).toFixed( 3 ) } );
+                console.log( '   Right Hip (#24):', { x: rightHip4.x.toFixed( 3 ), y: rightHip4.y.toFixed( 3 ), z: ( rightHip4.z || 0 ).toFixed( 3 ) } );
 
                 // ✅ CHECK 1: Hip Distance (Side View Detection)
                 const hipDistance4 = Math.abs(leftHip4.x - rightHip4.x);
                 const isSideView4 = hipDistance4 < 0.12;
 
-                console.log('%c\n✅ CHECK 1: Hip Distance (Side View Detection)', 'color: #3B82F6; font-weight: bold');
-                console.log('   Hip Distance:', hipDistance4.toFixed(3), '(threshold: < 0.12)');
-                console.log('   Is Side View?', isSideView4 ? '✅ YES' : '❌ NO');
-                if (!isSideView4) {
-                    console.log('   ⚠️ Hips too far apart - user likely facing camera or at an angle');
+                console.log( '%c\n✅ CHECK 1: Hip Distance (Side View Detection)', 'color: #3B82F6; font-weight: bold' );
+                console.log( '   Hip Distance:', hipDistance4.toFixed( 3 ), '(threshold: < 0.12)' );
+                console.log( '   Is Side View?', isSideView4 ? '✅ YES' : '❌ NO' );
+                if ( !isSideView4 ) {
+                    console.log( '   ⚠️ Hips too far apart - user likely facing camera or at an angle' );
                 }
 
                 // ✅ CHECK 2: Z-Depth (Right Side Verification) - CRITICAL FIX!
@@ -632,16 +632,16 @@ function CapturePage() {
                 const zDepthDifference = leftHipZ - rightHipZ;
                 const isRightSide4 = leftHipZ < rightHipZ - 0.02;
 
-                console.log('%c\n✅ CHECK 2: Z-Depth (Right Side Verification)', 'color: #3B82F6; font-weight: bold');
-                console.log('   Left Hip Z:', leftHipZ.toFixed(3), '(closer to camera = more negative)');
-                console.log('   Right Hip Z:', rightHipZ.toFixed(3));
-                console.log('   Z-Depth Difference:', zDepthDifference.toFixed(3), '(threshold: < -0.02)');
-                console.log('   Is Right Side?', isRightSide4 ? '✅ YES' : '❌ NO');
-                if (!isRightSide4) {
-                    if (Math.abs(zDepthDifference) < 0.02) {
-                        console.log('   ⚠️ Both hips at same depth - user likely facing camera (FRONT VIEW)');
-                    } else if (zDepthDifference > 0) {
-                        console.log('   ⚠️ Right hip closer than left - user turned to LEFT side (wrong direction)');
+                console.log( '%c\n✅ CHECK 2: Z-Depth (Right Side Verification)', 'color: #3B82F6; font-weight: bold' );
+                console.log( '   Left Hip Z:', leftHipZ.toFixed( 3 ), '(closer to camera = more negative)' );
+                console.log( '   Right Hip Z:', rightHipZ.toFixed( 3 ) );
+                console.log( '   Z-Depth Difference:', zDepthDifference.toFixed( 3 ), '(threshold: < -0.02)' );
+                console.log( '   Is Right Side?', isRightSide4 ? '✅ YES' : '❌ NO' );
+                if ( !isRightSide4 ) {
+                    if ( Math.abs( zDepthDifference ) < 0.02 ) {
+                        console.log( '   ⚠️ Both hips at same depth - user likely facing camera (FRONT VIEW)' );
+                    } else if ( zDepthDifference > 0 ) {
+                        console.log( '   ⚠️ Right hip closer than left - user turned to LEFT side (wrong direction)' );
                     }
                 }
 
@@ -655,83 +655,83 @@ function CapturePage() {
                 let footDistance4 = null;
                 let feetDetectionMethod = 'not detected';
 
-                if (leftFoot4 && rightFoot4) {
-                    footDistance4 = Math.abs(leftFoot4.x - rightFoot4.x);
+                if ( leftFoot4 && rightFoot4 ) {
+                    footDistance4 = Math.abs( leftFoot4.x - rightFoot4.x );
                     feetAligned = footDistance4 < 0.15;
                     feetDetectionMethod = 'feet landmarks';
-                } else if (leftAnkle4 && rightAnkle4) {
+                } else if ( leftAnkle4 && rightAnkle4 ) {
                     // Fallback to ankles if feet not detected
-                    footDistance4 = Math.abs(leftAnkle4.x - rightAnkle4.x);
+                    footDistance4 = Math.abs( leftAnkle4.x - rightAnkle4.x );
                     feetAligned = footDistance4 < 0.15;
                     feetDetectionMethod = 'ankle landmarks (fallback)';
                 }
 
-                console.log('%c\n✅ CHECK 3: Feet Distance (Optional Bonus Check)', 'color: #3B82F6; font-weight: bold');
-                console.log('   Detection Method:', feetDetectionMethod);
-                if (footDistance4 !== null) {
-                    console.log('   Foot Distance:', footDistance4.toFixed(3), '(threshold: < 0.15)');
-                    console.log('   Feet Aligned?', feetAligned ? '✅ YES' : '❌ NO');
-                    if (!feetAligned) {
-                        console.log('   ⚠️ Feet too far apart - likely pointing forward instead of sideways');
+                console.log( '%c\n✅ CHECK 3: Feet Distance (Optional Bonus Check)', 'color: #3B82F6; font-weight: bold' );
+                console.log( '   Detection Method:', feetDetectionMethod );
+                if ( footDistance4 !== null ) {
+                    console.log( '   Foot Distance:', footDistance4.toFixed( 3 ), '(threshold: < 0.15)' );
+                    console.log( '   Feet Aligned?', feetAligned ? '✅ YES' : '❌ NO' );
+                    if ( !feetAligned ) {
+                        console.log( '   ⚠️ Feet too far apart - likely pointing forward instead of sideways' );
                     }
                 } else {
-                    console.log('   ℹ️ Feet/ankles not detected - skipping this check (won\'t block alignment)');
+                    console.log( '   ℹ️ Feet/ankles not detected - skipping this check (won\'t block alignment)' );
                 }
 
                 // ✅ CHECK 4: Frame Positioning
-                const hipCenterX4 = (leftHip4.x + rightHip4.x) / 2;
-                const hipCenterY4 = (leftHip4.y + rightHip4.y) / 2;
+                const hipCenterX4 = ( leftHip4.x + rightHip4.x ) / 2;
+                const hipCenterY4 = ( leftHip4.y + rightHip4.y ) / 2;
                 const isHorizontallyCentered4 = hipCenterX4 >= 0.35 && hipCenterX4 <= 0.65;
                 const isVerticallyCentered4 = hipCenterY4 >= 0.30 && hipCenterY4 <= 0.70;
                 const isInFrame4 = isHorizontallyCentered4 && isVerticallyCentered4;
 
-                console.log('%c\n✅ CHECK 4: Frame Positioning', 'color: #3B82F6; font-weight: bold');
-                console.log('   Hip Center X:', hipCenterX4.toFixed(3), '(range: 0.35 - 0.65)');
-                console.log('   Hip Center Y:', hipCenterY4.toFixed(3), '(range: 0.30 - 0.70)');
-                console.log('   Horizontally Centered?', isHorizontallyCentered4 ? '✅ YES' : '❌ NO');
-                console.log('   Vertically Centered?', isVerticallyCentered4 ? '✅ YES' : '❌ NO');
-                console.log('   In Frame?', isInFrame4 ? '✅ YES' : '❌ NO');
-                if (!isInFrame4) {
-                    if (!isHorizontallyCentered4) {
-                        console.log('   ⚠️ User needs to move', hipCenterX4 < 0.35 ? 'LEFT' : 'RIGHT');
+                console.log( '%c\n✅ CHECK 4: Frame Positioning', 'color: #3B82F6; font-weight: bold' );
+                console.log( '   Hip Center X:', hipCenterX4.toFixed( 3 ), '(range: 0.35 - 0.65)' );
+                console.log( '   Hip Center Y:', hipCenterY4.toFixed( 3 ), '(range: 0.30 - 0.70)' );
+                console.log( '   Horizontally Centered?', isHorizontallyCentered4 ? '✅ YES' : '❌ NO' );
+                console.log( '   Vertically Centered?', isVerticallyCentered4 ? '✅ YES' : '❌ NO' );
+                console.log( '   In Frame?', isInFrame4 ? '✅ YES' : '❌ NO' );
+                if ( !isInFrame4 ) {
+                    if ( !isHorizontallyCentered4 ) {
+                        console.log( '   ⚠️ User needs to move', hipCenterX4 < 0.35 ? 'LEFT' : 'RIGHT' );
                     }
-                    if (!isVerticallyCentered4) {
-                        console.log('   ⚠️ User needs to', hipCenterY4 < 0.30 ? 'COME CLOSER' : 'STEP BACK');
+                    if ( !isVerticallyCentered4 ) {
+                        console.log( '   ⚠️ User needs to', hipCenterY4 < 0.30 ? 'COME CLOSER' : 'STEP BACK' );
                     }
                 }
 
                 // ✅ FINAL ALIGNMENT CHECK (All conditions must pass)
                 const aligned = isSideView4 && isRightSide4 && feetAligned && isInFrame4;
 
-                console.log('%c\n🎯 FINAL ALIGNMENT RESULT:', 'color: #F59E0B; font-weight: bold; font-size: 13px');
-                console.log('   ✓ Side View:', isSideView4 ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ Right Side:', isRightSide4 ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ Feet Aligned:', feetAligned ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ In Frame:', isInFrame4 ? '✅ PASS' : '❌ FAIL');
-                console.log('%c   → ALIGNED: ' + (aligned ? '✅ YES - COUNTDOWN STARTING!' : '❌ NO - ADJUST POSITION'), aligned ? 'color: #10B981; font-weight: bold' : 'color: #EF4444; font-weight: bold');
+                console.log( '%c\n🎯 FINAL ALIGNMENT RESULT:', 'color: #F59E0B; font-weight: bold; font-size: 13px' );
+                console.log( '   ✓ Side View:', isSideView4 ? '✅ PASS' : '❌ FAIL' );
+                console.log( '   ✓ Right Side:', isRightSide4 ? '✅ PASS' : '❌ FAIL' );
+                console.log( '   ✓ Feet Aligned:', feetAligned ? '✅ PASS' : '❌ FAIL' );
+                console.log( '   ✓ In Frame:', isInFrame4 ? '✅ PASS' : '❌ FAIL' );
+                console.log( '%c   → ALIGNED: ' + ( aligned ? '✅ YES - COUNTDOWN STARTING!' : '❌ NO - ADJUST POSITION' ), aligned ? 'color: #10B981; font-weight: bold' : 'color: #EF4444; font-weight: bold' );
 
                 // Enhanced Feedback Messages (PRIORITY ORDER)
                 let feedbackMessage = '';
                 let feedbackIcon = '';
 
-                if (!isSideView4) {
+                if ( !isSideView4 ) {
                     feedbackMessage = 'TURN TO YOUR RIGHT SIDE';
                     feedbackIcon = '↻';
-                } else if (!isRightSide4) {
+                } else if ( !isRightSide4 ) {
                     feedbackMessage = 'TURN TO YOUR RIGHT (NOT LEFT)';
                     feedbackIcon = '↻';
-                } else if (!feetAligned && footDistance4 !== null) {
+                } else if ( !feetAligned && footDistance4 !== null ) {
                     feedbackMessage = 'TURN YOUR FEET SIDEWAYS TOO';
                     feedbackIcon = '↻';
-                } else if (!isHorizontallyCentered4) {
-                    if (hipCenterX4 < 0.35) {
+                } else if ( !isHorizontallyCentered4 ) {
+                    if ( hipCenterX4 < 0.35 ) {
                         feedbackMessage = hipCenterX4 < 0.25 ? 'MOVE LEFT' : 'A BIT LEFT';
                     } else {
                         feedbackMessage = hipCenterX4 > 0.75 ? 'MOVE RIGHT' : 'A BIT RIGHT';
                     }
                     feedbackIcon = hipCenterX4 < 0.35 ? '⬅' : '➡️';
-                } else if (!isVerticallyCentered4) {
-                    if (hipCenterY4 > 0.70) {
+                } else if ( !isVerticallyCentered4 ) {
+                    if ( hipCenterY4 > 0.70 ) {
                         feedbackMessage = hipCenterY4 > 0.80 ? 'STEP BACK' : 'A BIT BACK';
                     } else {
                         feedbackMessage = hipCenterY4 < 0.20 ? 'COME CLOSER' : 'A BIT CLOSER';
@@ -742,19 +742,19 @@ function CapturePage() {
                     feedbackIcon = '✓';
                 }
 
-                console.log('%c\n💬 User Feedback:', 'color: #8B5CF6; font-weight: bold');
-                console.log('   Message:', feedbackMessage);
-                console.log('   Icon:', feedbackIcon);
+                console.log( '%c\n💬 User Feedback:', 'color: #8B5CF6; font-weight: bold' );
+                console.log( '   Message:', feedbackMessage );
+                console.log( '   Icon:', feedbackIcon );
 
                 // Comprehensive Debug Info
                 const debugInfo4 = {
                     hipDistance: hipDistance4.toFixed(3),
                     isSideView: isSideView4,
-                    leftHipZ: leftHipZ.toFixed(3),
-                    rightHipZ: rightHipZ.toFixed(3),
-                    zDepthDifference: zDepthDifference.toFixed(3),
+                    leftHipZ: leftHipZ.toFixed( 3 ),
+                    rightHipZ: rightHipZ.toFixed( 3 ),
+                    zDepthDifference: zDepthDifference.toFixed( 3 ),
                     isRightSide: isRightSide4,
-                    footDistance: footDistance4 ? footDistance4.toFixed(3) : 'not detected',
+                    footDistance: footDistance4 ? footDistance4.toFixed( 3 ) : 'not detected',
                     feetAligned: feetAligned,
                     hipPosition: {
                         x: hipCenterX4.toFixed(3),
@@ -766,7 +766,7 @@ function CapturePage() {
                     feedbackIcon: feedbackIcon
                 };
 
-                console.log('%c========================================\n', 'color: #9333EA');
+                console.log( '%c========================================\n', 'color: #9333EA' );
 
                 // Store debug info for on-screen display
                 setStage4Debug(debugInfo4);
