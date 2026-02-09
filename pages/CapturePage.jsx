@@ -461,40 +461,61 @@ function CapturePage() {
                 return isXAligned1 && isYAligned1;
 
             case 'STAGE_2_UPPER_FRONT':
-                // Check if shoulders are visible and centered - TIGHTENED
+                // FULL BODY FRONT CAPTURE - Use torso center for alignment
                 if (!poseLandmarks) return false;
+
+                // Get shoulder and hip landmarks
                 const leftShoulder = poseLandmarks[11];
                 const rightShoulder = poseLandmarks[12];
+                const leftHip = poseLandmarks[ 23 ];
+                const rightHip = poseLandmarks[ 24 ];
+
+                // Validate all landmarks exist
+                if ( !leftShoulder || !rightShoulder || !leftHip || !rightHip ) return false;
+
+                // Calculate shoulder center
                 const shoulderCenterX = (leftShoulder.x + rightShoulder.x) / 2;
                 const shoulderCenterY = (leftShoulder.y + rightShoulder.y) / 2;
 
-                const isXAligned2 = shoulderCenterX >= 0.42 && shoulderCenterX <= 0.58; // Stricter: 0.42-0.58 (was 0.40-0.60)
-                const isYAligned2 = shoulderCenterY >= 0.30 && shoulderCenterY <= 0.50; // Stricter: 0.30-0.50 (was 0.25-0.55)
+                // Calculate hip center
+                const hipCenterX = ( leftHip.x + rightHip.x ) / 2;
+                const hipCenterY = ( leftHip.y + rightHip.y ) / 2;
 
-                // Generate granular feedback for Stage 2
+                // Calculate torso center (midpoint between shoulders and hips)
+                const torsoCenterX = ( shoulderCenterX + hipCenterX ) / 2;
+                const torsoCenterY = ( shoulderCenterY + hipCenterY ) / 2;
+
+                // Full body alignment: centered horizontally, middle of frame vertically
+                const isXAligned2 = torsoCenterX >= 0.42 && torsoCenterX <= 0.58;
+                const isYAligned2 = torsoCenterY >= 0.35 && torsoCenterY <= 0.55; // Lower than shoulder-only (was 0.30-0.50)
+
+                // Generate granular feedback for Stage 2 (full body)
                 let feedbackMsg2 = '';
                 let feedbackIcon2 = '';
 
                 if (!isXAligned2) {
-                    if (shoulderCenterX < 0.40) {
-                        feedbackMsg2 = shoulderCenterX < 0.30 ? 'MOVE LEFT' : 'A BIT LEFT';
+                    if ( torsoCenterX < 0.40 ) {
+                        feedbackMsg2 = torsoCenterX < 0.30 ? 'MOVE LEFT' : 'A BIT LEFT';
                     } else {
-                        feedbackMsg2 = shoulderCenterX > 0.70 ? 'MOVE RIGHT' : 'A BIT RIGHT';
+                        feedbackMsg2 = torsoCenterX > 0.70 ? 'MOVE RIGHT' : 'A BIT RIGHT';
                     }
-                    feedbackIcon2 = shoulderCenterX < 0.40 ? '⬅' : '➡️';
+                    feedbackIcon2 = torsoCenterX < 0.40 ? '⬅' : '➡️';
                 } else if (!isYAligned2) {
-                    if (shoulderCenterY < 0.25) {
-                        feedbackMsg2 = shoulderCenterY < 0.15 ? 'MOVE DOWN' : 'A BIT DOWN';
+                    // For full body, use distance-based feedback instead of up/down
+                    if ( torsoCenterY < 0.30 ) {
+                        feedbackMsg2 = torsoCenterY < 0.20 ? 'STEP BACK' : 'A BIT BACK';
                     } else {
-                        feedbackMsg2 = shoulderCenterY > 0.65 ? 'MOVE UP' : 'A BIT UP';
+                        feedbackMsg2 = torsoCenterY > 0.60 ? 'COME CLOSER' : 'A BIT CLOSER';
                     }
-                    feedbackIcon2 = shoulderCenterY < 0.25 ? '⬇️' : '⬆️';
+                    feedbackIcon2 = torsoCenterY < 0.30 ? '⬆️' : '⬇️';
                 }
 
                 setStage2Debug({
                     aligned: isXAligned2 && isYAligned2,
                     feedbackMessage: feedbackMsg2,
-                    feedbackIcon: feedbackIcon2
+                    feedbackIcon: feedbackIcon2,
+                    torsoCenterX: torsoCenterX.toFixed( 3 ),
+                    torsoCenterY: torsoCenterY.toFixed( 3 )
                 });
 
                 return isXAligned2 && isYAligned2;
