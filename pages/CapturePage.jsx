@@ -1100,6 +1100,7 @@ function CapturePage() {
                         left: 0,
                         width: '100%',
                         height: '100%',
+                        objectFit: 'cover', // FIXED: Cover entire screen for consistency
                         transform: "scaleX(-1)",
                     }}
                 />
@@ -1125,14 +1126,11 @@ function CapturePage() {
                             src={frozenImage}
                             alt="Captured"
                             style={{
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                                width: 'auto',
-                                height: 'auto',
-                                objectFit: 'contain', // FIXED: Show full image without cropping
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover', // FIXED: Cover entire screen to match live view
                                 objectPosition: 'center',
                                 transform: 'scaleX(-1)',
-                                margin: 'auto',
                                 display: 'block'
                             }}
                         />

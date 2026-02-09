@@ -1,170 +1,203 @@
 import React from 'react';
 
 /**
- * Stage 3: Upper Body Side Ghost - Realistic Human Proportions
+ * Stage 3: Upper Body Side Ghost - Professional & Responsive
+ * Redesigned with premium UI/UX pattern matching FaceGhost.jsx
  */
 const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null }) => {
-  // Color scheme from LandingPage - Professional cyan/blue/slate
   const primaryColor = isAligned ? '#06B6D4' : '#64748B';
   const successColor = '#06B6D4';
   const guidanceColor = '#F59E0B';
 
-  const progress = (holdDuration / 3000) * 100;
   const countdown = Math.ceil((3000 - holdDuration) / 1000);
   const feedbackMessage = stage3Debug?.feedbackMessage || '';
 
   return (
-    <svg
-      style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 'auto',
-        height: '100dvh',
-        maxHeight: '100dvh',
-        pointerEvents: 'none',
-        zIndex: 10
-      }}
-      viewBox="0 0 960 720"
-      preserveAspectRatio="xMidYMid meet"
-    >
-      {/* Top Instruction - Clean & Minimal */}
-      <g>
-        <rect x="230" y="20" width="500" height="70" rx="8"
-          fill="rgba(2, 6, 23, 0.85)"
-          stroke={primaryColor}
-          strokeWidth="2"
-          opacity="0.95"
-        />
-        <text
-          x="480"
-          y="48"
-          textAnchor="middle"
-          fill={isAligned ? successColor : '#94A3B8'}
-          fontSize="18"
-          fontWeight="600"
-          letterSpacing="1"
-          style={{ textTransform: 'uppercase' }}
-        >
-          Step 3: Side Profile
-        </text>
-        <text
-          x="480"
-          y="72"
-          textAnchor="middle"
-          fill={isAligned ? successColor : '#E2E8F0'}
-          fontSize="24"
-          fontWeight="bold"
-        >
-          {isAligned ? '✓ Hold Position' : 'Turn to Your Right Side'}
-        </text>
-      </g>
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100dvh',
+      pointerEvents: 'none',
+      zIndex: 10,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }}>
+      {/* Top badges - Separate pills */}
+      <div style={{
+        marginTop: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '12px',
+        width: '100%',
+        pointerEvents: 'none'
+      }}>
+        {/* Step Badge */}
+        <div style={{
+          backgroundColor: 'rgba(2, 6, 23, 0.85)',
+          backdropFilter: 'blur(12px)',
+          border: `1px solid ${isAligned ? successColor : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: '100px',
+          padding: '6px 16px',
+          boxShadow: isAligned ? `0 0 20px ${successColor}30` : '0 4px 20px rgba(0,0,0,0.4)',
+          transition: 'all 0.4s ease',
+          pointerEvents: 'auto'
+        }}>
+          <span style={{
+            color: isAligned ? successColor : '#94A3B8',
+            fontSize: '12px',
+            fontWeight: '700',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            fontFamily: 'monospace'
+          }}>
+            Step 3: Side Profile
+          </span>
+        </div>
 
-      {/* REALISTIC UPPER BODY SIDE SILHOUETTE */}
-      <g transform="translate(480, 390)">
-        {/* Glow effect when aligned */}
-        {isAligned && (
-          <ellipse
-            cx="0"
-            cy="0"
-            rx="140"
-            ry="320"
-            fill="none"
-            stroke={successColor}
-            strokeWidth="20"
-            opacity="0.15"
-            filter="blur(20px)"
-          />
-        )}
+        {/* Guidance Pill */}
+        <div style={{
+          backgroundColor: 'rgba(2, 6, 23, 0.9)',
+          backdropFilter: 'blur(12px)',
+          border: `2px solid ${primaryColor}`,
+          borderRadius: '100px',
+          padding: '10px 20px', // Responsive padding
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: 'auto',
+          minWidth: '240px', // Slightly smaller min-width
+          maxWidth: '90vw', // Ensure it doesn't overflow
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            color: isAligned ? successColor : '#E2E8F0',
+            fontSize: 'clamp(16px, 4.5vw, 20px)', // Responsive font size
+            fontWeight: '800',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            textAlign: 'center'
+          }}>
+            {isAligned ? '✓ Perfect! Hold Position' : (feedbackMessage || 'Turn to your side')}
 
-        {/* Unified Realistic Side Profile Silhouette */}
-        <path
-          d="M 10 -280 
-             Q 55 -280 55 -230 
-             L 65 -220 L 55 -210 
-             Q 55 -180 35 -165 
-             Q 30 -140 35 -120 
-             C 55 -100 65 -60 60 -20 
-             Q 55 40 50 145 
-             L -20 145 
-             Q -35 100 -30 60 
-             Q -35 -20 -30 -80 
-             Q -35 -130 -40 -160 
-             Q -50 -200 10 -280 Z"
-          fill="rgba(6, 182, 212, 0.08)"
-          stroke={primaryColor}
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeDasharray={isAligned ? "0" : "10 5"}
-        />
+            {!isAligned && feedbackMessage && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px',
+                backgroundColor: `${guidanceColor}20`,
+                borderRadius: '50%',
+                border: `1px solid ${guidanceColor}40`
+              }}>
+                <svg width="18" height="18" viewBox="0 0 20 20">
+                  <g transform="translate(10, 10)">
+                    {(feedbackMessage.toLowerCase().includes('up')) && (
+                      <path d="M 0 -6 L -5 1 L -2 1 L -2 6 L 2 6 L 2 1 L 5 1 Z" fill={guidanceColor}>
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('down')) && (
+                      <path d="M 0 6 L -5 -1 L -2 -1 L -2 -6 L 2 -6 L 2 -1 L 5 -1 Z" fill={guidanceColor}>
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('left')) && (
+                      <path d="M -6 0 L 1 -5 L 1 -2 L 6 -2 L 6 2 L 1 2 L 1 5 Z" fill={guidanceColor}>
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('right')) && (
+                      <path d="M 6 0 L -1 -5 L -1 -2 L -6 -2 L -6 2 L -1 2 L -1 5 Z" fill={guidanceColor}>
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                  </g>
+                </svg>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
-        {/* Arm Hints */}
-        <path
-          d="M 15 -80 Q 25 -40 25 20 L 20 100"
-          stroke={primaryColor}
-          strokeWidth="2"
-          strokeDasharray={isAligned ? "0" : "5 5"}
-          fill="none"
-          opacity="0.5"
-        />
+      {/* SVG Container - Portrait-first scaling */}
+      <svg
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 'auto',
+          height: '100dvh',
+          maxWidth: '100vw',
+          maxHeight: '100dvh',
+          pointerEvents: 'none',
+        }}
+        viewBox="0 0 480 960"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <defs>
+          {/* Expanded Isolation Clip: Ensures head visibility while preventing bottom overflow */}
+          <clipPath id="side-upper-clip">
+            <rect x="-240" y="-600" width="480" height="930" />
+          </clipPath>
+        </defs>
 
-        {/* Rotation indicator */}
-        {!isAligned && feedbackMessage.includes('TURN') && (
-          <g>
-            <circle cx="0" cy="-50" r="60" fill="none" stroke={guidanceColor} strokeWidth="3" strokeDasharray="8 4" opacity="0.6">
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                from="0 0 -50"
-                to="360 0 -50"
-                dur="3s"
-                repeatCount="indefinite"
-              />
-            </circle>
-            <text x="0" y="-35" textAnchor="middle" fill={guidanceColor} fontSize="32" fontWeight="bold">↻</text>
-          </g>
-        )}
+        {/* SIDE SILHOUETTE - Strictly positioned below banner for zero overlap (y=780) */}
+        <g transform="translate(240, 780)" clipPath="url(#side-upper-clip)">
 
-        {/* Center Alignment Indicator */}
-        {!isAligned && !feedbackMessage.includes('TURN') && (
-          <>
-            <line x1="0" y1="-300" x2="0" y2="-330" stroke={guidanceColor} strokeWidth="2" strokeDasharray="4 4" opacity="0.6" />
-            <circle cx="0" cy="0" r="8" fill={guidanceColor} opacity="0.4">
-              <animate attributeName="r" values="8;12;8" dur="1.5s" repeatCount="indefinite" />
-            </circle>
-          </>
-        )}
-
-        {/* Countdown Display */}
-        {isAligned && holdDuration > 0 && (
-          <g>
-            <circle cx="0" cy="0" r="110" fill="none" stroke={successColor} strokeWidth="3" opacity="0.2" />
-            <circle
-              cx="0"
-              cy="0"
-              r="100"
-              fill="none"
-              stroke={successColor}
-              strokeWidth="6"
-              strokeDasharray={`${progress * 6.28} 628`}
-              strokeLinecap="round"
-              transform="rotate(-90)"
-              opacity="0.9"
+          {/* Glow effect focused on torso */}
+          {isAligned && (
+            <ellipse cx="0" cy="-150" rx="180" ry="280"
+              fill="none" stroke={successColor}
+              strokeWidth="32" opacity="0.1"
+              filter="blur(32px)"
             />
-            <text x="0" y="20" textAnchor="middle" fill={successColor} fontSize="80" fontWeight="bold"
-              style={{ filter: 'drop-shadow(0 0 20px rgba(6,182,212,0.8))' }}
-            >
-              {countdown}
-            </text>
-            <text x="0" y="65" textAnchor="middle" fill={successColor} fontSize="18" fontWeight="600" opacity="0.8">
-              Hold still...
-            </text>
+          )}
+
+          {/* Calibrated scale for perfect vertical centering in the available viewport space */}
+          <g transform="scale(4.8) translate(-93.5, -95)">
+            <path
+              d="M118.373 103.686c1.534-7.039 3.118-30.954-7.727-40.355-3.161-2.74-10.645-7.989-12.767-10.802-.398-.53-.666-1.339-.828-2.262 1.173-2.743 2.938-6.293 2.938-6.293 1.571-2.037 4.274-1.4 5.735-1.233 4.165.411 5.176-.837 5.176-.837.901-.572.421-2.886.421-2.886-.372-1.184.164-1.791.499-2.256.896-1.303.341-1.884.341-1.884l-.109-.554c1.005-.354 1.06-.904 1.06-.904l-.067-1.851c-.177-1.267.384-1.355.384-1.355 2.302-.097 2.217-1.583 2.217-1.583.073-.816-2.801-5.636-2.801-5.636-1.353-2.469.462-4.003.56-5.294.451-5.949-1.632-9.539-4.421-12.353C104.393.67 98.574-.097 94.79.009c-9.715.28-13.576 3.44-16.475 6.814-6.043 7.03-4.615 13.058-4.615 13.058.231 3.593 5.325 10.026 5.325 10.026 4.068 5.593 2.208 10.013 2.208 10.013l.07.013c.036 3.498-.561 7.514-3.069 9.971-8.181 7.989-15.019 21.787-7.2 43.528 3.373 9.365 16.623 31.006 11.792 37.984-5.836 8.415-17.354 19.96-5.568 40.59 0 0-.606 6.352-1.093 15.053h32.814c.104-1.967 2.387-10.583 2.314-12.763-.323-9.463.188-21.349 1.314-26.841 2.016-9.986 6.54-21.617 5.889-40.273-.031-1.346-.08-2.497-.123-3.496"
+              fill="rgba(6, 182, 212, 0.08)"
+              stroke={primaryColor}
+              strokeWidth="0.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </g>
-        )}
-      </g>
-    </svg>
+
+          {/* COUNTDOWN */}
+          {isAligned && holdDuration > 0 && (
+            <g transform="translate(0, -60)">
+              <text x="0" y="-32" textAnchor="middle"
+                fill={successColor}
+                fontSize="100"
+                fontWeight="bold"
+                style={{ filter: 'drop-shadow(0 0 32px rgba(6,182,212,0.9))' }}
+              >
+                {countdown}
+              </text>
+              <text x="0" y="18" textAnchor="middle"
+                fill={successColor}
+                fontSize="20"
+                fontWeight="500"
+                opacity="0.85"
+              >
+                Hold still
+              </text>
+            </g>
+          )}
+        </g>
+      </svg>
+    </div>
   );
 };
 
