@@ -12,7 +12,7 @@ import { calculateDistance, calculateDistance2D, calculateAngle, calculateAngle3
 import { calculateTotalScore } from "../utils/scoring"; // Adjusted path
 import analyzePatterns from "../utils/patternAnalyzer"; // Adjusted path
 import { calculateQuestionnaireScores } from "../utils/questionnaireScoring"; // Adjusted path
-import integrateAllModalities from "../utils/integratedPatternFusion"; // Adjusted path
+import { integrateAllModalities } from "../utils/integratedPatternFusion"; // Adjusted path
 
 // Navigation Components
 import LandingPage from "../components/LandingPage"; // Adjusted path
@@ -30,6 +30,7 @@ import ResultsScreen from "../components/ResultsScreen"; // Adjusted path
 function CapturePage() {
     const webcamRef = useRef(null);
     const canvasRef = useRef(null);
+    const hiddenCanvasRef = useRef( null ); // Hidden canvas for landmark rendering
 
     const faceLandmarkerRef = useRef(null);
     const poseLandmarkerRef = useRef(null);
@@ -38,9 +39,6 @@ function CapturePage() {
     // Navigation State - Start directly at CAPTURE for testing
     const [appStage, setAppStage] = useState('CAPTURE');
     // Possible values: 'LANDING' → 'QUESTIONNAIRE' → 'INSTRUCTIONS' → 'CAPTURE' → 'PROCESSING' → 'RESULTS'
-
-    // Questionnaire Data
-    const [questionnaireData, setQuestionnaireData] = useState({ normalizedScores: { pain: 0, mobility: 0 } });
 
     // 4-Stage Capture System
     const [captureStage, setCaptureStage] = useState('STAGE_1_FACE');
@@ -55,9 +53,6 @@ function CapturePage() {
     // Screen freeze states
     const [isFrozen, setIsFrozen] = useState(false);
     const [frozenImage, setFrozenImage] = useState(null);
-
-    // Show landmarks for visual feedback
-    const [showLandmarks] = useState(true);
 
     // Capture Data Storage
     const [captureData, setCaptureData] = useState({
@@ -81,6 +76,25 @@ function CapturePage() {
 
     // Pattern Analysis Results
     const [patternResults, setPatternResults] = useState(null);
+
+    // Questionnaire Data (loaded from sessionStorage)
+    const [ questionnaireData, setQuestionnaireData ] = useState( null );
+
+    // Load questionnaire data from sessionStorage on mount
+    useEffect( () => {
+        const storedData = sessionStorage.getItem( 'questionnaireData' );
+        if ( storedData ) {
+            try {
+                const parsed = JSON.parse( storedData );
+                setQuestionnaireData( parsed );
+                console.log( '✅ Loaded questionnaire data from sessionStorage:', parsed );
+            } catch ( error ) {
+                console.error( '❌ Failed to parse questionnaire data:', error );
+            }
+        } else {
+            console.warn( '⚠️ No questionnaire data found in sessionStorage' );
+        }
+    }, [] );
 
     // Refs for render loop
     const lastInferenceTimeRef = useRef(0);
@@ -198,10 +212,20 @@ function CapturePage() {
 
                     const shouldRunInference = (now - lastInferenceTimeRef.current) >= INFERENCE_INTERVAL_MS;
 
-                    // Draw video frame
+                    // Draw video frame on VISIBLE canvas (clean, no landmarks)
                     ctx.save();
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    // Draw video frame + landmarks on HIDDEN canvas (for capture)
+                    const hiddenCanvas = hiddenCanvasRef.current;
+                    let hiddenCtx = null;
+                    if ( hiddenCanvas ) {
+                        hiddenCtx = hiddenCanvas.getContext( "2d" );
+                        hiddenCtx.save();
+                        hiddenCtx.clearRect( 0, 0, hiddenCanvas.width, hiddenCanvas.height );
+                        hiddenCtx.drawImage( video, 0, 0, hiddenCanvas.width, hiddenCanvas.height );
+                    }
 
                     if (shouldRunInference && !showResults) {
                         lastInferenceTimeRef.current = now;
@@ -220,10 +244,11 @@ function CapturePage() {
                             if (!isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
                                 const fl = faceResult.faceLandmarks[0];
 
-                                // Debug mode: Draw landmarks if enabled
-                                if (showLandmarks) {
-                                    drawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C0", lineWidth: 0.1 });
-                                    drawingUtils.drawLandmarks(fl, { color: "#00FF00", radius: 1 });
+                                // Draw landmarks on HIDDEN canvas only (not visible to user)
+                                if ( hiddenCtx ) {
+                                    const hiddenDrawingUtils = new DrawingUtils( hiddenCtx );
+                                    hiddenDrawingUtils.drawConnectors( fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C0", lineWidth: 0.1 } );
+                                    hiddenDrawingUtils.drawLandmarks( fl, { color: "#00FF00", radius: 1 } );
                                 }
 
                                 // Calculate metrics
@@ -271,10 +296,11 @@ function CapturePage() {
                             if (poseResult.landmarks && poseResult.landmarks.length > 0) {
                                 const pl = poseResult.landmarks[0];
 
-                                // Debug mode: Draw landmarks if enabled
-                                if (showLandmarks) {
-                                    drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "#00FFFF", lineWidth: 2 });
-                                    drawingUtils.drawLandmarks(pl, { color: "#FFFF00", radius: 3 });
+                                // Draw landmarks on HIDDEN canvas only (not visible to user)
+                                if ( hiddenCtx ) {
+                                    const hiddenDrawingUtils = new DrawingUtils( hiddenCtx );
+                                    hiddenDrawingUtils.drawConnectors( pl, PoseLandmarker.POSE_CONNECTIONS, { color: "#00FFFF", lineWidth: 2 } );
+                                    hiddenDrawingUtils.drawLandmarks( pl, { color: "#FFFF00", radius: 3 } );
                                 }
 
                                 // METRIC 4: Shoulder Height Asymmetry (Normalized by Body Height)
@@ -400,6 +426,9 @@ function CapturePage() {
                     }
 
                     ctx.restore();
+                    if ( hiddenCtx ) {
+                        hiddenCtx.restore();
+                    }
                     animationFrameId = requestAnimationFrame(renderLoop);
                 };
 
@@ -452,55 +481,84 @@ function CapturePage() {
                     feedbackIcon1 = noseTip.y < 0.20 ? '⬇️' : '⬆️';
                 }
 
+                // Check if face landmarks are detected (required for visible analysis)
+                const hasFaceLandmarks = faceLandmarks && faceLandmarks.length > 0;
+                const aligned1 = isXAligned1 && isYAligned1 && hasFaceLandmarks;
+
                 setStage1Debug({
-                    aligned: isXAligned1 && isYAligned1,
-                    feedbackMessage: feedbackMsg1,
-                    feedbackIcon: feedbackIcon1
+                    aligned: aligned1,
+                    feedbackMessage: hasFaceLandmarks ? feedbackMsg1 : 'FACE NOT DETECTED',
+                    feedbackIcon: hasFaceLandmarks ? feedbackIcon1 : '⚠️'
                 });
 
-                return isXAligned1 && isYAligned1;
+                return aligned1;
 
             case 'STAGE_2_UPPER_FRONT':
-                // Check if shoulders are visible and centered - TIGHTENED
+                // FULL BODY FRONT CAPTURE - Use torso center for alignment
                 if (!poseLandmarks) return false;
+
+                // Get shoulder and hip landmarks
                 const leftShoulder = poseLandmarks[11];
                 const rightShoulder = poseLandmarks[12];
+                const leftHip = poseLandmarks[ 23 ];
+                const rightHip = poseLandmarks[ 24 ];
+
+                // Validate all landmarks exist
+                if ( !leftShoulder || !rightShoulder || !leftHip || !rightHip ) return false;
+
+                // Calculate shoulder center
                 const shoulderCenterX = (leftShoulder.x + rightShoulder.x) / 2;
                 const shoulderCenterY = (leftShoulder.y + rightShoulder.y) / 2;
 
-                const isXAligned2 = shoulderCenterX >= 0.42 && shoulderCenterX <= 0.58; // Stricter: 0.42-0.58 (was 0.40-0.60)
-                const isYAligned2 = shoulderCenterY >= 0.30 && shoulderCenterY <= 0.50; // Stricter: 0.30-0.50 (was 0.25-0.55)
+                // Calculate hip center
+                const hipCenterX = ( leftHip.x + rightHip.x ) / 2;
+                const hipCenterY = ( leftHip.y + rightHip.y ) / 2;
 
-                // Generate granular feedback for Stage 2
+                // Calculate torso center (midpoint between shoulders and hips)
+                const torsoCenterX = ( shoulderCenterX + hipCenterX ) / 2;
+                const torsoCenterY = ( shoulderCenterY + hipCenterY ) / 2;
+
+                // Full body alignment: centered horizontally, middle of frame vertically
+                const isXAligned2 = torsoCenterX >= 0.42 && torsoCenterX <= 0.58;
+                const isYAligned2 = torsoCenterY >= 0.35 && torsoCenterY <= 0.55; // Lower than shoulder-only (was 0.30-0.50)
+
+                // Generate granular feedback for Stage 2 (full body)
                 let feedbackMsg2 = '';
                 let feedbackIcon2 = '';
 
                 if (!isXAligned2) {
-                    if (shoulderCenterX < 0.40) {
-                        feedbackMsg2 = shoulderCenterX < 0.30 ? 'MOVE LEFT' : 'A BIT LEFT';
+                    if ( torsoCenterX < 0.40 ) {
+                        feedbackMsg2 = torsoCenterX < 0.30 ? 'MOVE LEFT' : 'A BIT LEFT';
                     } else {
-                        feedbackMsg2 = shoulderCenterX > 0.70 ? 'MOVE RIGHT' : 'A BIT RIGHT';
+                        feedbackMsg2 = torsoCenterX > 0.70 ? 'MOVE RIGHT' : 'A BIT RIGHT';
                     }
-                    feedbackIcon2 = shoulderCenterX < 0.40 ? '⬅' : '➡️';
+                    feedbackIcon2 = torsoCenterX < 0.40 ? '⬅' : '➡️';
                 } else if (!isYAligned2) {
-                    if (shoulderCenterY < 0.25) {
-                        feedbackMsg2 = shoulderCenterY < 0.15 ? 'MOVE DOWN' : 'A BIT DOWN';
+                    // For full body, use distance-based feedback instead of up/down
+                    if ( torsoCenterY < 0.30 ) {
+                        feedbackMsg2 = torsoCenterY < 0.20 ? 'STEP BACK' : 'A BIT BACK';
                     } else {
-                        feedbackMsg2 = shoulderCenterY > 0.65 ? 'MOVE UP' : 'A BIT UP';
+                        feedbackMsg2 = torsoCenterY > 0.60 ? 'COME CLOSER' : 'A BIT CLOSER';
                     }
-                    feedbackIcon2 = shoulderCenterY < 0.25 ? '⬇️' : '⬆️';
+                    feedbackIcon2 = torsoCenterY < 0.30 ? '⬆️' : '⬇️';
                 }
 
+                // Check if pose landmarks are detected (required for visible analysis)
+                const hasPoseLandmarks2 = poseLandmarks && poseLandmarks.length > 0;
+                const aligned2 = isXAligned2 && isYAligned2 && hasPoseLandmarks2;
+
                 setStage2Debug({
-                    aligned: isXAligned2 && isYAligned2,
-                    feedbackMessage: feedbackMsg2,
-                    feedbackIcon: feedbackIcon2
+                    aligned: aligned2,
+                    feedbackMessage: hasPoseLandmarks2 ? feedbackMsg2 : 'BODY NOT DETECTED',
+                    feedbackIcon: hasPoseLandmarks2 ? feedbackIcon2 : '⚠️',
+                    torsoCenterX: torsoCenterX.toFixed( 3 ),
+                    torsoCenterY: torsoCenterY.toFixed( 3 )
                 });
 
-                return isXAligned2 && isYAligned2;
+                return aligned2;
 
             case 'STAGE_3_UPPER_SIDE':
-                // Detect side view ONLY by shoulder width - ignore visibility
+                // RIGHT SIDE PROFILE DETECTION - Fixed to reject left side and partial turns
                 if (!poseLandmarks) {
                     console.log('Stage 3 Debug: No pose landmarks detected');
                     return false;
@@ -508,54 +566,82 @@ function CapturePage() {
                 const leftShoulder3 = poseLandmarks[11];
                 const rightShoulder3 = poseLandmarks[12];
 
-                if (!leftShoulder3 || !rightShoulder3) {
-                    console.log('Stage 3 Debug: Shoulders not detected');
+                if ( !leftShoulder3 || !rightShoulder3 ) {
+                    console.log( 'Stage 3 Debug: Shoulders not detected' );
                     return false;
                 }
 
-                // In side view, shoulders appear close together (narrow width) - STRICTER
+                // Step 1: Check shoulder distance (side view detection)
                 const shoulderDistance = Math.abs(leftShoulder3.x - rightShoulder3.x);
-                const isSideView = shoulderDistance < 0.35; // STRICTER: 0.35 (was 0.45)
+                const isSideView = shoulderDistance < 0.25; // STRICTER: 0.25 (was 0.35) to reject partial turns
 
-                // CRITICAL: Check if user is actually IN the frame (centered) - STRICTER
+                // Step 2: CRITICAL FIX - Verify RIGHT side using Z-depth
+                // For RIGHT side profile: left shoulder is CLOSER to camera (smaller z value)
+                const leftShoulderZ = leftShoulder3.z || 0;
+                const rightShoulderZ = rightShoulder3.z || 0;
+                const isRightSide = leftShoulderZ < rightShoulderZ - 0.02; // Left shoulder must be at least 0.02 closer
+
+                // Step 3: Calculate shoulder center for frame positioning
                 const shoulderCenterX3 = (leftShoulder3.x + rightShoulder3.x) / 2;
                 const shoulderCenterY3 = (leftShoulder3.y + rightShoulder3.y) / 2;
+
+                // Step 4: Check if user is centered in frame
 
                 // User must be reasonably centered horizontally and vertically - STRICTER
                 const isHorizontallyCentered = shoulderCenterX3 >= 0.40 && shoulderCenterX3 <= 0.60; // Stricter: 0.40-0.60 (was 0.35-0.65)
                 const isVerticallyCentered = shoulderCenterY3 >= 0.30 && shoulderCenterY3 <= 0.50; // Stricter: 0.30-0.50 (was 0.25-0.55)
                 const isInFrame = isHorizontallyCentered && isVerticallyCentered;
 
+                // Debug logging with all checks
                 console.log('Stage 3 Debug:', {
                     shoulderDistance: shoulderDistance.toFixed(3),
                     isSideView,
+                    leftShoulderZ: leftShoulderZ.toFixed( 3 ),
+                    rightShoulderZ: rightShoulderZ.toFixed( 3 ),
+                    isRightSide,
                     shoulderCenterX: shoulderCenterX3.toFixed(3),
                     shoulderCenterY: shoulderCenterY3.toFixed(3),
+                    isHorizontallyCentered,
+                    isVerticallyCentered,
                     isInFrame,
-                    aligned: isSideView && isInFrame
+                    aligned: isSideView && isRightSide && isInFrame
                 });
+
+                // EXPLICIT CHECK - Print why alignment is failing
+                if ( !isSideView ) console.warn( '❌ STAGE 3: Not in side view! shoulderDistance =', shoulderDistance );
+                if ( !isRightSide ) console.warn( '❌ STAGE 3: Not right side! leftZ =', leftShoulderZ, 'rightZ =', rightShoulderZ );
+                if ( !isInFrame ) console.warn( '❌ STAGE 3: Not in frame! isHorizontallyCentered =', isHorizontallyCentered, 'isVerticallyCentered =', isVerticallyCentered );
 
                 // Generate granular feedback for Stage 3
                 let feedbackMsg3 = '';
                 if (!isSideView) {
                     feedbackMsg3 = 'TURN TO YOUR RIGHT SIDE';
+                } else if ( !isRightSide ) {
+                    feedbackMsg3 = 'TURN TO YOUR RIGHT (NOT LEFT)';
                 } else if (!isHorizontallyCentered) {
                     feedbackMsg3 = shoulderCenterX3 < 0.35 ? (shoulderCenterX3 < 0.25 ? 'MOVE LEFT' : 'A BIT LEFT') : (shoulderCenterX3 > 0.75 ? 'MOVE RIGHT' : 'A BIT RIGHT');
                 } else if (!isVerticallyCentered) {
                     feedbackMsg3 = shoulderCenterY3 < 0.25 ? (shoulderCenterY3 < 0.15 ? 'MOVE DOWN' : 'A BIT DOWN') : (shoulderCenterY3 > 0.65 ? 'MOVE UP' : 'A BIT UP');
                 }
-                setStage3Debug({ aligned: isSideView && isInFrame, feedbackMessage: feedbackMsg3, feedbackIcon: '' });
+                // Check if pose landmarks are detected (required for visible analysis)
+                const hasPoseLandmarks3 = poseLandmarks && poseLandmarks.length > 0;
+                const aligned3 = isSideView && isRightSide && isInFrame && hasPoseLandmarks3;
 
-                // Check shoulder distance AND position in frame
-                return isSideView && isInFrame;
+                setStage3Debug( {
+                    aligned: aligned3,
+                    feedbackMessage: hasPoseLandmarks3 ? feedbackMsg3 : 'BODY NOT DETECTED',
+                    feedbackIcon: hasPoseLandmarks3 ? '' : '⚠️'
+                } );
+
+                // FIXED: Check shoulder distance AND right side direction AND frame position AND landmarks
+                return aligned3;
 
             case 'STAGE_4_LOWER_SIDE':
-                // MODERATE DIFFICULTY: Just check for side view
-                // Not too easy (any position) and not too hard (strict foot detection)
-                console.log('Stage 4: poseLandmarks =', poseLandmarks); // DEBUG: What are we receiving?
+                // FIXED: Comprehensive side detection with Z-depth + feet verification
+                console.log( '%c========== STAGE 4: LOWER BODY SIDE ==========', 'color: #9333EA; font-weight: bold; font-size: 14px' );
 
                 if (!poseLandmarks) {
-                    console.log('Stage 4 Debug: No pose landmarks detected');
+                    console.log( '%c❌ No pose landmarks detected', 'color: #EF4444' );
                     return false;
                 }
 
@@ -564,100 +650,191 @@ function CapturePage() {
 
                 // Check if hips are detected
                 if (!leftHip4 || !rightHip4) {
-                    console.log('Stage 4 Debug: Hip landmarks not detected');
+                    console.log( '%c❌ Hip landmarks not detected', 'color: #EF4444' );
+                    console.log( '   Left Hip (#23):', leftHip4 ? '✅ Detected' : '❌ Missing' );
+                    console.log( '   Right Hip (#24):', rightHip4 ? '✅ Detected' : '❌ Missing' );
                     return false;
                 }
 
-                // Check for side view - MUCH STRICTER threshold for side profile
-                // In side view, hips appear close together (overlapping)
+                console.log( '%c📍 Hip Landmarks Detected:', 'color: #10B981; font-weight: bold' );
+                console.log( '   Left Hip (#23):', { x: leftHip4.x.toFixed( 3 ), y: leftHip4.y.toFixed( 3 ), z: ( leftHip4.z || 0 ).toFixed( 3 ) } );
+                console.log( '   Right Hip (#24):', { x: rightHip4.x.toFixed( 3 ), y: rightHip4.y.toFixed( 3 ), z: ( rightHip4.z || 0 ).toFixed( 3 ) } );
+
+                // ✅ CHECK 1: Hip Distance (Side View Detection) - STRICTER
                 const hipDistance4 = Math.abs(leftHip4.x - rightHip4.x);
-                const isSideView4 = hipDistance4 < 0.12; // STRICT: 0.12 (was 0.15)
+                const isSideView4 = hipDistance4 < 0.10;  // STRICTER: 0.10 (was 0.12)
 
+                console.log( '%c\n✅ CHECK 1: Hip Distance (Side View Detection)', 'color: #3B82F6; font-weight: bold' );
+                console.log( '   Hip Distance:', hipDistance4.toFixed( 3 ), '(threshold: < 0.10 - STRICTER)' );
+                console.log( '   Is Side View?', isSideView4 ? '✅ YES' : '❌ NO' );
+                if ( !isSideView4 ) {
+                    console.log( '   ⚠️ Hips too far apart - user likely facing camera or at an angle' );
+                }
 
-                const hipCenterX4 = (leftHip4.x + rightHip4.x) / 2;
-                const hipCenterY4 = (leftHip4.y + rightHip4.y) / 2;
+                // ✅ CHECK 2: Z-Depth (Right Side Verification) - STRICTER!
+                const leftHipZ = leftHip4.z || 0;
+                const rightHipZ = rightHip4.z || 0;
+                const zDepthDifference = leftHipZ - rightHipZ;
+                const isRightSide4 = leftHipZ < rightHipZ - 0.05;  // STRICTER: -0.05 (was -0.02)
 
-                // Optional: Check if lower body landmarks are visible (for debug only)
+                console.log( '%c\n✅ CHECK 2: Z-Depth (Right Side Verification)', 'color: #3B82F6; font-weight: bold' );
+                console.log( '   Left Hip Z:', leftHipZ.toFixed( 3 ), '(closer to camera = more negative)' );
+                console.log( '   Right Hip Z:', rightHipZ.toFixed( 3 ) );
+                console.log( '   Z-Depth Difference:', zDepthDifference.toFixed( 3 ), '(threshold: < -0.05 - STRICTER)' );
+                console.log( '   Is Right Side?', isRightSide4 ? '✅ YES' : '❌ NO' );
+                if ( !isRightSide4 ) {
+                    if ( Math.abs( zDepthDifference ) < 0.05 ) {  // STRICTER: 0.05 (was 0.02)
+                        console.log( '   ⚠️ Both hips at same depth - user likely facing camera (FRONT VIEW)' );
+                    } else if ( zDepthDifference > 0 ) {
+                        console.log( '   ⚠️ Right hip closer than left - user turned to LEFT side (wrong direction)' );
+                    }
+                }
+
+                // ✅ CHECK 3: Feet Distance (Optional Bonus Check)
                 const leftAnkle4 = poseLandmarks[27];
                 const rightAnkle4 = poseLandmarks[28];
                 const leftFoot4 = poseLandmarks[31];
                 const rightFoot4 = poseLandmarks[32];
-                const footDetected = (leftFoot4 || rightFoot4) || (leftAnkle4 || rightAnkle4);
 
-                // Calculate alignment feedback message (PRIORITY ORDER)
+                let feetAligned = true;  // Default to true (don't block if feet not detected)
+                let footDistance4 = null;
+                let feetDetectionMethod = 'not detected';
+
+                if ( leftFoot4 && rightFoot4 ) {
+                    footDistance4 = Math.abs( leftFoot4.x - rightFoot4.x );
+                    feetAligned = footDistance4 < 0.12;  // STRICTER: 0.12 (was 0.15)
+                    feetDetectionMethod = 'feet landmarks';
+                } else if ( leftAnkle4 && rightAnkle4 ) {
+                    // Fallback to ankles if feet not detected
+                    footDistance4 = Math.abs( leftAnkle4.x - rightAnkle4.x );
+                    feetAligned = footDistance4 < 0.12;  // STRICTER: 0.12 (was 0.15)
+                    feetDetectionMethod = 'ankle landmarks (fallback)';
+                }
+
+                console.log( '%c\n✅ CHECK 3: Feet Distance (Optional Bonus Check)', 'color: #3B82F6; font-weight: bold' );
+                console.log( '   Detection Method:', feetDetectionMethod );
+                if ( footDistance4 !== null ) {
+                    console.log( '   Foot Distance:', footDistance4.toFixed( 3 ), '(threshold: < 0.12 - STRICTER)' );
+                    console.log( '   Feet Aligned?', feetAligned ? '✅ YES' : '❌ NO' );
+                    if ( !feetAligned ) {
+                        console.log( '   ⚠️ Feet too far apart - likely pointing forward instead of sideways' );
+                    }
+                } else {
+                    console.log( '   ℹ️ Feet/ankles not detected - skipping this check (won\'t block alignment)' );
+                }
+
+                // ✅ CHECK 4: Frame Positioning
+                const hipCenterX4 = ( leftHip4.x + rightHip4.x ) / 2;
+                const hipCenterY4 = ( leftHip4.y + rightHip4.y ) / 2;
+                const isHorizontallyCentered4 = hipCenterX4 >= 0.35 && hipCenterX4 <= 0.65;
+                const isVerticallyCentered4 = hipCenterY4 >= 0.30 && hipCenterY4 <= 0.70;
+                const isInFrame4 = isHorizontallyCentered4 && isVerticallyCentered4;
+
+                console.log( '%c\n✅ CHECK 4: Frame Positioning', 'color: #3B82F6; font-weight: bold' );
+                console.log( '   Hip Center X:', hipCenterX4.toFixed( 3 ), '(range: 0.35 - 0.65)' );
+                console.log( '   Hip Center Y:', hipCenterY4.toFixed( 3 ), '(range: 0.30 - 0.70)' );
+                console.log( '   Horizontally Centered?', isHorizontallyCentered4 ? '✅ YES' : '❌ NO' );
+                console.log( '   Vertically Centered?', isVerticallyCentered4 ? '✅ YES' : '❌ NO' );
+                console.log( '   In Frame?', isInFrame4 ? '✅ YES' : '❌ NO' );
+                if ( !isInFrame4 ) {
+                    if ( !isHorizontallyCentered4 ) {
+                        console.log( '   ⚠️ User needs to move', hipCenterX4 < 0.35 ? 'LEFT' : 'RIGHT' );
+                    }
+                    if ( !isVerticallyCentered4 ) {
+                        console.log( '   ⚠️ User needs to', hipCenterY4 < 0.30 ? 'COME CLOSER' : 'STEP BACK' );
+                    }
+                }
+
+                // ✅ FINAL ALIGNMENT CHECK (All conditions must pass)
+                // CRITICAL: Also check that pose landmarks are detected (for landmark visibility in captured image)
+                const hasValidLandmarks = poseLandmarks && poseLandmarks.length > 0;
+                const aligned = isSideView4 && isRightSide4 && feetAligned && isInFrame4 && hasValidLandmarks;
+
+                console.log( '%c\n🎯 FINAL ALIGNMENT RESULT:', 'color: #F59E0B; font-weight: bold; font-size: 13px' );
+                console.log( '   ✓ Side View:', isSideView4 ? '✅ PASS' : '❌ FAIL', `(hip distance: ${ hipDistance4.toFixed( 3 ) } < 0.10)` );
+                console.log( '   ✓ Right Side:', isRightSide4 ? '✅ PASS' : '❌ FAIL', `(Z-depth: ${ zDepthDifference.toFixed( 3 ) } < -0.05)` );
+                console.log( '   ✓ Feet Aligned:', feetAligned ? '✅ PASS' : '❌ FAIL', footDistance4 !== null ? `(foot distance: ${ footDistance4.toFixed( 3 ) } < 0.12)` : '(not detected)' );
+                console.log( '   ✓ In Frame:', isInFrame4 ? '✅ PASS' : '❌ FAIL', `(X: ${ hipCenterX4.toFixed( 3 ) }, Y: ${ hipCenterY4.toFixed( 3 ) })` );
+                console.log( '   ✓ Landmarks Detected:', hasValidLandmarks ? '✅ PASS' : '❌ FAIL', '(required for visible analysis)' );
+                console.log( '%c   → ALIGNED: ' + ( aligned ? '✅ YES - COUNTDOWN STARTING!' : '❌ NO - ADJUST POSITION' ), aligned ? 'color: #10B981; font-weight: bold' : 'color: #EF4444; font-weight: bold' );
+
+                // Add distance warning
+                if ( !aligned && isSideView4 && !isRightSide4 && Math.abs( zDepthDifference ) < 0.05 ) {
+                    console.log( '%c   ⚠️ WARNING: You might be TOO FAR from camera!', 'color: #F59E0B; font-weight: bold' );
+                    console.log( '      Hip distance looks like side view, but Z-depth says front-facing.' );
+                    console.log( '      This happens when you\'re far away - hips appear close but you\'re actually facing front.' );
+                }
+
+                // Add landmark warning
+                if ( !aligned && !hasValidLandmarks ) {
+                    console.log( '%c   ⚠️ WARNING: No pose landmarks detected!', 'color: #EF4444; font-weight: bold' );
+                    console.log( '      Cannot capture without landmarks - they are needed for analysis visualization.' );
+                    console.log( '      Make sure your full body is visible in the frame.' );
+                }
+
+                // Enhanced Feedback Messages (PRIORITY ORDER)
                 let feedbackMessage = '';
                 let feedbackIcon = '';
 
-                if (!isSideView4) {
-                    // PRIORITY 1: Side view (most important)
+                if ( !isSideView4 ) {
                     feedbackMessage = 'TURN TO YOUR RIGHT SIDE';
                     feedbackIcon = '↻';
-                } else if (hipCenterX4 < 0.35) {
-                    // PRIORITY 2: Too far left - Granular feedback (FLIPPED for mirror)
-                    if (hipCenterX4 < 0.25) {
-                        feedbackMessage = 'MOVE LEFT';
-                        feedbackIcon = '⬅';
+                } else if ( !isRightSide4 ) {
+                    feedbackMessage = 'TURN TO YOUR RIGHT (NOT LEFT)';
+                    feedbackIcon = '↻';
+                } else if ( !feetAligned && footDistance4 !== null ) {
+                    feedbackMessage = 'TURN YOUR FEET SIDEWAYS TOO';
+                    feedbackIcon = '↻';
+                } else if ( !isHorizontallyCentered4 ) {
+                    if ( hipCenterX4 < 0.35 ) {
+                        feedbackMessage = hipCenterX4 < 0.25 ? 'MOVE LEFT' : 'A BIT LEFT';
                     } else {
-                        feedbackMessage = 'A BIT LEFT';
-                        feedbackIcon = '⬅';
+                        feedbackMessage = hipCenterX4 > 0.75 ? 'MOVE RIGHT' : 'A BIT RIGHT';
                     }
-                } else if (hipCenterX4 > 0.65) {
-                    // PRIORITY 3: Too far right - Granular feedback (FLIPPED for mirror)
-                    if (hipCenterX4 > 0.75) {
-                        feedbackMessage = 'MOVE RIGHT';
-                        feedbackIcon = '➡️';
+                    feedbackIcon = hipCenterX4 < 0.35 ? '⬅' : '➡️';
+                } else if ( !isVerticallyCentered4 ) {
+                    if ( hipCenterY4 > 0.70 ) {
+                        feedbackMessage = hipCenterY4 > 0.80 ? 'STEP BACK' : 'A BIT BACK';
                     } else {
-                        feedbackMessage = 'A BIT RIGHT';
-                        feedbackIcon = '➡️';
+                        feedbackMessage = hipCenterY4 < 0.20 ? 'COME CLOSER' : 'A BIT CLOSER';
                     }
-                } else if (hipCenterY4 > 0.70) {
-                    // PRIORITY 4: Too close - Granular feedback
-                    if (hipCenterY4 > 0.80) {
-                        feedbackMessage = 'STEP BACK';
-                        feedbackIcon = '⬆️';
-                    } else {
-                        feedbackMessage = 'A BIT BACK';
-                        feedbackIcon = '⬆️';
-                    }
-                } else if (hipCenterY4 < 0.30) {
-                    // PRIORITY 5: Too far - Granular feedback
-                    if (hipCenterY4 < 0.20) {
-                        feedbackMessage = 'COME CLOSER';
-                        feedbackIcon = '⬇️';
-                    } else {
-                        feedbackMessage = 'A BIT CLOSER';
-                        feedbackIcon = '⬇️';
-                    }
+                    feedbackIcon = hipCenterY4 > 0.70 ? '⬆️' : '⬇️';
                 } else {
-                    // All aligned!
                     feedbackMessage = 'PERFECT! HOLD STILL';
                     feedbackIcon = '✓';
                 }
 
+                console.log( '%c\n💬 User Feedback:', 'color: #8B5CF6; font-weight: bold' );
+                console.log( '   Message:', feedbackMessage );
+                console.log( '   Icon:', feedbackIcon );
+
+                // Comprehensive Debug Info
                 const debugInfo4 = {
                     hipDistance: hipDistance4.toFixed(3),
                     isSideView: isSideView4,
+                    leftHipZ: leftHipZ.toFixed( 3 ),
+                    rightHipZ: rightHipZ.toFixed( 3 ),
+                    zDepthDifference: zDepthDifference.toFixed( 3 ),
+                    isRightSide: isRightSide4,
+                    footDistance: footDistance4 ? footDistance4.toFixed( 3 ) : 'not detected',
+                    feetAligned: feetAligned,
                     hipPosition: {
                         x: hipCenterX4.toFixed(3),
                         y: hipCenterY4.toFixed(3)
                     },
-                    footDetected: footDetected,
-                    leftFoot: !!leftFoot4,
-                    rightFoot: !!rightFoot4,
-                    leftAnkle: !!leftAnkle4,
-                    rightAnkle: !!rightAnkle4,
-                    aligned: isSideView4, // Aligned if in side view!
+                    isInFrame: isInFrame4,
+                    aligned: aligned,
                     feedbackMessage: feedbackMessage,
                     feedbackIcon: feedbackIcon
                 };
 
-                console.log('Stage 4 Debug:', debugInfo4);
+                console.log( '%c========================================\n', 'color: #9333EA' );
 
                 // Store debug info for on-screen display
                 setStage4Debug(debugInfo4);
 
-                // Return true if in side view (moderate difficulty)
-                return isSideView4;
+                // FIXED: Check side view AND right side direction AND feet alignment AND frame position
+                return aligned;
 
             default:
                 return false;
@@ -701,31 +878,23 @@ function CapturePage() {
         };
     }, [isAligned, showResults]);
 
-    // Helper function to capture clean frame without landmarks
+    // Helper function to capture frame WITH landmarks from hidden canvas
     const captureCleanFrame = () => {
-        const video = webcamRef.current?.video;
-        if (!video) {
-            console.error('❌ Video ref not available for capture');
+        // Use HIDDEN canvas which has landmarks rendered
+        const canvas = hiddenCanvasRef.current;
+        if ( !canvas ) {
+            console.error( '❌ Hidden canvas not available for capture' );
             return null;
         }
 
-        // FIXED: Use actual video dimensions instead of fixed 960x720
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = video.videoWidth || 960;
-        tempCanvas.height = video.videoHeight || 720;
-        const tempCtx = tempCanvas.getContext('2d');
-
-        // Draw full video frame (no landmarks)
-        tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-
         // Log capture dimensions for debugging
-        console.log(`✅ Captured image: ${tempCanvas.width}×${tempCanvas.height}px`);
+        console.log( `✅ Captured image with landmarks: ${ canvas.width }×${ canvas.height }px` );
 
         // Show flash effect
         showFlashEffect();
 
-        // Return clean image data URL with high quality
-        return tempCanvas.toDataURL('image/jpeg', 0.95);
+        // Return image data URL with landmarks from hidden canvas
+        return canvas.toDataURL( 'image/jpeg', 0.95 );
     };
 
     // Flash effect on capture
@@ -747,7 +916,7 @@ function CapturePage() {
     const handleCapture = () => {
         if (!isAligned) return;
 
-        // Capture clean frame WITHOUT landmarks
+        // Capture frame WITH landmarks from hidden canvas
         const imageDataURL = captureCleanFrame();
         if (!imageDataURL) return;
 
@@ -986,9 +1155,17 @@ function CapturePage() {
                         width: '100%',
                         height: '100%',
                         transform: "scaleX(-1)",
+                        objectFit: 'cover' // FIXED: Match video objectFit
                     }}
                 />
 
+                {/* Hidden canvas for landmark rendering (not visible to user) */ }
+                <canvas
+                    ref={ hiddenCanvasRef }
+                    width={ 960 }
+                    height={ 720 }
+                    style={ { display: 'none' } }
+                />
                 {/* Ghost Overlays - Show based on stage */}
                 {captureStage === 'STAGE_1_FACE' && !isFrozen && <FaceGhost isAligned={isAligned} holdDuration={holdDuration} stage1Debug={stage1Debug} />}
                 {captureStage === 'STAGE_2_UPPER_FRONT' && !isFrozen && <UpperBodyFrontGhost isAligned={isAligned} holdDuration={holdDuration} stage2Debug={stage2Debug} />}
@@ -1010,14 +1187,11 @@ function CapturePage() {
                             src={frozenImage}
                             alt="Captured"
                             style={{
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                                width: 'auto',
-                                height: 'auto',
-                                objectFit: 'contain', // FIXED: Show full image without cropping
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover', // FIXED: Cover entire screen to match live view
                                 objectPosition: 'center',
                                 transform: 'scaleX(-1)',
-                                margin: 'auto',
                                 display: 'block'
                             }}
                         />
