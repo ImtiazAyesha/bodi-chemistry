@@ -222,8 +222,8 @@ function CapturePage() {
 
                                 // Debug mode: Draw landmarks if enabled
                                 if (showLandmarks) {
-                                    drawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C0", lineWidth: 0.1 });
-                                    drawingUtils.drawLandmarks(fl, { color: "#00FF00", radius: 1 });
+                                    drawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "rgba(47, 74, 92, 0.2)", lineWidth: 0.1 });
+                                    drawingUtils.drawLandmarks(fl, { color: "#8FA99B", radius: 1 });
                                 }
 
                                 // Calculate metrics
@@ -273,8 +273,8 @@ function CapturePage() {
 
                                 // Debug mode: Draw landmarks if enabled
                                 if (showLandmarks) {
-                                    drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "#00FFFF", lineWidth: 2 });
-                                    drawingUtils.drawLandmarks(pl, { color: "#FFFF00", radius: 3 });
+                                    drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(111, 143, 132, 0.4)", lineWidth: 1.5 });
+                                    drawingUtils.drawLandmarks(pl, { color: "#2F4A5C", radius: 2 });
                                 }
 
                                 // METRIC 4: Shoulder Height Asymmetry (Normalized by Body Height)
@@ -1056,7 +1056,7 @@ function CapturePage() {
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                background: "#111",
+                background: "#EFE9DF",
                 position: 'fixed', // FIXED: Fixed positioning for full screen
                 top: 0,
                 left: 0,
@@ -1073,6 +1073,15 @@ function CapturePage() {
                     maxHeight: '100dvh' // FIXED: Use dynamic viewport height
                 }}
             >
+                {/* Background Layer (Subtle Gradient) */}
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'radial-gradient(circle at 50% 50%, rgba(143, 169, 155, 0.05) 0%, transparent 70%)',
+                    pointerEvents: 'none',
+                    zIndex: 1
+                }} />
+
                 <Webcam
                     ref={webcamRef}
                     audio={false}
@@ -1102,6 +1111,7 @@ function CapturePage() {
                         height: '100%',
                         objectFit: 'cover', // FIXED: Cover entire screen for consistency
                         transform: "scaleX(-1)",
+                        zIndex: 2
                     }}
                 />
 
@@ -1119,8 +1129,8 @@ function CapturePage() {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        zIndex: 15,
-                        backgroundColor: '#000'
+                        zIndex: 20,
+                        backgroundColor: '#EFE9DF'
                     }}>
                         <img
                             src={frozenImage}
@@ -1134,18 +1144,32 @@ function CapturePage() {
                                 display: 'block'
                             }}
                         />
+
+                        {/* Overlay Gradient for contrast */}
+                        <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'radial-gradient(circle at 50% 50%, rgba(239, 233, 223, 0.2) 0%, rgba(47, 74, 92, 0.4) 100%)',
+                            pointerEvents: 'none'
+                        }} />
+
                         <div style={{
                             position: 'absolute',
                             top: '50%',
                             left: '50%',
                             transform: 'translate(-50%, -50%)',
                             fontSize: 'clamp(32px, 8vw, 64px)',
-                            color: '#00FF00',
-                            fontWeight: 'bold',
-                            textShadow: '0 0 30px rgba(0,255,0,0.9)',
-                            animation: 'fadeInScale 0.3s ease-out'
+                            color: '#8FA99B',
+                            fontWeight: '900',
+                            letterSpacing: '4px',
+                            textTransform: 'uppercase',
+                            textShadow: '0 0 40px rgba(143,169,155,0.6)',
+                            animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                            textAlign: 'center',
+                            width: '100%',
+                            padding: '0 20px'
                         }}>
-                            ✅ CAPTURED!
+                            ✓ Captured
                         </div>
                     </div>
                 )}
@@ -1155,7 +1179,7 @@ function CapturePage() {
           @keyframes fadeInScale {
             0% {
               opacity: 0;
-              transform: translate(-50%, -50%) scale(0.8);
+              transform: translate(-50%, -50%) scale(0.85);
             }
             100% {
               opacity: 1;
@@ -1164,12 +1188,12 @@ function CapturePage() {
           }
           @keyframes pulse {
             0%, 100% {
-              box-shadow: 0 0 20px rgba(0,255,0,0.5);
+              box-shadow: 0 0 20px rgba(143,169,155,0.4);
               transform: translateX(-50%) scale(1);
             }
             50% {
-              box-shadow: 0 0 40px rgba(0,255,0,1);
-              transform: translateX(-50%) scale(1.05);
+              box-shadow: 0 0 40px rgba(143,169,155,0.8);
+              transform: translateX(-50%) scale(1.02);
             }
           }
         `}</style>

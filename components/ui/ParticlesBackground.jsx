@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 
 const FloatingParticle = ({ delay, duration, x, y, size = 1 }) => (
     <motion.div
-        className="absolute rounded-full bg-cyan-400"
+        className="absolute rounded-full bg-brand-deepSage"
         style={{ width: size, height: size }}
         initial={{ opacity: 0, x: x, y: y }}
         animate={{
-            opacity: [0, 0.6, 0],
-            y: [y, y - 150],
-            x: [x, x + Math.random() * 100 - 50],
+            opacity: [0, 0.4, 0],
+            y: [y, y - 120],
+            x: [x, x + Math.random() * 60 - 30],
         }}
         transition={{
             duration: duration,
@@ -20,32 +20,32 @@ const FloatingParticle = ({ delay, duration, x, y, size = 1 }) => (
     />
 );
 
-const ParticlesBackground = ({ count = 300 }) => {
+const ParticlesBackground = ({ count = 200 }) => {
     const particles = React.useMemo(() => {
+        if (typeof window === 'undefined') return [];
         return [...Array(count)].map((_, i) => ({
             id: i,
             delay: Math.random() * 5,
-            duration: 3 + Math.random() * 3,
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080),
-            size: Math.random() * 2 + 1,
+            duration: 4 + Math.random() * 4,
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            size: Math.random() * 1.5 + 0.5,
         }));
     }, [count]);
 
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Animated Mesh Gradient Background */}
+            {/* Soft Brand Gradients */}
             <motion.div
-                className="absolute top-0 left-0 w-full h-full"
+                className="absolute inset-0"
                 animate={{
                     background: [
-                        'radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 50%)',
-                        'radial-gradient(circle at 80% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)',
-                        'radial-gradient(circle at 50% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 50%)',
-                        'radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 50%)',
+                        'radial-gradient(circle at 10% 20%, rgba(143, 169, 155, 0.05) 0%, transparent 40%)',
+                        'radial-gradient(circle at 90% 80%, rgba(111, 143, 132, 0.05) 0%, transparent 40%)',
+                        'radial-gradient(circle at 10% 20%, rgba(143, 169, 155, 0.05) 0%, transparent 40%)',
                     ]
                 }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
             />
 
             {/* Floating Particles */}
@@ -60,32 +60,11 @@ const ParticlesBackground = ({ count = 300 }) => {
                 />
             ))}
 
-            {/* Grid Pattern with Animation */}
-            <motion.div
-                className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.05)_1px,transparent_1px)] bg-[size:50px_50px]"
-                animate={{ opacity: [0.3, 0.5, 0.3] }}
-                transition={{ duration: 4, repeat: Infinity }}
-            />
-
-            {/* Large Glowing Orbs */}
-            <motion.div
-                className="absolute top-20 right-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl"
-                animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.2, 0.4, 0.2],
-                }}
-                transition={{ duration: 8, repeat: Infinity }}
-            />
-            <motion.div
-                className="absolute bottom-20 left-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
-                animate={{
-                    scale: [1, 1.3, 1],
-                    opacity: [0.2, 0.3, 0.2],
-                }}
-                transition={{ duration: 10, repeat: Infinity, delay: 2 }}
-            />
+            {/* Subtle Texture/Grid */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(143,169,155,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(143,169,155,0.03)_1px,transparent_1px)] bg-[size:100px_100px] opacity-20" />
         </div>
     );
 };
 
 export default ParticlesBackground;
+

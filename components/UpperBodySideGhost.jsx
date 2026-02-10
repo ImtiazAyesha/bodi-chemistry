@@ -5,9 +5,14 @@ import React from 'react';
  * Redesigned with premium UI/UX pattern matching FaceGhost.jsx
  */
 const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null }) => {
-  const primaryColor = isAligned ? '#06B6D4' : '#64748B';
-  const successColor = '#06B6D4';
-  const guidanceColor = '#F59E0B';
+  const brandSage = '#8FA99B';
+  const brandSlate = '#2F4A5C';
+  const brandDeepSage = '#6F8F84';
+  const brandSand = '#EFE9DF';
+
+  const primaryColor = isAligned ? brandSage : brandSlate;
+  const successColor = brandSage;
+  const guidanceColor = brandDeepSage;
 
   const countdown = Math.ceil((3000 - holdDuration) / 1000);
   const feedbackMessage = stage3Debug?.feedbackMessage || '';
@@ -37,85 +42,87 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
       }}>
         {/* Step Badge */}
         <div style={{
-          backgroundColor: 'rgba(2, 6, 23, 0.85)',
+          backgroundColor: 'rgba(255, 255, 255, 0.4)',
           backdropFilter: 'blur(12px)',
-          border: `1px solid ${isAligned ? successColor : 'rgba(255,255,255,0.1)'}`,
+          border: `1px solid ${isAligned ? successColor : 'rgba(47, 74, 92, 0.1)'}`,
           borderRadius: '100px',
-          padding: '6px 16px',
-          boxShadow: isAligned ? `0 0 20px ${successColor}30` : '0 4px 20px rgba(0,0,0,0.4)',
+          padding: '8px 20px',
+          boxShadow: isAligned ? `0 0 30px ${successColor}20` : '0 4px 20px rgba(0,0,0,0.05)',
           transition: 'all 0.4s ease',
           pointerEvents: 'auto'
         }}>
           <span style={{
-            color: isAligned ? successColor : '#94A3B8',
-            fontSize: '12px',
+            color: isAligned ? successColor : brandSlate,
+            fontSize: '11px',
             fontWeight: '700',
-            letterSpacing: '1px',
+            letterSpacing: '2px',
             textTransform: 'uppercase',
-            fontFamily: 'monospace'
+            fontFamily: 'inherit'
           }}>
-            Step 3: Side Profile
+            Step 3: Lateral Upper
           </span>
         </div>
 
         {/* Guidance Pill */}
         <div style={{
-          backgroundColor: 'rgba(2, 6, 23, 0.9)',
-          backdropFilter: 'blur(12px)',
-          border: `2px solid ${primaryColor}`,
-          borderRadius: '100px',
-          padding: '10px 20px', // Responsive padding
+          backgroundColor: 'rgba(47, 74, 92, 0.95)',
+          backdropFilter: 'blur(16px)',
+          border: `2px solid ${isAligned ? successColor : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: '24px',
+          padding: '14px 28px',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          gap: '12px',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           pointerEvents: 'auto',
-          minWidth: '240px', // Slightly smaller min-width
-          maxWidth: '90vw', // Ensure it doesn't overflow
+          minWidth: '280px',
+          maxWidth: '90vw',
           justifyContent: 'center'
         }}>
           <div style={{
-            color: isAligned ? successColor : '#E2E8F0',
-            fontSize: 'clamp(16px, 4.5vw, 20px)', // Responsive font size
-            fontWeight: '800',
+            color: '#FFFFFF',
+            fontSize: 'clamp(18px, 5vw, 22px)',
+            fontWeight: '700',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            textAlign: 'center'
+            gap: '12px',
+            textAlign: 'center',
+            letterSpacing: '-0.02em',
+            textTransform: 'uppercase'
           }}>
-            {isAligned ? '✓ Perfect! Hold Position' : (feedbackMessage || 'Turn to your side')}
+            {isAligned ? '✓ Hold Position' : (feedbackMessage || 'Turn to your side')}
 
             {!isAligned && feedbackMessage && (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                backgroundColor: `${guidanceColor}20`,
+                width: '32px',
+                height: '32px',
+                backgroundColor: 'rgba(255,255,255,0.1)',
                 borderRadius: '50%',
-                border: `1px solid ${guidanceColor}40`
+                border: '1px solid rgba(255,255,255,0.2)'
               }}>
-                <svg width="18" height="18" viewBox="0 0 20 20">
+                <svg width="20" height="20" viewBox="0 0 20 20">
                   <g transform="translate(10, 10)">
                     {(feedbackMessage.toLowerCase().includes('up')) && (
-                      <path d="M 0 -6 L -5 1 L -2 1 L -2 6 L 2 6 L 2 1 L 5 1 Z" fill={guidanceColor}>
+                      <path d="M 0 -6 L -5 1 L -2 1 L -2 6 L 2 6 L 2 1 L 5 1 Z" fill="#FFFFFF">
                         <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
                       </path>
                     )}
                     {(feedbackMessage.toLowerCase().includes('down')) && (
-                      <path d="M 0 6 L -5 -1 L -2 -1 L -2 -6 L 2 -6 L 2 -1 L 5 -1 Z" fill={guidanceColor}>
+                      <path d="M 0 6 L -5 -1 L -2 -1 L -2 -6 L 2 -6 L 2 -1 L 5 -1 Z" fill="#FFFFFF">
                         <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
                       </path>
                     )}
                     {(feedbackMessage.toLowerCase().includes('left')) && (
-                      <path d="M -6 0 L 1 -5 L 1 -2 L 6 -2 L 6 2 L 1 2 L 1 5 Z" fill={guidanceColor}>
+                      <path d="M -6 0 L 1 -5 L 1 -2 L 6 -2 L 6 2 L 1 2 L 1 5 Z" fill="#FFFFFF">
                         <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
                       </path>
                     )}
                     {(feedbackMessage.toLowerCase().includes('right')) && (
-                      <path d="M 6 0 L -1 -5 L -1 -2 L -6 -2 L -6 2 L -1 2 L -1 5 Z" fill={guidanceColor}>
+                      <path d="M 6 0 L -1 -5 L -1 -2 L -6 -2 L -6 2 L -1 2 L -1 5 Z" fill="#FFFFFF">
                         <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
                       </path>
                     )}
@@ -144,7 +151,6 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          {/* Expanded Isolation Clip: Ensures head visibility while preventing bottom overflow */}
           <clipPath id="side-upper-clip">
             <rect x="-240" y="-600" width="480" height="930" />
           </clipPath>
@@ -157,7 +163,7 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
           {isAligned && (
             <ellipse cx="0" cy="-150" rx="180" ry="280"
               fill="none" stroke={successColor}
-              strokeWidth="32" opacity="0.1"
+              strokeWidth="32" opacity="0.15"
               filter="blur(32px)"
             />
           )}
@@ -166,7 +172,7 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
           <g transform="scale(4.8) translate(-93.5, -95)">
             <path
               d="M118.373 103.686c1.534-7.039 3.118-30.954-7.727-40.355-3.161-2.74-10.645-7.989-12.767-10.802-.398-.53-.666-1.339-.828-2.262 1.173-2.743 2.938-6.293 2.938-6.293 1.571-2.037 4.274-1.4 5.735-1.233 4.165.411 5.176-.837 5.176-.837.901-.572.421-2.886.421-2.886-.372-1.184.164-1.791.499-2.256.896-1.303.341-1.884.341-1.884l-.109-.554c1.005-.354 1.06-.904 1.06-.904l-.067-1.851c-.177-1.267.384-1.355.384-1.355 2.302-.097 2.217-1.583 2.217-1.583.073-.816-2.801-5.636-2.801-5.636-1.353-2.469.462-4.003.56-5.294.451-5.949-1.632-9.539-4.421-12.353C104.393.67 98.574-.097 94.79.009c-9.715.28-13.576 3.44-16.475 6.814-6.043 7.03-4.615 13.058-4.615 13.058.231 3.593 5.325 10.026 5.325 10.026 4.068 5.593 2.208 10.013 2.208 10.013l.07.013c.036 3.498-.561 7.514-3.069 9.971-8.181 7.989-15.019 21.787-7.2 43.528 3.373 9.365 16.623 31.006 11.792 37.984-5.836 8.415-17.354 19.96-5.568 40.59 0 0-.606 6.352-1.093 15.053h32.814c.104-1.967 2.387-10.583 2.314-12.763-.323-9.463.188-21.349 1.314-26.841 2.016-9.986 6.54-21.617 5.889-40.273-.031-1.346-.08-2.497-.123-3.496"
-              fill="rgba(6, 182, 212, 0.08)"
+              fill="rgba(47, 74, 92, 0.05)"
               stroke={primaryColor}
               strokeWidth="0.8"
               strokeLinecap="round"
@@ -180,18 +186,20 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
               <text x="0" y="-32" textAnchor="middle"
                 fill={successColor}
                 fontSize="100"
-                fontWeight="bold"
-                style={{ filter: 'drop-shadow(0 0 32px rgba(6,182,212,0.9))' }}
+                fontFamily="inherit"
+                fontWeight="700"
+                style={{ filter: 'drop-shadow(0 0 40px rgba(143,169,155,0.6))' }}
               >
                 {countdown}
               </text>
-              <text x="0" y="18" textAnchor="middle"
-                fill={successColor}
-                fontSize="20"
-                fontWeight="500"
-                opacity="0.85"
+              <text x="0" y="24" textAnchor="middle"
+                fill={brandSlate}
+                fontSize="22"
+                fontWeight="700"
+                textTransform="uppercase"
+                letterSpacing="2px"
               >
-                Hold still
+                Steady
               </text>
             </g>
           )}
