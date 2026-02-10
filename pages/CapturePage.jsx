@@ -244,11 +244,8 @@ function CapturePage() {
                             if (!isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
                                 const fl = faceResult.faceLandmarks[0];
 
-                                // Debug mode: Draw landmarks if enabled
-                                if (showLandmarks) {
-                                    drawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "rgba(47, 74, 92, 0.2)", lineWidth: 0.1 });
-                                    drawingUtils.drawLandmarks(fl, { color: "#8FA99B", radius: 1 });
-                                }
+                                // Landmarks are drawn on HIDDEN canvas only (see lines below)
+                                // This keeps the visible canvas clean for user experience
 
                                 // Calculate metrics
                                 const irisWidth = calculateDistance(fl[468], fl[473]);
@@ -295,11 +292,8 @@ function CapturePage() {
                             if (poseResult.landmarks && poseResult.landmarks.length > 0) {
                                 const pl = poseResult.landmarks[0];
 
-                                // Debug mode: Draw landmarks if enabled
-                                if (showLandmarks) {
-                                    drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(111, 143, 132, 0.4)", lineWidth: 1.5 });
-                                    drawingUtils.drawLandmarks(pl, { color: "#2F4A5C", radius: 2 });
-                                }
+                                // Landmarks are drawn on HIDDEN canvas only (see lines below)
+                                // This keeps the visible canvas clean for user experience
 
                                 // METRIC 4: Shoulder Height Asymmetry (Normalized by Body Height)
                                 // Uses Left Shoulder (11), Right Shoulder (12), Ankles (27, 28)
@@ -418,6 +412,26 @@ function CapturePage() {
                                 body: currentBodyMetrics
                             });
 
+                            // ✅ CRITICAL: Draw landmarks on HIDDEN canvas for capture
+                            // This ensures captured images have visible landmarks for analysis
+                            if ( hiddenCtx ) {
+                                const drawingUtils = new DrawingUtils( hiddenCtx );
+
+                                // Draw face landmarks (Stages 1-3)
+                                if ( !isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0 ) {
+                                    const fl = faceResult.faceLandmarks[ 0 ];
+                                    drawingUtils.drawConnectors( fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "rgba(47, 74, 92, 0.2)", lineWidth: 0.1 } );
+                                    drawingUtils.drawLandmarks( fl, { color: "#8FA99B", radius: 1 } );
+                                }
+
+                                // Draw pose landmarks (All stages)
+                                if ( poseResult.landmarks && poseResult.landmarks.length > 0 ) {
+                                    const pl = poseResult.landmarks[ 0 ];
+                                    drawingUtils.drawConnectors( pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(111, 143, 132, 0.4)", lineWidth: 1.5 } );
+                                    drawingUtils.drawLandmarks( pl, { color: "#2F4A5C", radius: 2 } );
+                                }
+                            }
+
                         } catch (e) {
                             console.warn("Inference error:", e);
                         }
@@ -479,14 +493,14 @@ function CapturePage() {
                     feedbackIcon1 = noseTip.y < 0.20 ? '⬇️' : '⬆️';
                 }
 
-                // Check if face landmarks are detected (required for visible analysis)
-                const hasFaceLandmarks = faceLandmarks && faceLandmarks.length > 0;
-                const aligned1 = isXAligned1 && isYAligned1 && hasFaceLandmarks;
+                // Note: We don't strictly require landmarks here to avoid flickering
+                // Landmarks are drawn on hidden canvas when available
+                const aligned1 = isXAligned1 && isYAligned1;
 
                 setStage1Debug({
                     aligned: aligned1,
-                    feedbackMessage: hasFaceLandmarks ? feedbackMsg1 : 'FACE NOT DETECTED',
-                    feedbackIcon: hasFaceLandmarks ? feedbackIcon1 : '⚠️'
+                    feedbackMessage: feedbackMsg1,
+                    feedbackIcon: feedbackIcon1
                 });
 
                 return aligned1;
@@ -541,14 +555,14 @@ function CapturePage() {
                     feedbackIcon2 = torsoCenterY < 0.30 ? '⬆️' : '⬇️';
                 }
 
-                // Check if pose landmarks are detected (required for visible analysis)
-                const hasPoseLandmarks2 = poseLandmarks && poseLandmarks.length > 0;
-                const aligned2 = isXAligned2 && isYAligned2 && hasPoseLandmarks2;
+                // Note: We don't strictly require landmarks here to avoid flickering
+                // Landmarks are drawn on hidden canvas when available
+                const aligned2 = isXAligned2 && isYAligned2;
 
                 setStage2Debug({
                     aligned: aligned2,
-                    feedbackMessage: hasPoseLandmarks2 ? feedbackMsg2 : 'BODY NOT DETECTED',
-                    feedbackIcon: hasPoseLandmarks2 ? feedbackIcon2 : '⚠️',
+                    feedbackMessage: feedbackMsg2,
+                    feedbackIcon: feedbackIcon2,
                     torsoCenterX: torsoCenterX.toFixed( 3 ),
                     torsoCenterY: torsoCenterY.toFixed( 3 )
                 });
@@ -621,17 +635,17 @@ function CapturePage() {
                 } else if (!isVerticallyCentered) {
                     feedbackMsg3 = shoulderCenterY3 < 0.25 ? (shoulderCenterY3 < 0.15 ? 'MOVE DOWN' : 'A BIT DOWN') : (shoulderCenterY3 > 0.65 ? 'MOVE UP' : 'A BIT UP');
                 }
-                // Check if pose landmarks are detected (required for visible analysis)
-                const hasPoseLandmarks3 = poseLandmarks && poseLandmarks.length > 0;
-                const aligned3 = isSideView && isRightSide && isInFrame && hasPoseLandmarks3;
+                // Note: We don't strictly require landmarks here to avoid flickering
+                // Landmarks are drawn on hidden canvas when available
+                const aligned3 = isSideView && isRightSide && isInFrame;
 
                 setStage3Debug( {
                     aligned: aligned3,
-                    feedbackMessage: hasPoseLandmarks3 ? feedbackMsg3 : 'BODY NOT DETECTED',
-                    feedbackIcon: hasPoseLandmarks3 ? '' : '⚠️'
+                    feedbackMessage: feedbackMsg3,
+                    feedbackIcon: ''
                 } );
 
-                // FIXED: Check shoulder distance AND right side direction AND frame position AND landmarks
+                // FIXED: Check shoulder distance AND right side direction AND frame position
                 return aligned3;
 
             case 'STAGE_4_LOWER_SIDE':
