@@ -30,8 +30,8 @@ const ResultsPage = () => {
 
     if (!data) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-                <div className="text-white text-xl">Loading results...</div>
+            <div className="min-h-screen bg-brand-sand flex items-center justify-center">
+                <div className="text-brand-slate text-xl font-display font-bold">Loading results...</div>
             </div>
         );
     }
