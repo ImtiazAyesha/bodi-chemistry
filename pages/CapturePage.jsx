@@ -417,6 +417,20 @@ function CapturePage() {
                             if ( hiddenCtx ) {
                                 const drawingUtils = new DrawingUtils( hiddenCtx );
 
+                                // DEBUG: Log for Stage 4
+                                if ( isStage4 ) {
+                                    console.log( '%c🔍 STAGE 4 DEBUG - Hidden Canvas Drawing:', 'color: #FF6B6B; font-weight: bold' );
+                                    console.log( '   hiddenCtx exists:', !!hiddenCtx );
+                                    console.log( '   poseResult:', poseResult );
+                                    console.log( '   poseResult.landmarks:', poseResult?.landmarks );
+                                    console.log( '   landmarks length:', poseResult?.landmarks?.length );
+                                    if ( poseResult?.landmarks?.length > 0 ) {
+                                        console.log( '   ✅ LANDMARKS DETECTED - Drawing on hidden canvas' );
+                                    } else {
+                                        console.log( '   ❌ NO LANDMARKS - Hidden canvas will be blank!' );
+                                    }
+                                }
+
                                 // Draw face landmarks (Stages 1-3)
                                 if ( !isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0 ) {
                                     const fl = faceResult.faceLandmarks[ 0 ];
@@ -429,6 +443,13 @@ function CapturePage() {
                                     const pl = poseResult.landmarks[ 0 ];
                                     drawingUtils.drawConnectors( pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(111, 143, 132, 0.4)", lineWidth: 1.5 } );
                                     drawingUtils.drawLandmarks( pl, { color: "#2F4A5C", radius: 2 } );
+
+                                    // DEBUG: Confirm drawing for Stage 4
+                                    if ( isStage4 ) {
+                                        console.log( '%c   ✅ DREW LANDMARKS ON HIDDEN CANVAS', 'color: #10B981; font-weight: bold' );
+                                    }
+                                } else if ( isStage4 ) {
+                                    console.log( '%c   ❌ SKIPPED DRAWING - No landmarks detected', 'color: #EF4444; font-weight: bold' );
                                 }
                             }
 
