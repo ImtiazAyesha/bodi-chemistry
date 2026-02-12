@@ -954,6 +954,7 @@ function CapturePage() {
     const validateCapturedLandmarks = ( stage ) => {
         const video = webcamRef.current?.video;
         if ( !video || !faceLandmarkerRef.current || !poseLandmarkerRef.current ) {
+            console.error( '❌ Validation failed: Detection system not ready' );
             return { isValid: false, error: 'Detection system not ready' };
         }
 
@@ -963,25 +964,54 @@ function CapturePage() {
             switch ( stage ) {
                 case 'STAGE_1_FACE':
                     const faceResult = faceLandmarkerRef.current.detectForVideo( video, now );
+                    console.log( '🔍 STAGE 1 Validation:', {
+                        hasFaceResult: !!faceResult,
+                        hasFaceLandmarks: !!faceResult?.faceLandmarks,
+                        landmarkCount: faceResult?.faceLandmarks?.length || 0
+                    } );
+
                     if ( !faceResult || !faceResult.faceLandmarks || faceResult.faceLandmarks.length === 0 ) {
+                        console.error( '❌ STAGE 1 Validation FAILED: No face landmarks detected' );
                         return { isValid: false, error: 'Face landmarks not detected' };
                     }
+                    console.log( '✅ STAGE 1 Validation PASSED' );
                     return { isValid: true, error: '' };
 
                 case 'STAGE_2_UPPER_FRONT':
                 case 'STAGE_3_UPPER_SIDE':
                 case 'STAGE_4_LOWER_SIDE':
                     const poseResult = poseLandmarkerRef.current.detectForVideo( video, now );
-                    if ( !poseResult || !poseResult.landmarks || poseResult.landmarks.length === 0 ) {
+                    const landmarkCount = poseResult?.landmarks?.length || 0;
+                    const hasLandmarks = poseResult?.landmarks?.[ 0 ];
+                    const landmarkPoints = hasLandmarks ? Object.keys( poseResult.landmarks[ 0 ] ).length : 0;
+
+                    console.log( `🔍 ${ stage } Validation:`, {
+                        hasPoseResult: !!poseResult,
+                        hasLandmarks: !!poseResult?.landmarks,
+                        landmarkArrayLength: landmarkCount,
+                        landmarkPoints: landmarkPoints
+                    } );
+
+                    // STRICT CHECK: Must have landmarks array AND at least 33 landmark points
+                    if ( !poseResult || !poseResult.landmarks || landmarkCount === 0 || landmarkPoints < 33 ) {
+                        console.error( `❌ ${ stage } Validation FAILED:`, {
+                            reason: !poseResult ? 'No pose result' :
+                                !poseResult.landmarks ? 'No landmarks array' :
+                                    landmarkCount === 0 ? 'Empty landmarks array' :
+                                        'Insufficient landmark points (need 33+)'
+                        } );
                         return { isValid: false, error: 'Body landmarks not detected' };
                     }
+
+                    console.log( `✅ ${ stage } Validation PASSED - ${ landmarkPoints } landmarks detected` );
                     return { isValid: true, error: '' };
 
                 default:
+                    console.error( '❌ Validation failed: Unknown stage' );
                     return { isValid: false, error: 'Unknown stage' };
             }
         } catch ( error ) {
-            console.error( 'Validation error:', error );
+            console.error( '❌ Validation error:', error );
             return { isValid: false, error: 'Validation failed' };
         }
     };
@@ -1008,8 +1038,42 @@ function CapturePage() {
                     setCaptureStage( 'STAGE_4_LOWER_SIDE' );
                     break;
                 case 'STAGE_4_LOWER_SIDE':
-                    // All captures complete - show results
-                    setShowResults( true );
+                    // All captures complete - run pattern analysis
+                    console.log( '=== STARTING PATTERN ANALYSIS ===' );
+
+                    // Combine all metrics for pattern analysis
+                    const combinedMetrics = {
+                        face: {
+                            eyeSym: captureData.stage1.metrics.eyeSym,
+                            jawShift: captureData.stage1.metrics.jawShift,
+                            headTilt: captureData.stage1.metrics.headTilt,
+                            nostrilAsym: captureData.stage1.metrics.nostrilAsym
+                        },
+                        body: {
+                            shoulderHeight: captureData.stage2.metrics.shoulderHeight,
+                            fhpAngle: captureData.stage3.metrics.fhpAngle,
+                            pelvicTilt: captureData.stage4.metrics.pelvicTilt,
+                            kneeAngle: captureData.stage4.metrics.kneeAngle,
+                            footArchRatio: captureData.stage4.metrics.footArchRatio
+                        }
+                    };
+
+                    console.log( 'Combined Metrics for Pattern Analysis:', combinedMetrics );
+
+                    // Run integrated pattern analysis (Body 50%, Face 30%, Questionnaire 20%)
+                    console.log( '=== CALLING INTEGRATED PATTERN FUSION ===' );
+                    const integratedResults = integrateAllModalities(
+                        combinedMetrics.body,
+                        combinedMetrics.face,
+                        questionnaireData.normalizedScores
+                    );
+
+                    console.log( 'Integrated Pattern Results:', integratedResults );
+                    setPatternResults( integratedResults );
+                    console.log( '=== PATTERN ANALYSIS END ===\n' );
+
+                    // Show results after analysis
+                    setAppStage( 'PROCESSING' );
                     break;
             }
 
@@ -1079,7 +1143,15 @@ function CapturePage() {
 
         console.log( '🎯 Capture triggered for stage:', captureStage );
 
-        // Step 1: Validate landmarks BEFORE capturing
+        // Step 1: Capture frame FIRST (from hidden canvas with landmarks)
+        const imageDataURL = captureCleanFrame();
+        if ( !imageDataURL ) return;
+
+        // Step 2: Freeze the screen immediately
+        setIsFrozen( true );
+        setFrozenImage( imageDataURL );
+
+        // Step 3: Validate landmarks on the CURRENT frame (same moment as capture)
         const validation = validateCapturedLandmarks( captureStage );
 
         if ( !validation.isValid ) {
@@ -1089,16 +1161,9 @@ function CapturePage() {
             return;
         }
 
-        console.log( '✅ Validation passed - capturing image' );
+        console.log( '✅ Validation passed - saving capture data' );
 
-        // Step 2: Capture frame WITH landmarks from hidden canvas
-        const imageDataURL = captureCleanFrame();
-        if (!imageDataURL) return;
-
-        // Step 3: Set freeze state and save capture data
-        setIsFrozen(true);
-        setFrozenImage(imageDataURL);
-
+        // Step 4: Save capture data (only if validation passed)
         switch (captureStage) {
             case 'STAGE_1_FACE':
                 setCaptureData(prev => ({
@@ -1150,7 +1215,7 @@ function CapturePage() {
                 break;
         }
 
-        // Step 4: Show review buttons (WAIT for user decision)
+        // Step 5: Show review buttons (WAIT for user decision)
         console.log( '📸 Showing review buttons' );
         setShowReviewButtons( true );
     };
