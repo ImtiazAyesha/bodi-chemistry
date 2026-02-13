@@ -125,6 +125,25 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
                         <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
                       </path>
                     )}
+                    {(feedbackMessage.toLowerCase().includes('closer')) && (
+                      <path d="M -7 0 L -1 -4 L -1 -1 L 1 -1 L 1 -4 L 7 0 L 1 4 L 1 1 L -1 1 L -1 4 Z" fill="#FFFFFF">
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
+                      </path>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('back')) && (
+                      <g>
+                        <path d="M -1 0 L -7 -4 L -7 -1 L -9 -1 L -9 1 L -7 1 L -7 4 Z" fill="#FFFFFF" />
+                        <path d="M 1 0 L 7 -4 L 7 -1 L 9 -1 L 9 1 L 7 1 L 7 4 Z" fill="#FFFFFF" />
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
+                      </g>
+                    )}
+                    {(feedbackMessage.toLowerCase().includes('turn')) && (
+                      <g>
+                        <circle cx="0" cy="0" r="7" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
+                        <path d="M 5 -5 L 8 -5 L 5 -8 Z" fill="#FFFFFF" />
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                      </g>
+                    )}
                   </g>
                 </svg>
               </div>
