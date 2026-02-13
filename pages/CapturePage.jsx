@@ -249,9 +249,8 @@ function CapturePage() {
                             if (!isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
                                 const fl = faceResult.faceLandmarks[0];
 
-                                // Draw landmarks on VISIBLE canvas for real-time feedback
-                                drawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "rgba(0, 255, 0, 0.3)", lineWidth: 0.1 });
-                                drawingUtils.drawLandmarks(fl, { color: "#00FF00", radius: 1 });
+                                // Landmarks are drawn on HIDDEN canvas only (see lines below)
+                                // This keeps the visible canvas clean for user experience
 
                                 // Calculate metrics
                                 const irisWidth = calculateDistance(fl[468], fl[473]);
@@ -298,9 +297,8 @@ function CapturePage() {
                             if (poseResult.landmarks && poseResult.landmarks.length > 0) {
                                 const pl = poseResult.landmarks[0];
 
-                                // Draw landmarks on VISIBLE canvas for real-time feedback
-                                drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(0, 255, 0, 0.5)", lineWidth: 1.5 });
-                                drawingUtils.drawLandmarks(pl, { color: "#00FF00", radius: 2 });
+                                // Landmarks are drawn on HIDDEN canvas only (see lines below)
+                                // This keeps the visible canvas clean for user experience
 
                                 // METRIC 4: Shoulder Height Asymmetry (Normalized by Body Height)
                                 // Uses Left Shoulder (11), Right Shoulder (12), Ankles (27, 28)
