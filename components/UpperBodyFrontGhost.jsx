@@ -58,7 +58,7 @@ const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }
             textTransform: 'uppercase',
             fontFamily: 'inherit'
           }}>
-            Step 2: Anterior Upper
+            Step 2: Full Body Front
           </span>
         </div>
 
@@ -89,7 +89,7 @@ const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }
             textAlign: 'center',
             letterSpacing: '0.02em'
           }}>
-            {isAligned ? '✓ Hold Still' : (feedbackMessage || 'Align full body front')}
+            {isAligned ? '✓ Perfect! Hold Still' : (feedbackMessage || 'Show full body - head to feet')}
 
             {!isAligned && feedbackMessage && (
               <div style={{
