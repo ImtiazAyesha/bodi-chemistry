@@ -739,19 +739,11 @@ function CapturePage() {
                 const hipDistance4 = Math.abs(leftHip4.x - rightHip4.x);
                 const isSideView4 = hipDistance4 < 0.08; // VERY STRICT: 0.08 (was 0.12) for 80-90% side profile
 
-<<<<<<< HEAD
                 console.log('%c\n✅ CHECK 1: Hip Distance (Side View Detection)', 'color: #3B82F6; font-weight: bold');
                 console.log('   Hip Distance:', hipDistance4.toFixed(3), '(threshold: < 0.08 - STRICT 80-90% turn)');
                 console.log('   Is Side View?', isSideView4 ? '✅ YES' : '❌ NO');
                 if (!isSideView4) {
                     console.log('   ⚠️ Hips too far apart - user likely facing camera or at an angle');
-=======
-                console.log('%c\n✅ CHECK 1: Hip Distance (Side View Detection)', 'color: #3B82F6; font-weight: bold');
-                console.log('   Hip Distance:', hipDistance4.toFixed(3), '(threshold: < 0.08 - STRICT 80-90% turn)');
-                console.log('   Is Side View?', isSideView4 ? '✅ YES' : '❌ NO');
-                if (!isSideView4) {
-                    console.log('   ⚠️ Hips too far apart - user likely facing camera or at an angle');
->>>>>>> ayesha-dev
                 }
 
                 // ✅ CHECK 2: Z-Depth (Right Side Verification) - STRICT!
@@ -760,7 +752,6 @@ function CapturePage() {
                 const zDepthDifference = leftHipZ - rightHipZ;
                 const isRightSide4 = leftHipZ < rightHipZ - 0.05; // STRICT: 0.05 (was 0.02) for clear depth separation
 
-<<<<<<< HEAD
                 console.log('%c\n✅ CHECK 2: Z-Depth (Right Side Verification)', 'color: #3B82F6; font-weight: bold');
                 console.log('   Left Hip Z:', leftHipZ.toFixed(3), '(closer to camera = more negative)');
                 console.log('   Right Hip Z:', rightHipZ.toFixed(3));
@@ -771,18 +762,6 @@ function CapturePage() {
                         console.log('   ⚠️ Both hips at same depth - user likely facing camera (FRONT VIEW)');
                     } else if (zDepthDifference > 0) {
                         console.log('   ⚠️ Right hip closer than left - user turned to LEFT side (wrong direction)');
-=======
-                console.log('%c\n✅ CHECK 2: Z-Depth (Right Side Verification)', 'color: #3B82F6; font-weight: bold');
-                console.log('   Left Hip Z:', leftHipZ.toFixed(3), '(closer to camera = more negative)');
-                console.log('   Right Hip Z:', rightHipZ.toFixed(3));
-                console.log('   Z-Depth Difference:', zDepthDifference.toFixed(3), '(threshold: < -0.05 - STRICT)');
-                console.log('   Is Right Side?', isRightSide4 ? '✅ YES' : '❌ NO');
-                if (!isRightSide4) {
-                    if (Math.abs(zDepthDifference) < 0.05) {
-                        console.log('   ⚠️ Both hips at same depth - user likely facing camera (FRONT VIEW)');
-                    } else if (zDepthDifference > 0) {
-                        console.log('   ⚠️ Right hip closer than left - user turned to LEFT side (wrong direction)');
->>>>>>> ayesha-dev
                     }
                 }
 
@@ -796,27 +775,17 @@ function CapturePage() {
                 let footDistance4 = null;
                 let feetDetectionMethod = 'not detected';
 
-<<<<<<< HEAD
                 if (leftFoot4 && rightFoot4) {
                     footDistance4 = Math.abs(leftFoot4.x - rightFoot4.x);
-=======
-                if (leftFoot4 && rightFoot4) {
-                    footDistance4 = Math.abs(leftFoot4.x - rightFoot4.x);
->>>>>>> ayesha-dev
                     feetAligned = footDistance4 < 0.10; // STRICT: 0.10 (was 0.15) for true side stance
                     feetDetectionMethod = 'feet landmarks';
                 } else if (leftAnkle4 && rightAnkle4) {
                     // Fallback to ankles if feet not detected
-<<<<<<< HEAD
                     footDistance4 = Math.abs(leftAnkle4.x - rightAnkle4.x);
-=======
-                    footDistance4 = Math.abs(leftAnkle4.x - rightAnkle4.x);
->>>>>>> ayesha-dev
                     feetAligned = footDistance4 < 0.10; // STRICT: 0.10 (was 0.15) for true side stance
                     feetDetectionMethod = 'ankle landmarks (fallback)';
                 }
 
-<<<<<<< HEAD
                 console.log('%c\n✅ CHECK 3: Feet Distance (Optional Bonus Check)', 'color: #3B82F6; font-weight: bold');
                 console.log('   Detection Method:', feetDetectionMethod);
                 if (footDistance4 !== null) {
@@ -824,15 +793,6 @@ function CapturePage() {
                     console.log('   Feet Aligned?', feetAligned ? '✅ YES' : '❌ NO');
                     if (!feetAligned) {
                         console.log('   ⚠️ Feet too far apart - likely pointing forward instead of sideways');
-=======
-                console.log('%c\n✅ CHECK 3: Feet Distance (Optional Bonus Check)', 'color: #3B82F6; font-weight: bold');
-                console.log('   Detection Method:', feetDetectionMethod);
-                if (footDistance4 !== null) {
-                    console.log('   Foot Distance:', footDistance4.toFixed(3), '(threshold: < 0.10 - STRICT)');
-                    console.log('   Feet Aligned?', feetAligned ? '✅ YES' : '❌ NO');
-                    if (!feetAligned) {
-                        console.log('   ⚠️ Feet too far apart - likely pointing forward instead of sideways');
->>>>>>> ayesha-dev
                     }
                 } else {
                     console.log('   ℹ️ Feet/ankles not detected - skipping this check (won\'t block alignment)');
@@ -862,7 +822,6 @@ function CapturePage() {
 
                 // ✅ CHECK 5: Landmark Visibility (Ankles + Shoulders)
                 // Stage 4 requires full body visible (upper + lower)
-<<<<<<< HEAD
                 const leftShoulder4 = poseLandmarks[11];
                 const rightShoulder4 = poseLandmarks[12];
                 // Note: leftAnkle4 and rightAnkle4 already declared in CHECK 3 above
@@ -892,37 +851,6 @@ function CapturePage() {
                 console.log('   ✓ In Frame:', isInFrame4 ? '✅ PASS' : '❌ FAIL');
                 console.log('   ✓ Landmarks Visible:', hasRequiredLandmarks ? '✅ PASS' : '❌ FAIL');
                 console.log('%c   → ALIGNED: ' + (aligned ? '✅ YES - COUNTDOWN STARTING!' : '❌ NO - ADJUST POSITION'), aligned ? 'color: #10B981; font-weight: bold' : 'color: #EF4444; font-weight: bold');
-=======
-                const leftShoulder4 = poseLandmarks[11];
-                const rightShoulder4 = poseLandmarks[12];
-                // Note: leftAnkle4 and rightAnkle4 already declared in CHECK 3 above
-
-                const hasShoulders = !!(leftShoulder4 && rightShoulder4);
-                const hasAnkles = !!(leftAnkle4 && rightAnkle4);
-                const hasRequiredLandmarks = hasShoulders && hasAnkles;
-
-                console.log('%c\n✅ CHECK 5: Landmark Visibility', 'color: #3B82F6; font-weight: bold');
-                console.log('   Left Shoulder (#11):', hasShoulders && leftShoulder4 ? '✅ Detected' : '❌ Missing');
-                console.log('   Right Shoulder (#12):', hasShoulders && rightShoulder4 ? '✅ Detected' : '❌ Missing');
-                console.log('   Left Ankle (#27):', hasAnkles && leftAnkle4 ? '✅ Detected' : '❌ Missing');
-                console.log('   Right Ankle (#28):', hasAnkles && rightAnkle4 ? '✅ Detected' : '❌ Missing');
-                console.log('   Full Body Visible?', hasRequiredLandmarks ? '✅ YES' : '❌ NO');
-                if (!hasRequiredLandmarks) {
-                    if (!hasShoulders) console.log('   ⚠️ Shoulders not detected - move upper body into frame');
-                    if (!hasAnkles) console.log('   ⚠️ Ankles not detected - move lower body into frame');
-                }
-
-                // ✅ FINAL ALIGNMENT CHECK (All conditions must pass)
-                const aligned = isSideView4 && isRightSide4 && feetAligned && isInFrame4 && hasRequiredLandmarks;
-
-                console.log('%c\n🎯 FINAL ALIGNMENT RESULT:', 'color: #F59E0B; font-weight: bold; font-size: 13px');
-                console.log('   ✓ Side View:', isSideView4 ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ Right Side:', isRightSide4 ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ Feet Aligned:', feetAligned ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ In Frame:', isInFrame4 ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ Landmarks Visible:', hasRequiredLandmarks ? '✅ PASS' : '❌ FAIL');
-                console.log('%c   → ALIGNED: ' + (aligned ? '✅ YES - COUNTDOWN STARTING!' : '❌ NO - ADJUST POSITION'), aligned ? 'color: #10B981; font-weight: bold' : 'color: #EF4444; font-weight: bold');
->>>>>>> ayesha-dev
 
                 // Enhanced Feedback Messages (PRIORITY ORDER)
                 let feedbackMessage = '';
@@ -1473,232 +1401,223 @@ function CapturePage() {
                     }}
                 />
 
-<<<<<<< HEAD
-    {/* Hidden canvas for landmark rendering (not visible to user) */ }
-    <canvas
-        ref={hiddenCanvasRef}
-        width={960}
-        height={720}
-        style={{ display: 'none' }}
-=======
                 {/* Hidden canvas for landmark rendering (not visible to user) */}
                 <canvas
                     ref={hiddenCanvasRef}
                     width={960}
                     height={720}
                     style={{ display: 'none' }}
->>>>>>> ayesha-dev
-    />
-
-    {/* Ghost Overlays - Show based on stage */ }
-    { captureStage === 'STAGE_1_FACE' && !isFrozen && <FaceGhost isAligned={isAligned} holdDuration={holdDuration} stage1Debug={stage1Debug} /> }
-    { captureStage === 'STAGE_2_UPPER_FRONT' && !isFrozen && <UpperBodyFrontGhost isAligned={isAligned} holdDuration={holdDuration} stage2Debug={stage2Debug} /> }
-    { captureStage === 'STAGE_3_UPPER_SIDE' && !isFrozen && <UpperBodySideGhost isAligned={isAligned} holdDuration={holdDuration} stage3Debug={stage3Debug} /> }
-    { captureStage === 'STAGE_4_LOWER_SIDE' && !isFrozen && <LowerBodySideGhost isAligned={isAligned} holdDuration={holdDuration} stage4Debug={stage4Debug} /> }
-
-    {/* Frozen Image Overlay */ }
-    {
-        isFrozen && frozenImage && (
-            <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                zIndex: 20,
-                backgroundColor: '#EFE9DF'
-            }}>
-                <img
-                    src={frozenImage}
-                    alt="Captured"
-                    style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover', // FIXED: Cover entire screen to match live view
-                        objectPosition: 'center',
-                        transform: 'scaleX(-1)',
-                        display: 'block'
-                    }}
                 />
 
-                {/* Overlay Gradient for contrast */}
-                <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'radial-gradient(circle at 50% 50%, rgba(239, 233, 223, 0.2) 0%, rgba(47, 74, 92, 0.4) 100%)',
-                    pointerEvents: 'none'
-                }} />
+                {/* Ghost Overlays - Show based on stage */}
+                {captureStage === 'STAGE_1_FACE' && !isFrozen && <FaceGhost isAligned={isAligned} holdDuration={holdDuration} stage1Debug={stage1Debug} />}
+                {captureStage === 'STAGE_2_UPPER_FRONT' && !isFrozen && <UpperBodyFrontGhost isAligned={isAligned} holdDuration={holdDuration} stage2Debug={stage2Debug} />}
+                {captureStage === 'STAGE_3_UPPER_SIDE' && !isFrozen && <UpperBodySideGhost isAligned={isAligned} holdDuration={holdDuration} stage3Debug={stage3Debug} />}
+                {captureStage === 'STAGE_4_LOWER_SIDE' && !isFrozen && <LowerBodySideGhost isAligned={isAligned} holdDuration={holdDuration} stage4Debug={stage4Debug} />}
 
-                <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    textAlign: 'center',
-                    width: '100%',
-                    padding: '0 20px'
-                }}>
-                    <div style={{
-                        fontSize: 'clamp(32px, 8vw, 64px)',
-                        color: '#8FA99B',
-                        fontWeight: '900',
-                        letterSpacing: '4px',
-                        textTransform: 'uppercase',
-                        textShadow: '0 0 40px rgba(143,169,155,0.6)',
-                        animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                        marginBottom: '10px'
-                    }}>
-                        ✅ SUCCESS
-                    </div>
-                    <div style={{
-                        fontSize: 'clamp(16px, 4vw, 24px)',
-                        color: '#2F4A5C',
-                        fontWeight: '600',
-                        letterSpacing: '2px',
-                        animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards'
-                    }}>
-                        Landmarks Captured Successfully
-                    </div>
-                </div>
-            </div>
-        )
-    }
+                {/* Frozen Image Overlay */}
+                {
+                    isFrozen && frozenImage && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            zIndex: 20,
+                            backgroundColor: '#EFE9DF'
+                        }}>
+                            <img
+                                src={frozenImage}
+                                alt="Captured"
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover', // FIXED: Cover entire screen to match live view
+                                    objectPosition: 'center',
+                                    transform: 'scaleX(-1)',
+                                    display: 'block'
+                                }}
+                            />
 
-    {/* Review Buttons - Show after successful validation */ }
-    {
-        showReviewButtons && isFrozen && (
-            <div style={{
-                position: 'absolute',
-                bottom: '10%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 30,
-                display: 'flex',
-                gap: '20px',
-                animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.3s backwards'
-            }}>
-                <button
-                    onClick={handleRetake}
-                    style={{
-                        padding: '16px 32px',
-                        fontSize: 'clamp(16px, 4vw, 20px)',
-                        fontWeight: '700',
-                        color: '#2F4A5C',
-                        backgroundColor: 'rgba(239, 233, 223, 0.95)',
-                        border: '2px solid #2F4A5C',
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px',
-                        boxShadow: '0 4px 12px rgba(47, 74, 92, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = '#2F4A5C';
-                        e.target.style.color = '#EFE9DF';
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 16px rgba(47, 74, 92, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = 'rgba(239, 233, 223, 0.95)';
-                        e.target.style.color = '#2F4A5C';
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(47, 74, 92, 0.3)';
-                    }}
-                >
-                    ⟳ RETAKE
-                </button>
+                            {/* Overlay Gradient for contrast */}
+                            <div style={{
+                                position: 'absolute',
+                                inset: 0,
+                                background: 'radial-gradient(circle at 50% 50%, rgba(239, 233, 223, 0.2) 0%, rgba(47, 74, 92, 0.4) 100%)',
+                                pointerEvents: 'none'
+                            }} />
 
-                <button
-                    onClick={handleContinue}
-                    style={{
-                        padding: '16px 32px',
-                        fontSize: 'clamp(16px, 4vw, 20px)',
-                        fontWeight: '700',
-                        color: '#EFE9DF',
-                        backgroundColor: '#8FA99B',
-                        border: '2px solid #8FA99B',
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px',
-                        boxShadow: '0 4px 12px rgba(143, 169, 155, 0.4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = '#6F8F84';
-                        e.target.style.borderColor = '#6F8F84';
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 16px rgba(143, 169, 155, 0.6)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = '#8FA99B';
-                        e.target.style.borderColor = '#8FA99B';
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(143, 169, 155, 0.4)';
-                    }}
-                >
-                    CONTINUE →
-                </button>
-            </div>
-        )
-    }
+                            <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                textAlign: 'center',
+                                width: '100%',
+                                padding: '0 20px'
+                            }}>
+                                <div style={{
+                                    fontSize: 'clamp(32px, 8vw, 64px)',
+                                    color: '#8FA99B',
+                                    fontWeight: '900',
+                                    letterSpacing: '4px',
+                                    textTransform: 'uppercase',
+                                    textShadow: '0 0 40px rgba(143,169,155,0.6)',
+                                    animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    marginBottom: '10px'
+                                }}>
+                                    ✅ SUCCESS
+                                </div>
+                                <div style={{
+                                    fontSize: 'clamp(16px, 4vw, 24px)',
+                                    color: '#2F4A5C',
+                                    fontWeight: '600',
+                                    letterSpacing: '2px',
+                                    animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards'
+                                }}>
+                                    Landmarks Captured Successfully
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
 
-    {/* Validation Error Overlay - Auto-retry */ }
-    {
-        validationError && (
-            <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                zIndex: 25,
-                backgroundColor: 'rgba(47, 74, 92, 0.95)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                animation: 'fadeInScale 0.3s ease-out'
-            }}>
-                <div style={{
-                    fontSize: 'clamp(24px, 6vw, 48px)',
-                    color: '#EFE9DF',
-                    fontWeight: '700',
-                    marginBottom: '20px',
-                    textAlign: 'center',
-                    padding: '0 20px'
-                }}>
-                    ⚠️ {validationError}
-                </div>
-                <div style={{
-                    fontSize: 'clamp(16px, 4vw, 24px)',
-                    color: '#8FA99B',
-                    textAlign: 'center',
-                    padding: '0 20px'
-                }}>
-                    Please reposition and try again
-                </div>
-                <div style={{
-                    marginTop: '30px',
-                    fontSize: 'clamp(14px, 3vw, 18px)',
-                    color: 'rgba(239, 233, 223, 0.7)',
-                    fontStyle: 'italic'
-                }}>
-                    Auto-retrying in 2 seconds...
-                </div>
-            </div>
-        )
-    }
+                {/* Review Buttons - Show after successful validation */}
+                {
+                    showReviewButtons && isFrozen && (
+                        <div style={{
+                            position: 'absolute',
+                            bottom: '10%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 30,
+                            display: 'flex',
+                            gap: '20px',
+                            animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.3s backwards'
+                        }}>
+                            <button
+                                onClick={handleRetake}
+                                style={{
+                                    padding: '16px 32px',
+                                    fontSize: 'clamp(16px, 4vw, 20px)',
+                                    fontWeight: '700',
+                                    color: '#2F4A5C',
+                                    backgroundColor: 'rgba(239, 233, 223, 0.95)',
+                                    border: '2px solid #2F4A5C',
+                                    borderRadius: '12px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px',
+                                    boxShadow: '0 4px 12px rgba(47, 74, 92, 0.3)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#2F4A5C';
+                                    e.target.style.color = '#EFE9DF';
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = '0 6px 16px rgba(47, 74, 92, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'rgba(239, 233, 223, 0.95)';
+                                    e.target.style.color = '#2F4A5C';
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = '0 4px 12px rgba(47, 74, 92, 0.3)';
+                                }}
+                            >
+                                ⟳ RETAKE
+                            </button>
+
+                            <button
+                                onClick={handleContinue}
+                                style={{
+                                    padding: '16px 32px',
+                                    fontSize: 'clamp(16px, 4vw, 20px)',
+                                    fontWeight: '700',
+                                    color: '#EFE9DF',
+                                    backgroundColor: '#8FA99B',
+                                    border: '2px solid #8FA99B',
+                                    borderRadius: '12px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px',
+                                    boxShadow: '0 4px 12px rgba(143, 169, 155, 0.4)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#6F8F84';
+                                    e.target.style.borderColor = '#6F8F84';
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = '0 6px 16px rgba(143, 169, 155, 0.6)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#8FA99B';
+                                    e.target.style.borderColor = '#8FA99B';
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = '0 4px 12px rgba(143, 169, 155, 0.4)';
+                                }}
+                            >
+                                CONTINUE →
+                            </button>
+                        </div>
+                    )
+                }
+
+                {/* Validation Error Overlay - Auto-retry */}
+                {
+                    validationError && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            zIndex: 25,
+                            backgroundColor: 'rgba(47, 74, 92, 0.95)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            animation: 'fadeInScale 0.3s ease-out'
+                        }}>
+                            <div style={{
+                                fontSize: 'clamp(24px, 6vw, 48px)',
+                                color: '#EFE9DF',
+                                fontWeight: '700',
+                                marginBottom: '20px',
+                                textAlign: 'center',
+                                padding: '0 20px'
+                            }}>
+                                ⚠️ {validationError}
+                            </div>
+                            <div style={{
+                                fontSize: 'clamp(16px, 4vw, 24px)',
+                                color: '#8FA99B',
+                                textAlign: 'center',
+                                padding: '0 20px'
+                            }}>
+                                Please reposition and try again
+                            </div>
+                            <div style={{
+                                marginTop: '30px',
+                                fontSize: 'clamp(14px, 3vw, 18px)',
+                                color: 'rgba(239, 233, 223, 0.7)',
+                                fontStyle: 'italic'
+                            }}>
+                                Auto-retrying in 2 seconds...
+                            </div>
+                        </div>
+                    )
+                }
 
 
-    <style>{`
+                <style>{`
           @keyframes fadeInScale {
             0% {
               opacity: 0;
