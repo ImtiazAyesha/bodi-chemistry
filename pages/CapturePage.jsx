@@ -1468,93 +1468,59 @@ function CapturePage() {
                 }
 
 
+
                 {/* Review Buttons - REMOVED: Auto-advance implemented */}
 
 
                 {/* Validation Error Overlay - Auto-retry */}
-                {
-                    validationError && (
+                {validationError && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        zIndex: 25,
+                        backgroundColor: 'rgba(47, 74, 92, 0.95)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        animation: 'fadeInScale 0.3s ease-out'
+                    }}>
                         <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            zIndex: 25,
-                            backgroundColor: 'rgba(47, 74, 92, 0.95)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            animation: 'fadeInScale 0.3s ease-out'
+                            fontSize: 'clamp(24px, 6vw, 48px)',
+                            color: '#EFE9DF',
+                            fontWeight: '700',
+                            marginBottom: '20px',
+                            textAlign: 'center',
+                            padding: '0 20px'
                         }}>
-                            <div style={{
-<<<<<<< HEAD
-                                fontSize: 'clamp(40px, 10vw, 80px)',
-                                color: '#00FF00',
-                                fontWeight: '900',
-                                letterSpacing: '6px',
-                                textTransform: 'uppercase',
-                                textShadow: '0 0 60px rgba(0, 255, 0, 0.8)',
-                                animation: 'fadeIn 0.2s ease-out'
-                            }}>
-                                Captured
-                            </div>
+                            ⚠️ {validationError}
+                        </div>
+                        <div style={{
+                            fontSize: 'clamp(16px, 4vw, 24px)',
+                            color: '#8FA99B',
+                            textAlign: 'center',
+                            padding: '0 20px'
+                        }}>
+                            Please reposition and try again
+                        </div>
+                        <div style={{
+                            marginTop: '30px',
+                            fontSize: 'clamp(14px, 3vw, 18px)',
+                            color: 'rgba(239, 233, 223, 0.7)',
+                            fontStyle: 'italic'
+                        }}>
+                            Auto-retrying in 2 seconds...
                         </div>
                     </div>
                 )}
 
-            {/* Review Buttons - REMOVED: Auto-advance implemented */}
-
-
-            {/* Validation Error Overlay - Auto-retry */}
-            {validationError && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    zIndex: 25,
-                    backgroundColor: 'rgba(47, 74, 92, 0.95)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    animation: 'fadeInScale 0.3s ease-out'
-                }}>
-                    <div style={{
-                        fontSize: 'clamp(24px, 6vw, 48px)',
-                        color: '#EFE9DF',
-                        fontWeight: '700',
-                        marginBottom: '20px',
-                        textAlign: 'center',
-                        padding: '0 20px'
-                    }}>
-                        ⚠️ {validationError}
-                    </div>
-                    <div style={{
-                        fontSize: 'clamp(16px, 4vw, 24px)',
-                        color: '#8FA99B',
-                        textAlign: 'center',
-                        padding: '0 20px'
-                    }}>
-                        Please reposition and try again
-                    </div>
-                    <div style={{
-                        marginTop: '30px',
-                        fontSize: 'clamp(14px, 3vw, 18px)',
-                        color: 'rgba(239, 233, 223, 0.7)',
-                        fontStyle: 'italic'
-                    }}>
-                        Auto-retrying in 2 seconds...
-                    </div>
-                </div>
-            )}
 
 
 
-            <style>{`
+                <style>{`
           @keyframes fadeIn {
             0% {
               opacity: 0;
@@ -1584,7 +1550,7 @@ function CapturePage() {
             }
           }
         `}</style>
-        </div >
+            </div >
         </div >
     );
 }
