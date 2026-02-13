@@ -45,3 +45,72 @@
     scrollbar-width: thin;
     scrollbar-color: #8FA99B transparent;
 }
+
+/* Global Button Cursor */
+button,
+[role="button"],
+.btn-scan,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+    cursor: pointer;
+}
+
+ :root {
+                    --font-display: 'Outfit', sans-serif;
+                    --font-body:    'Instrument Sans', sans-serif;
+                    --font-mono:    'JetBrains Mono', monospace;
+                }
+
+                .font-display { font-family: var(--font-display) !important; }
+                .font-body    { font-family: var(--font-body) !important; }
+                .font-mono    { font-family: var(--font-mono) !important; }
+
+                @keyframes scanMove {
+                    0%   { transform: translateY(0);    opacity: 0; }
+                    15%  { opacity: 1; }
+                    85%  { opacity: 1; }
+                    100% { transform: translateY(100px); opacity: 0; }
+                }
+                @keyframes pulseRing {
+                    0%   { transform: scale(1);   opacity: 0.5; }
+                    100% { transform: scale(1.65); opacity: 0; }
+                }
+                @keyframes shimmer {
+                    0%   { background-position: -200% center; }
+                    100% { background-position:  200% center; }
+                }
+                .shimmer-text {
+                    background: linear-gradient(90deg,
+                        #4a6741 0%, #7a9e74 35%,
+                        #f0ece6 50%,
+                        #7a9e74 65%, #4a6741 100%);
+                    background-size: 200% auto;
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    animation: shimmer 4.5s linear infinite;
+                }
+                .pulse-ring::after {
+                    content: '';
+                    position: absolute;
+                    inset: -6px;
+                    border-radius: 9999px;
+                    border: 1.5px solid rgba(143,169,155,0.5);
+                    animation: pulseRing 2s ease-out infinite;
+                }
+                .card-glow:hover {
+                    box-shadow: 0 0 0 1px rgba(143,169,155,0.25),
+                                0 20px 40px -8px rgba(79,105,94,0.12);
+                }
+                .btn-scan {
+                    background: linear-gradient(135deg, #2F4A3C 0%, #3d6054 50%, #2F4A3C 100%);
+                    background-size: 200% 200%;
+                    transition: background-position 0.5s ease, transform 0.2s ease, box-shadow 0.3s ease;
+                }
+                .btn-scan:hover {
+                    background-position: right center;
+                    transform: translateY(-2px);
+                    box-shadow: 0 16px 40px -8px rgba(47,74,60,0.45);
+                }
+                .btn-scan:active { transform: translateY(0); }
