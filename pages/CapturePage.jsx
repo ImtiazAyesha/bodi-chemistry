@@ -47,7 +47,7 @@ function CapturePage() {
     const [showResults, setShowResults] = useState(false);
 
     // Auto-capture timer states
-    const [ holdDuration, setHoldDuration ] = useState( 0 ); // 0 to 5000ms (2s silent + 3s countdown)
+    const [holdDuration, setHoldDuration] = useState(0); // 0 to 5000ms (2s silent + 3s countdown)
     const alignmentTimerRef = useRef(null);
 
     // Screen freeze states
@@ -423,6 +423,25 @@ function CapturePage() {
                                 body: currentBodyMetrics
                             });
 
+                            // ✅ Draw landmarks on VISIBLE canvas for live feedback
+                            // This shows users the green dots/mesh during alignment
+                            const visibleDrawingUtils = new DrawingUtils(ctx);
+
+                            // Draw face landmarks on visible canvas (Stages 1-3)
+                            if (!isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
+                                const fl = faceResult.faceLandmarks[0];
+                                visibleDrawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "rgba(0, 255, 0, 0.3)", lineWidth: 0.1 });
+                                visibleDrawingUtils.drawLandmarks(fl, { color: "#00FF00", radius: 1 });
+                            }
+
+                            // Draw pose landmarks on visible canvas (All stages)
+                            if (poseResult.landmarks && poseResult.landmarks.length > 0) {
+                                const pl = poseResult.landmarks[0];
+                                visibleDrawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(0, 255, 0, 0.5)", lineWidth: 1.5 });
+                                visibleDrawingUtils.drawLandmarks(pl, { color: "#00FF00", radius: 2 });
+                            }
+
+
                             // ✅ CRITICAL: Draw landmarks on HIDDEN canvas for capture
                             // This ensures captured images have visible landmarks for analysis
                             if (hiddenCtx) {
@@ -578,13 +597,18 @@ function CapturePage() {
                     }
                     feedbackIcon2 = torsoCenterX < 0.40 ? '⬅' : '➡️';
                 } else if (!isYAligned2) {
-                    // For full body, use distance-based feedback instead of up/down
-                    if (torsoCenterY < 0.30) {
-                        feedbackMsg2 = torsoCenterY < 0.20 ? 'STEP BACK' : 'A BIT BACK';
+                    // FIXED: For full body capture, Y position indicates distance
+                    // High Y (torso low in frame) = TOO CLOSE → need to step back
+                    // Low Y (torso high in frame) = TOO FAR → need to come closer
+                    if (torsoCenterY > 0.60) {
+                        // Torso is LOW in frame (high Y value) = user is TOO CLOSE
+                        feedbackMsg2 = torsoCenterY > 0.70 ? 'STEP BACK' : 'A BIT BACK';
+                        feedbackIcon2 = '⬆️';
                     } else {
-                        feedbackMsg2 = torsoCenterY > 0.60 ? 'COME CLOSER' : 'A BIT CLOSER';
+                        // Torso is HIGH in frame (low Y value) = user is TOO FAR
+                        feedbackMsg2 = torsoCenterY < 0.25 ? 'COME CLOSER' : 'A BIT CLOSER';
+                        feedbackIcon2 = '⬇️';
                     }
-                    feedbackIcon2 = torsoCenterY < 0.30 ? '⬆️' : '⬇️';
                 }
 
                 // CRITICAL: Check full body landmarks (shoulders + hips + feet/ankles)
@@ -929,9 +953,9 @@ function CapturePage() {
             alignmentTimerRef.current = setInterval(() => {
                 setHoldDuration(prev => {
                     const newDuration = prev + 100;
-                    if ( newDuration >= 5000 ) {
+                    if (newDuration >= 5000) {
                         // Auto-capture triggered
-                        console.log( 'Auto-capture triggered at 5000ms!' ); // DEBUG
+                        console.log('Auto-capture triggered at 5000ms!'); // DEBUG
                         clearInterval(alignmentTimerRef.current);
                         handleCapture();
                         return 0;
@@ -1255,9 +1279,13 @@ function CapturePage() {
                 break;
         }
 
-        // Step 5: Show review buttons (WAIT for user decision)
-        console.log('📸 Showing review buttons');
-        setShowReviewButtons(true);
+        // Step 5: Auto-advance to next stage after brief "Captured" message
+        console.log('📸 Auto-advancing to next stage');
+
+        // Auto-advance after 800ms (time to show "Captured" message)
+        setTimeout(() => {
+            handleContinue();
+        }, 800);
     };
 
     // Restart handler
@@ -1443,166 +1471,83 @@ function CapturePage() {
                                 padding: '0 20px'
                             }}>
                                 <div style={{
-                                    fontSize: 'clamp(32px, 8vw, 64px)',
-                                    color: '#8FA99B',
+                                    fontSize: 'clamp(40px, 10vw, 80px)',
+                                    color: '#00FF00',
                                     fontWeight: '900',
-                                    letterSpacing: '4px',
+                                    letterSpacing: '6px',
                                     textTransform: 'uppercase',
-                                    textShadow: '0 0 40px rgba(143,169,155,0.6)',
-                                    animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    marginBottom: '10px'
+                                    textShadow: '0 0 60px rgba(0, 255, 0, 0.8)',
+                                    animation: 'fadeIn 0.2s ease-out'
                                 }}>
-                                    ✅ SUCCESS
-                                </div>
-                                <div style={{
-                                    fontSize: 'clamp(16px, 4vw, 24px)',
-                                    color: '#2F4A5C',
-                                    fontWeight: '600',
-                                    letterSpacing: '2px',
-                                    animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards'
-                                }}>
-                                    Landmarks Captured Successfully
+                                    Captured
                                 </div>
                             </div>
                         </div>
                     )
                 }
 
-                {/* Review Buttons - Show after successful validation */}
-                {
-                    showReviewButtons && isFrozen && (
-                        <div style={{
-                            position: 'absolute',
-                            bottom: '10%',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            zIndex: 30,
-                            display: 'flex',
-                            gap: '20px',
-                            animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.3s backwards'
-                        }}>
-                            <button
-                                onClick={handleRetake}
-                                style={{
-                                    padding: '16px 32px',
-                                    fontSize: 'clamp(16px, 4vw, 20px)',
-                                    fontWeight: '700',
-                                    color: '#2F4A5C',
-                                    backgroundColor: 'rgba(239, 233, 223, 0.95)',
-                                    border: '2px solid #2F4A5C',
-                                    borderRadius: '12px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '1px',
-                                    boxShadow: '0 4px 12px rgba(47, 74, 92, 0.3)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = '#2F4A5C';
-                                    e.target.style.color = '#EFE9DF';
-                                    e.target.style.transform = 'translateY(-2px)';
-                                    e.target.style.boxShadow = '0 6px 16px rgba(47, 74, 92, 0.4)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = 'rgba(239, 233, 223, 0.95)';
-                                    e.target.style.color = '#2F4A5C';
-                                    e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = '0 4px 12px rgba(47, 74, 92, 0.3)';
-                                }}
-                            >
-                                ⟳ RETAKE
-                            </button>
 
-                            <button
-                                onClick={handleContinue}
-                                style={{
-                                    padding: '16px 32px',
-                                    fontSize: 'clamp(16px, 4vw, 20px)',
-                                    fontWeight: '700',
-                                    color: '#EFE9DF',
-                                    backgroundColor: '#8FA99B',
-                                    border: '2px solid #8FA99B',
-                                    borderRadius: '12px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '1px',
-                                    boxShadow: '0 4px 12px rgba(143, 169, 155, 0.4)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = '#6F8F84';
-                                    e.target.style.borderColor = '#6F8F84';
-                                    e.target.style.transform = 'translateY(-2px)';
-                                    e.target.style.boxShadow = '0 6px 16px rgba(143, 169, 155, 0.6)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = '#8FA99B';
-                                    e.target.style.borderColor = '#8FA99B';
-                                    e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = '0 4px 12px rgba(143, 169, 155, 0.4)';
-                                }}
-                            >
-                                CONTINUE →
-                            </button>
-                        </div>
-                    )
-                }
+
+                {/* Review Buttons - REMOVED: Auto-advance implemented */}
+
 
                 {/* Validation Error Overlay - Auto-retry */}
-                {
-                    validationError && (
+                {validationError && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        zIndex: 25,
+                        backgroundColor: 'rgba(47, 74, 92, 0.95)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        animation: 'fadeInScale 0.3s ease-out'
+                    }}>
                         <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            zIndex: 25,
-                            backgroundColor: 'rgba(47, 74, 92, 0.95)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            animation: 'fadeInScale 0.3s ease-out'
+                            fontSize: 'clamp(24px, 6vw, 48px)',
+                            color: '#EFE9DF',
+                            fontWeight: '700',
+                            marginBottom: '20px',
+                            textAlign: 'center',
+                            padding: '0 20px'
                         }}>
-                            <div style={{
-                                fontSize: 'clamp(24px, 6vw, 48px)',
-                                color: '#EFE9DF',
-                                fontWeight: '700',
-                                marginBottom: '20px',
-                                textAlign: 'center',
-                                padding: '0 20px'
-                            }}>
-                                ⚠️ {validationError}
-                            </div>
-                            <div style={{
-                                fontSize: 'clamp(16px, 4vw, 24px)',
-                                color: '#8FA99B',
-                                textAlign: 'center',
-                                padding: '0 20px'
-                            }}>
-                                Please reposition and try again
-                            </div>
-                            <div style={{
-                                marginTop: '30px',
-                                fontSize: 'clamp(14px, 3vw, 18px)',
-                                color: 'rgba(239, 233, 223, 0.7)',
-                                fontStyle: 'italic'
-                            }}>
-                                Auto-retrying in 2 seconds...
-                            </div>
+                            ⚠️ {validationError}
                         </div>
-                    )
-                }
+                        <div style={{
+                            fontSize: 'clamp(16px, 4vw, 24px)',
+                            color: '#8FA99B',
+                            textAlign: 'center',
+                            padding: '0 20px'
+                        }}>
+                            Please reposition and try again
+                        </div>
+                        <div style={{
+                            marginTop: '30px',
+                            fontSize: 'clamp(14px, 3vw, 18px)',
+                            color: 'rgba(239, 233, 223, 0.7)',
+                            fontStyle: 'italic'
+                        }}>
+                            Auto-retrying in 2 seconds...
+                        </div>
+                    </div>
+                )}
+
+
 
 
                 <style>{`
+          @keyframes fadeIn {
+            0% {
+              opacity: 0;
+            }
+            100% {
+              opacity: 1;
+            }
+          }
           @keyframes fadeInScale {
             0% {
               opacity: 0;
