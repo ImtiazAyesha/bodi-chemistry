@@ -137,7 +137,7 @@ const highlights = [
     },
     {
         title: 'Optimal Distance',
-        description: 'Position yourself approximately 6–8 ft (2 m) from the lens for best results.',
+        description: 'Position yourself approximately 2-10 feet from the lens for best results.',
         icon: <FiLayout />,
         tag: '~2 metres',
     },
@@ -148,7 +148,7 @@ const stages = [
         number: '01',
         title: 'Face Profile (Front View)',
         icon: stageIcons.face,
-        description: 'Align your face within the on-screen guide for an automatic 2-second capture.',
+        description: 'Position yourself 2 feet from the camera. The on-screen outline shows which body part will be captured (face). Align according to the indicator for a 3-second automatic capture.',
         duration: '~5 sec',
         color: 'bg-brand-sage/10',
         accent: 'border-brand-sage/40',
@@ -157,7 +157,7 @@ const stages = [
         number: '02',
         title: 'Full Body Front',
         icon: stageIcons.bodyFront,
-        description: 'Face the camera directly with arms relaxed — captures front posture baseline.',
+        description: 'Position yourself 8-10 feet away from the camera. Face the camera directly with arms relaxed. The outline indicates full body front capture. Ensure both head and feet are visible.',
         duration: '~8 sec',
         color: 'bg-brand-sand/60',
         accent: 'border-brand-deepSage/25',
@@ -166,7 +166,7 @@ const stages = [
         number: '03',
         title: 'Side Profile Upper (Left Side)',
         icon: stageIcons.bodySide,
-        description: 'Turn 90° for a profile view revealing spinal curve and shoulder alignment.',
+        description: 'Position yourself 3-6 feet away from the camera. Turn 90 degrees. The outline indicates upper body side capture. Camera should be at your eye level.',
         duration: '~8 sec',
         color: 'bg-white/40',
         accent: 'border-brand-slate/15',
@@ -175,7 +175,7 @@ const stages = [
         number: '04',
         title: 'Side Profile Lower (Full Body Left Side)',
         icon: stageIcons.lowerBodySide,
-        description: 'Maintain side profile. Ensure full leg length is visible in frame.',
+        description: 'Turn 90 degrees from the camera. Position yourself 8-10 feet away. The outline indicates full body side capture. Ensure both head and feet are visible.',
         duration: '~8 sec',
         color: 'bg-brand-deepSage/5',
         accent: 'border-brand-deepSage/20',
@@ -339,12 +339,33 @@ const InstructionPage = ({ onStart }) => {
                     ══════════════════════════════════════════════ */}
                 <section ref={stagesRef} className="relative z-10 w-full max-w-6xl px-4 sm:px-6 lg:px-10 mb-16 sm:mb-20 md:mb-28">
                     {/* section header */}
-                    <div className="flex items-center gap-3 sm:gap-4 md:gap-5 mb-8 sm:mb-10 md:mb-12">
-                        <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-brand-slate/30 font-medium">
-                            Capture Stages
-                        </span>
-                        <div className="h-px flex-1 bg-brand-slate/8" />
-                        <span className="font-mono text-[10px] text-brand-slate/25">4 of 4</span>
+                    <div className="mb-6 sm:mb-8">
+                        <div className="flex items-center gap-3 sm:gap-4 md:gap-5 mb-4 sm:mb-5">
+                            <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-brand-slate/30 font-medium">
+                                Capture Stages
+                            </span>
+                            <div className="h-px flex-1 bg-brand-slate/8" />
+                        </div>
+
+                        {/* Pro Tip Card - Always Visible */}
+                        <div className="w-full max-w-4xl">
+                            <div className="flex items-start gap-2.5 sm:gap-3 md:gap-4 p-3 sm:p-4 md:p-5 bg-gradient-to-br from-amber-50/90 to-orange-50/70 border border-amber-200/60 rounded-lg sm:rounded-xl shadow-md backdrop-blur-sm">
+                                <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500/20 flex items-center justify-center border border-amber-500/30 mt-0.5">
+                                    <span className="text-base sm:text-lg md:text-xl">💡</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="font-mono text-[9px] sm:text-[10px] md:text-[11px] tracking-wider uppercase text-amber-700/70 font-medium">
+                                            Stage 3 Pro Tip
+                                        </span>
+                                        <div className="h-px flex-1 bg-amber-300/30" />
+                                    </div>
+                                    <p className="font-body text-amber-900/85 text-xs sm:text-sm md:text-base leading-relaxed">
+                                        Turn your <strong>body fully sideways</strong> (90 degrees), but you can turn your <strong>head slightly toward the screen</strong> to see the countdown and alignment guide. When the countdown reaches <strong>1 second</strong>, turn your face fully sideways to match your body position.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     {/* Mobile Stage View - Dots navigation, no scrollbar/lines as requested */}
                     <div className="md:hidden relative mt-8 sm:mt-10 px-4 sm:px-6 overflow-hidden">
@@ -464,6 +485,7 @@ const InstructionPage = ({ onStart }) => {
                         </div>
                     </div>
                 </section>
+
 
                 {/* ══════════════════════════════════════════════
                     OUTCOME — premium CTA card
