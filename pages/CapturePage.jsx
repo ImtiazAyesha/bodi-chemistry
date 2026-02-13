@@ -47,7 +47,7 @@ function CapturePage() {
     const [showResults, setShowResults] = useState(false);
 
     // Auto-capture timer states
-    const [holdDuration, setHoldDuration] = useState(0); // 0 to 3000ms
+    const [ holdDuration, setHoldDuration ] = useState( 0 ); // 0 to 5000ms (2s silent + 3s countdown)
     const alignmentTimerRef = useRef(null);
 
     // Screen freeze states
@@ -929,9 +929,9 @@ function CapturePage() {
             alignmentTimerRef.current = setInterval(() => {
                 setHoldDuration(prev => {
                     const newDuration = prev + 100;
-                    if (newDuration >= 3000) {
+                    if ( newDuration >= 5000 ) {
                         // Auto-capture triggered
-                        console.log('Auto-capture triggered at 3000ms!'); // DEBUG
+                        console.log( 'Auto-capture triggered at 5000ms!' ); // DEBUG
                         clearInterval(alignmentTimerRef.current);
                         handleCapture();
                         return 0;

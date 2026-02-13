@@ -12,9 +12,8 @@ const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }
 
   const primaryColor = isAligned ? '#00FF00' : 'rgba(255, 255, 255, 0.3)';
   const successColor = brandSage;
-  const guidanceColor = brandDeepSage;
-
-  const countdown = Math.ceil((3000 - holdDuration) / 1000);
+  const progress = ( holdDuration / 5000 ) * 100;
+  const countdown = Math.ceil( ( 5000 - holdDuration ) / 1000 );
   const feedbackMessage = stage2Debug?.feedbackMessage || '';
 
   return (
@@ -170,8 +169,8 @@ const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }
             />
           </g>
 
-          {/* COUNTDOWN */}
-          {isAligned && holdDuration > 0 && (
+          {/* COUNTDOWN - Show at 2000ms to display 3-2-1 (not 2-1) */ }
+          { isAligned && holdDuration >= 2000 && (
             <g>
               <text x="0" y="-32" textAnchor="middle"
                 fill={successColor}
