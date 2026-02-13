@@ -56,8 +56,10 @@ function CapturePage() {
     const [isFrozen, setIsFrozen] = useState(false);
     const [frozenImage, setFrozenImage] = useState(null);
 
-    // Show landmarks for visual feedback
-    const [showLandmarks] = useState(true);
+    // Capture review states
+    const [ showReviewButtons, setShowReviewButtons ] = useState( false );
+    const [ validationError, setValidationError ] = useState( '' );
+    const [ isValidating, setIsValidating ] = useState( false );
 
     // Capture Data Storage
     const [captureData, setCaptureData] = useState({
@@ -220,11 +222,8 @@ function CapturePage() {
                             if (!isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
                                 const fl = faceResult.faceLandmarks[0];
 
-                                // Debug mode: Draw landmarks if enabled
-                                if (showLandmarks) {
-                                    drawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "rgba(47, 74, 92, 0.2)", lineWidth: 0.1 });
-                                    drawingUtils.drawLandmarks(fl, { color: "#8FA99B", radius: 1 });
-                                }
+                                // Landmarks are drawn on HIDDEN canvas only (see lines below)
+                                // This keeps the visible canvas clean for user experience
 
                                 // Calculate metrics
                                 const irisWidth = calculateDistance(fl[468], fl[473]);
@@ -271,11 +270,8 @@ function CapturePage() {
                             if (poseResult.landmarks && poseResult.landmarks.length > 0) {
                                 const pl = poseResult.landmarks[0];
 
-                                // Debug mode: Draw landmarks if enabled
-                                if (showLandmarks) {
-                                    drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(111, 143, 132, 0.4)", lineWidth: 1.5 });
-                                    drawingUtils.drawLandmarks(pl, { color: "#2F4A5C", radius: 2 });
-                                }
+                                // Landmarks are drawn on HIDDEN canvas only (see lines below)
+                                // This keeps the visible canvas clean for user experience
 
                                 // METRIC 4: Shoulder Height Asymmetry (Normalized by Body Height)
                                 // Uses Left Shoulder (11), Right Shoulder (12), Ankles (27, 28)
@@ -394,6 +390,47 @@ function CapturePage() {
                                 body: currentBodyMetrics
                             });
 
+                            // ✅ CRITICAL: Draw landmarks on HIDDEN canvas for capture
+                            // This ensures captured images have visible landmarks for analysis
+                            if ( hiddenCtx ) {
+                                const drawingUtils = new DrawingUtils( hiddenCtx );
+
+                                // DEBUG: Log for Stage 4
+                                if ( isStage4 ) {
+                                    console.log( '%c🔍 STAGE 4 DEBUG - Hidden Canvas Drawing:', 'color: #FF6B6B; font-weight: bold' );
+                                    console.log( '   hiddenCtx exists:', !!hiddenCtx );
+                                    console.log( '   poseResult:', poseResult );
+                                    console.log( '   poseResult.landmarks:', poseResult?.landmarks );
+                                    console.log( '   landmarks length:', poseResult?.landmarks?.length );
+                                    if ( poseResult?.landmarks?.length > 0 ) {
+                                        console.log( '   ✅ LANDMARKS DETECTED - Drawing on hidden canvas' );
+                                    } else {
+                                        console.log( '   ❌ NO LANDMARKS - Hidden canvas will be blank!' );
+                                    }
+                                }
+
+                                // Draw face landmarks (Stages 1-3)
+                                if ( !isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0 ) {
+                                    const fl = faceResult.faceLandmarks[ 0 ];
+                                    drawingUtils.drawConnectors( fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "rgba(47, 74, 92, 0.2)", lineWidth: 0.1 } );
+                                    drawingUtils.drawLandmarks( fl, { color: "#8FA99B", radius: 1 } );
+                                }
+
+                                // Draw pose landmarks (All stages)
+                                if ( poseResult.landmarks && poseResult.landmarks.length > 0 ) {
+                                    const pl = poseResult.landmarks[ 0 ];
+                                    drawingUtils.drawConnectors( pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(111, 143, 132, 0.4)", lineWidth: 1.5 } );
+                                    drawingUtils.drawLandmarks( pl, { color: "#2F4A5C", radius: 2 } );
+
+                                    // DEBUG: Confirm drawing for Stage 4
+                                    if ( isStage4 ) {
+                                        console.log( '%c   ✅ DREW LANDMARKS ON HIDDEN CANVAS', 'color: #10B981; font-weight: bold' );
+                                    }
+                                } else if ( isStage4 ) {
+                                    console.log( '%c   ❌ SKIPPED DRAWING - No landmarks detected', 'color: #EF4444; font-weight: bold' );
+                                }
+                            }
+
                         } catch (e) {
                             console.warn("Inference error:", e);
                         }
@@ -452,8 +489,12 @@ function CapturePage() {
                     feedbackIcon1 = noseTip.y < 0.20 ? '⬇️' : '⬆️';
                 }
 
+                // Note: We don't strictly require landmarks here to avoid flickering
+                // Landmarks are drawn on hidden canvas when available
+                const aligned1 = isXAligned1 && isYAligned1;
+
                 setStage1Debug({
-                    aligned: isXAligned1 && isYAligned1,
+                    aligned: aligned1,
                     feedbackMessage: feedbackMsg1,
                     feedbackIcon: feedbackIcon1
                 });
@@ -510,8 +551,12 @@ function CapturePage() {
                     feedbackIcon2 = torsoCenterY < 0.30 ? '⬆️' : '⬇️';
                 }
 
+                // Note: We don't strictly require landmarks here to avoid flickering
+                // Landmarks are drawn on hidden canvas when available
+                const aligned2 = isXAligned2 && isYAligned2;
+
                 setStage2Debug({
-                    aligned: isXAligned2 && isYAligned2,
+                    aligned: aligned2,
                     feedbackMessage: feedbackMsg2,
                     feedbackIcon: feedbackIcon2,
                     torsoCenterX: torsoCenterX.toFixed( 3 ),
@@ -858,18 +903,220 @@ function CapturePage() {
         setTimeout(() => flash.remove(), 300);
     };
 
+    // Validate captured landmarks
+    const validateCapturedLandmarks = ( stage ) => {
+        const video = webcamRef.current?.video;
+        if ( !video || !faceLandmarkerRef.current || !poseLandmarkerRef.current ) {
+            console.error( '❌ Validation failed: Detection system not ready' );
+            return { isValid: false, error: 'Detection system not ready' };
+        }
+
+        try {
+            const now = performance.now();
+
+            switch ( stage ) {
+                case 'STAGE_1_FACE':
+                    const faceResult = faceLandmarkerRef.current.detectForVideo( video, now );
+                    console.log( '🔍 STAGE 1 Validation:', {
+                        hasFaceResult: !!faceResult,
+                        hasFaceLandmarks: !!faceResult?.faceLandmarks,
+                        landmarkCount: faceResult?.faceLandmarks?.length || 0
+                    } );
+
+                    if ( !faceResult || !faceResult.faceLandmarks || faceResult.faceLandmarks.length === 0 ) {
+                        console.error( '❌ STAGE 1 Validation FAILED: No face landmarks detected' );
+                        return { isValid: false, error: 'Face landmarks not detected' };
+                    }
+                    console.log( '✅ STAGE 1 Validation PASSED' );
+                    return { isValid: true, error: '' };
+
+                case 'STAGE_2_UPPER_FRONT':
+                case 'STAGE_3_UPPER_SIDE':
+                case 'STAGE_4_LOWER_SIDE':
+                    const poseResult = poseLandmarkerRef.current.detectForVideo( video, now );
+                    const landmarkCount = poseResult?.landmarks?.length || 0;
+                    const hasLandmarks = poseResult?.landmarks?.[ 0 ];
+                    const landmarkPoints = hasLandmarks ? Object.keys( poseResult.landmarks[ 0 ] ).length : 0;
+
+                    console.log( `🔍 ${ stage } Validation:`, {
+                        hasPoseResult: !!poseResult,
+                        hasLandmarks: !!poseResult?.landmarks,
+                        landmarkArrayLength: landmarkCount,
+                        landmarkPoints: landmarkPoints
+                    } );
+
+                    // STRICT CHECK: Must have landmarks array AND at least 33 landmark points
+                    if ( !poseResult || !poseResult.landmarks || landmarkCount === 0 || landmarkPoints < 33 ) {
+                        console.error( `❌ ${ stage } Validation FAILED:`, {
+                            reason: !poseResult ? 'No pose result' :
+                                !poseResult.landmarks ? 'No landmarks array' :
+                                    landmarkCount === 0 ? 'Empty landmarks array' :
+                                        'Insufficient landmark points (need 33+)'
+                        } );
+                        return { isValid: false, error: 'Body landmarks not detected' };
+                    }
+
+                    console.log( `✅ ${ stage } Validation PASSED - ${ landmarkPoints } landmarks detected` );
+                    return { isValid: true, error: '' };
+
+                default:
+                    console.error( '❌ Validation failed: Unknown stage' );
+                    return { isValid: false, error: 'Unknown stage' };
+            }
+        } catch ( error ) {
+            console.error( '❌ Validation error:', error );
+            return { isValid: false, error: 'Validation failed' };
+        }
+    };
+
+    // Handle Continue button click
+    const handleContinue = () => {
+        console.log( 'Continue clicked - advancing to next stage' );
+        setShowReviewButtons( false );
+        setValidationError( '' );
+
+        // Unfreeze and advance to next stage
+        setTimeout( () => {
+            setIsFrozen( false );
+            setFrozenImage( null );
+
+            switch ( captureStage ) {
+                case 'STAGE_1_FACE':
+                    setCaptureStage( 'STAGE_2_UPPER_FRONT' );
+                    break;
+                case 'STAGE_2_UPPER_FRONT':
+                    setCaptureStage( 'STAGE_3_UPPER_SIDE' );
+                    break;
+                case 'STAGE_3_UPPER_SIDE':
+                    setCaptureStage( 'STAGE_4_LOWER_SIDE' );
+                    break;
+                case 'STAGE_4_LOWER_SIDE':
+                    // All captures complete - run pattern analysis
+                    console.log( '=== STARTING PATTERN ANALYSIS ===' );
+
+                    // Combine all metrics for pattern analysis
+                    const combinedMetrics = {
+                        face: {
+                            eyeSym: captureData.stage1.metrics.eyeSym,
+                            jawShift: captureData.stage1.metrics.jawShift,
+                            headTilt: captureData.stage1.metrics.headTilt,
+                            nostrilAsym: captureData.stage1.metrics.nostrilAsym
+                        },
+                        body: {
+                            shoulderHeight: captureData.stage2.metrics.shoulderHeight,
+                            fhpAngle: captureData.stage3.metrics.fhpAngle,
+                            pelvicTilt: captureData.stage4.metrics.pelvicTilt,
+                            kneeAngle: captureData.stage4.metrics.kneeAngle,
+                            footArchRatio: captureData.stage4.metrics.footArchRatio
+                        }
+                    };
+
+                    console.log( 'Combined Metrics for Pattern Analysis:', combinedMetrics );
+
+                    // Run integrated pattern analysis (Body 50%, Face 30%, Questionnaire 20%)
+                    console.log( '=== CALLING INTEGRATED PATTERN FUSION ===' );
+                    const integratedResults = integrateAllModalities(
+                        combinedMetrics.body,
+                        combinedMetrics.face,
+                        questionnaireData.normalizedScores
+                    );
+
+                    console.log( 'Integrated Pattern Results:', integratedResults );
+                    setPatternResults( integratedResults );
+                    console.log( '=== PATTERN ANALYSIS END ===\n' );
+
+                    // Show results after analysis
+                    setAppStage( 'PROCESSING' );
+                    break;
+            }
+
+            setIsAligned( false );
+        }, 300 );
+    };
+
+    // Handle Retake button click
+    const handleRetake = () => {
+        console.log( 'Retake clicked - resetting current stage' );
+        setShowReviewButtons( false );
+        setValidationError( '' );
+        setIsFrozen( false );
+        setFrozenImage( null );
+        setIsAligned( false );
+        setHoldDuration( 0 );
+
+        // Clear the captured data for this stage
+        switch ( captureStage ) {
+            case 'STAGE_1_FACE':
+                setCaptureData( prev => ( {
+                    ...prev,
+                    stage1: { image: null, metrics: { eyeSym: 0, jawShift: 0, headTilt: 0, nostrilAsym: 0 } }
+                } ) );
+                break;
+            case 'STAGE_2_UPPER_FRONT':
+                setCaptureData( prev => ( {
+                    ...prev,
+                    stage2: { image: null, metrics: { shoulderHeight: 0 } }
+                } ) );
+                break;
+            case 'STAGE_3_UPPER_SIDE':
+                setCaptureData( prev => ( {
+                    ...prev,
+                    stage3: { image: null, metrics: { fhpAngle: 0 } }
+                } ) );
+                break;
+            case 'STAGE_4_LOWER_SIDE':
+                setCaptureData( prev => ( {
+                    ...prev,
+                    stage4: { image: null, metrics: { pelvicTilt: 0, kneeAngle: 0, footArchRatio: 0 } }
+                } ) );
+                break;
+        }
+    };
+
+    // Auto-retry after validation failure
+    const handleAutoRetry = ( errorMessage ) => {
+        console.log( 'Auto-retry triggered:', errorMessage );
+        setValidationError( errorMessage );
+        setIsValidating( true );
+
+        // Show error for 2 seconds, then reset
+        setTimeout( () => {
+            setValidationError( '' );
+            setIsValidating( false );
+            setIsFrozen( false );
+            setFrozenImage( null );
+            setIsAligned( false );
+            setHoldDuration( 0 );
+        }, 2000 );
+    };
+
     // Capture handler
     const handleCapture = () => {
         if (!isAligned) return;
 
-        // Capture clean frame WITHOUT landmarks
+        console.log( '🎯 Capture triggered for stage:', captureStage );
+
+        // Step 1: Capture frame FIRST (from hidden canvas with landmarks)
         const imageDataURL = captureCleanFrame();
-        if (!imageDataURL) return;
+        if ( !imageDataURL ) return;
 
-        // Set freeze state (this can show landmarks for visual feedback)
-        setIsFrozen(true);
-        setFrozenImage(imageDataURL);
+        // Step 2: Freeze the screen immediately
+        setIsFrozen( true );
+        setFrozenImage( imageDataURL );
 
+        // Step 3: Validate landmarks on the CURRENT frame (same moment as capture)
+        const validation = validateCapturedLandmarks( captureStage );
+
+        if ( !validation.isValid ) {
+            // Validation FAILED - Auto-retry
+            console.log( '❌ Validation failed:', validation.error );
+            handleAutoRetry( validation.error );
+            return;
+        }
+
+        console.log( '✅ Validation passed - saving capture data' );
+
+        // Step 4: Save capture data (only if validation passed)
         switch (captureStage) {
             case 'STAGE_1_FACE':
                 setCaptureData(prev => ({
@@ -883,15 +1130,7 @@ function CapturePage() {
                             nostrilAsym: metrics.face.nostrilAsym
                         }
                     }
-                }));
-
-                // Unfreeze after 2 seconds and move to next stage
-                setTimeout(() => {
-                    setIsFrozen(false);
-                    setFrozenImage(null);
-                    setCaptureStage('STAGE_2_UPPER_FRONT');
-                    setIsAligned(false);
-                }, 2000);
+                } ) );
                 break;
 
             case 'STAGE_2_UPPER_FRONT':
@@ -901,14 +1140,7 @@ function CapturePage() {
                         image: imageDataURL,
                         metrics: { shoulderHeight: metrics.body.shoulderHeight }
                     }
-                }));
-
-                setTimeout(() => {
-                    setIsFrozen(false);
-                    setFrozenImage(null);
-                    setCaptureStage('STAGE_3_UPPER_SIDE');
-                    setIsAligned(false);
-                }, 2000);
+                } ) );
                 break;
 
             case 'STAGE_3_UPPER_SIDE':
@@ -918,14 +1150,7 @@ function CapturePage() {
                         image: imageDataURL,
                         metrics: { fhpAngle: metrics.body.fhpAngle }
                     }
-                }));
-
-                setTimeout(() => {
-                    setIsFrozen(false);
-                    setFrozenImage(null);
-                    setCaptureStage('STAGE_4_LOWER_SIDE');
-                    setIsAligned(false);
-                }, 2000);
+                } ) );
                 break;
 
             case 'STAGE_4_LOWER_SIDE':
@@ -940,53 +1165,12 @@ function CapturePage() {
                         }
                     }
                 }));
-
-                // Analyze patterns after all captures complete
-                setTimeout(() => {
-                    console.log('=== STARTING PATTERN ANALYSIS ===');
-
-                    // Combine all metrics for pattern analysis
-                    const combinedMetrics = {
-                        face: {
-                            eyeSym: captureData.stage1.metrics.eyeSym,
-                            jawShift: captureData.stage1.metrics.jawShift,
-                            headTilt: captureData.stage1.metrics.headTilt,
-                            nostrilAsym: captureData.stage1.metrics.nostrilAsym
-                        },
-                        body: {
-                            shoulderHeight: captureData.stage2.metrics.shoulderHeight,
-                            fhpAngle: captureData.stage3.metrics.fhpAngle,
-                            pelvicTilt: metrics.body.pelvicTilt,  // Use current metrics for stage 4
-                            kneeAngle: metrics.body.kneeAngle,
-                            footArchRatio: metrics.body.footArchRatio
-                        }
-                    };
-
-                    console.log('Combined Metrics for Pattern Analysis:', combinedMetrics);
-
-                    // Run integrated pattern analysis (Body 50%, Face 30%, Questionnaire 20%)
-                    console.log('=== CALLING INTEGRATED PATTERN FUSION ===');
-                    const integratedResults = integrateAllModalities(
-                        combinedMetrics.body,
-                        combinedMetrics.face,
-                        questionnaireData.normalizedScores
-                    );
-
-                    console.log('Integrated Pattern Results:', integratedResults);
-                    setPatternResults(integratedResults);
-
-                    // console.log( 'Pattern Analysis Complete:', patterns );
-                    console.log('=== PATTERN ANALYSIS END ===\n');
-
-                    setIsFrozen(false);
-                    setFrozenImage(null);
-                    setAppStage('PROCESSING');
-                }, 2000);
-                break;
-
-            default:
                 break;
         }
+
+        // Step 5: Show review buttons (WAIT for user decision)
+        console.log( '📸 Showing review buttons' );
+        setShowReviewButtons( true );
     };
 
     // Restart handler
@@ -1158,21 +1342,163 @@ function CapturePage() {
                             top: '50%',
                             left: '50%',
                             transform: 'translate(-50%, -50%)',
-                            fontSize: 'clamp(32px, 8vw, 64px)',
-                            color: '#8FA99B',
-                            fontWeight: '900',
-                            letterSpacing: '4px',
-                            textTransform: 'uppercase',
-                            textShadow: '0 0 40px rgba(143,169,155,0.6)',
-                            animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                             textAlign: 'center',
                             width: '100%',
                             padding: '0 20px'
-                        }}>
-                            ✓ Captured
+                        } }>
+                            <div style={ {
+                                fontSize: 'clamp(32px, 8vw, 64px)',
+                                color: '#8FA99B',
+                                fontWeight: '900',
+                                letterSpacing: '4px',
+                                textTransform: 'uppercase',
+                                textShadow: '0 0 40px rgba(143,169,155,0.6)',
+                                animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                marginBottom: '10px'
+                            } }>
+                                ✅ SUCCESS
+                            </div>
+                            <div style={ {
+                                fontSize: 'clamp(16px, 4vw, 24px)',
+                                color: '#2F4A5C',
+                                fontWeight: '600',
+                                letterSpacing: '2px',
+                                animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards'
+                            } }>
+                                Landmarks Captured Successfully
+                            </div>
                         </div>
                     </div>
-                )}
+                ) }
+
+                {/* Review Buttons - Show after successful validation */ }
+                { showReviewButtons && isFrozen && (
+                    <div style={ {
+                        position: 'absolute',
+                        bottom: '10%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 30,
+                        display: 'flex',
+                        gap: '20px',
+                        animation: 'fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.3s backwards'
+                    } }>
+                        <button
+                            onClick={ handleRetake }
+                            style={ {
+                                padding: '16px 32px',
+                                fontSize: 'clamp(16px, 4vw, 20px)',
+                                fontWeight: '700',
+                                color: '#2F4A5C',
+                                backgroundColor: 'rgba(239, 233, 223, 0.95)',
+                                border: '2px solid #2F4A5C',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                boxShadow: '0 4px 12px rgba(47, 74, 92, 0.3)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            } }
+                            onMouseEnter={ ( e ) => {
+                                e.target.style.backgroundColor = '#2F4A5C';
+                                e.target.style.color = '#EFE9DF';
+                                e.target.style.transform = 'translateY(-2px)';
+                                e.target.style.boxShadow = '0 6px 16px rgba(47, 74, 92, 0.4)';
+                            } }
+                            onMouseLeave={ ( e ) => {
+                                e.target.style.backgroundColor = 'rgba(239, 233, 223, 0.95)';
+                                e.target.style.color = '#2F4A5C';
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = '0 4px 12px rgba(47, 74, 92, 0.3)';
+                            } }
+                        >
+                            ⟳ RETAKE
+                        </button>
+
+                        <button
+                            onClick={ handleContinue }
+                            style={ {
+                                padding: '16px 32px',
+                                fontSize: 'clamp(16px, 4vw, 20px)',
+                                fontWeight: '700',
+                                color: '#EFE9DF',
+                                backgroundColor: '#8FA99B',
+                                border: '2px solid #8FA99B',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                boxShadow: '0 4px 12px rgba(143, 169, 155, 0.4)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            } }
+                            onMouseEnter={ ( e ) => {
+                                e.target.style.backgroundColor = '#6F8F84';
+                                e.target.style.borderColor = '#6F8F84';
+                                e.target.style.transform = 'translateY(-2px)';
+                                e.target.style.boxShadow = '0 6px 16px rgba(143, 169, 155, 0.6)';
+                            } }
+                            onMouseLeave={ ( e ) => {
+                                e.target.style.backgroundColor = '#8FA99B';
+                                e.target.style.borderColor = '#8FA99B';
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = '0 4px 12px rgba(143, 169, 155, 0.4)';
+                            } }
+                        >
+                            CONTINUE →
+                        </button>
+                    </div>
+                ) }
+
+                {/* Validation Error Overlay - Auto-retry */ }
+                { validationError && (
+                    <div style={ {
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        zIndex: 25,
+                        backgroundColor: 'rgba(47, 74, 92, 0.95)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        animation: 'fadeInScale 0.3s ease-out'
+                    } }>
+                        <div style={ {
+                            fontSize: 'clamp(24px, 6vw, 48px)',
+                            color: '#EFE9DF',
+                            fontWeight: '700',
+                            marginBottom: '20px',
+                            textAlign: 'center',
+                            padding: '0 20px'
+                        } }>
+                            ⚠️ { validationError }
+                        </div>
+                        <div style={ {
+                            fontSize: 'clamp(16px, 4vw, 24px)',
+                            color: '#8FA99B',
+                            textAlign: 'center',
+                            padding: '0 20px'
+                        } }>
+                            Please reposition and try again
+                        </div>
+                        <div style={ {
+                            marginTop: '30px',
+                            fontSize: 'clamp(14px, 3vw, 18px)',
+                            color: 'rgba(239, 233, 223, 0.7)',
+                            fontStyle: 'italic'
+                        } }>
+                            Auto-retrying in 2 seconds...
+                        </div>
+                    </div>
+                ) }
 
 
                 <style>{`
