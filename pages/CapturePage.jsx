@@ -962,32 +962,19 @@ function CapturePage() {
     const captureCleanFrame = () => {
         // Use HIDDEN canvas which has landmarks rendered
         const canvas = hiddenCanvasRef.current;
-<<<<<<< HEAD
         if (!canvas) {
             console.error('❌ Hidden canvas not available for capture');
-=======
-        if (!canvas) {
-            console.error('❌ Hidden canvas not available for capture');
->>>>>>> ayesha-dev
             return null;
         }
 
         // Log capture dimensions for debugging
-<<<<<<< HEAD
         console.log(`✅ Captured image with landmarks: ${canvas.width}x${canvas.height}px`);
-=======
-        console.log(`✅ Captured image with landmarks: ${canvas.width}x${canvas.height}px`);
->>>>>>> ayesha-dev
 
         // Show flash effect
         showFlashEffect();
 
         // Return image data URL with landmarks from hidden canvas
-<<<<<<< HEAD
         return canvas.toDataURL('image/jpeg', 0.95);
-=======
-        return canvas.toDataURL('image/jpeg', 0.95);
->>>>>>> ayesha-dev
     };
 
     // Flash effect on capture
