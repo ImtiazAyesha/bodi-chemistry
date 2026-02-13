@@ -5,12 +5,12 @@ import React from 'react';
  * Uses the exact lower body outline requested, styled with the professional app theme.
  */
 const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null }) => {
-    const brandSage = '#8FA99B';
+    const brandSage = '#00FF00'; // Changed back to green for landmark feedback
     const brandSlate = '#2F4A5C';
     const brandDeepSage = '#6F8F84';
     const brandSand = '#EFE9DF';
 
-    const primaryColor = isAligned ? brandSage : brandSlate;
+    const primaryColor = isAligned ? '#00FF00' : 'rgba(255, 255, 255, 0.3)';
     const successColor = brandSage;
     const guidanceColor = brandDeepSage;
 
@@ -59,7 +59,7 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                         textTransform: 'uppercase',
                         fontFamily: 'inherit'
                     }}>
-                        Step 4: Lateral Lower
+                        Step 4: Side Profile Lower
                     </span>
                 </div>
 
@@ -68,30 +68,29 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                     backgroundColor: 'rgba(47, 74, 92, 0.95)',
                     backdropFilter: 'blur(16px)',
                     border: `2px solid ${isAligned ? successColor : 'rgba(255,255,255,0.1)'}`,
-                    borderRadius: '24px',
-                    padding: '14px 28px',
+                    borderRadius: '20px',
+                    padding: '10px 20px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '12px',
+                    gap: '10px',
                     boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
                     transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                     pointerEvents: 'auto',
-                    minWidth: '280px',
+                    minWidth: '220px',
                     maxWidth: '90vw',
                     justifyContent: 'center'
                 }}>
                     <div style={{
                         color: '#FFFFFF',
-                        fontSize: 'clamp(18px, 5vw, 22px)',
-                        fontWeight: '700',
+                        fontSize: 'clamp(14px, 3.5vw, 16px)',
+                        fontWeight: '500',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '12px',
+                        gap: '10px',
                         textAlign: 'center',
-                        letterSpacing: '-0.02em',
-                        textTransform: 'uppercase'
+                        letterSpacing: '0.02em'
                     }}>
-                        {isAligned ? '✓ Hold Position' : (feedbackMessage || 'Turn to your side')}
+                        {isAligned ? '✓ Hold Position' : (feedbackMessage || 'Align full side body')}
 
                         {!isAligned && feedbackMessage && (
                             <div style={{
@@ -138,38 +137,55 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
             <svg
                 style={{
                     position: 'absolute',
-                    top: '50%',
+                    top: '160px',
                     left: '50%',
-                    transform: 'translate(-50%, -50%)',
+                    transform: 'translateX(-50%)',
                     width: 'auto',
-                    height: '100dvh',
+                    height: 'calc(100dvh - 160px)',
                     maxWidth: '100vw',
-                    maxHeight: '100dvh',
                     pointerEvents: 'none',
                 }}
                 viewBox="0 0 480 960"
                 preserveAspectRatio="xMidYMid meet"
             >
                 <defs>
-                    <clipPath id="lower-body-clip">
-                        <rect x="-240" y="-500" width="480" height="1000" />
+                    <clipPath id="side-lower-clip">
+                        <rect x="-240" y="-600" width="480" height="1460" />
+                    </clipPath>
+                    {/* Clip the upper body at the waist, removing the hip outline */}
+                    <clipPath id="upper-body-crop">
+                        <rect x="-300" y="-550" width="600" height="480" />
                     </clipPath>
                 </defs>
 
-                {/* LOWER BODY SIDE SILHOUETTE - Calibrated for perfect portrait fit (y=580) */}
-                <g transform="translate(240, 580)" clipPath="url(#lower-body-clip)">
+                {/* SIDE SILHOUETTE - Full body (upper + lower) positioned for complete view */}
+                <g transform="translate(240, 420)" clipPath="url(#side-lower-clip)">
 
-                    {/* Glow effect focused on legs */}
+                    {/* Glow effect focused on full body */}
                     {isAligned && (
-                        <ellipse cx="0" cy="120" rx="160" ry="260"
+                        <ellipse cx="0" cy="-100" rx="140" ry="420"
                             fill="none" stroke={successColor}
-                            strokeWidth="24" opacity="0.15"
-                            filter="blur(24px)"
+                            strokeWidth="32" opacity="0.15"
+                            filter="blur(32px)"
                         />
                     )}
 
+                    {/* Upper body - clipped at waist level to meet lower body */}
+                    <g clipPath="url(#upper-body-crop)">
+                        <g transform="scale(2.55) translate(-100, -160)">
+                            <path
+                                d="M118.373 103.686c1.534-7.039 3.118-30.954-7.727-40.355-3.161-2.74-10.645-7.989-12.767-10.802-.398-.53-.666-1.339-.828-2.262 1.173-2.743 2.938-6.293 2.938-6.293 1.571-2.037 4.274-1.4 5.735-1.233 4.165.411 5.176-.837 5.176-.837.901-.572.421-2.886.421-2.886-.372-1.184.164-1.791.499-2.256.896-1.303.341-1.884.341-1.884l-.109-.554c1.005-.354 1.06-.904 1.06-.904l-.067-1.851c-.177-1.267.384-1.355.384-1.355 2.302-.097 2.217-1.583 2.217-1.583.073-.816-2.801-5.636-2.801-5.636-1.353-2.469.462-4.003.56-5.294.451-5.949-1.632-9.539-4.421-12.353C104.393.67 98.574-.097 94.79.009c-9.715.28-13.576 3.44-16.475 6.814-6.043 7.03-4.615 13.058-4.615 13.058.231 3.593 5.325 10.026 5.325 10.026 4.068 5.593 2.208 10.013 2.208 10.013l.07.013c.036 3.498-.561 7.514-3.069 9.971-8.181 7.989-15.019 21.787-7.2 43.528 3.373 9.365 16.623 31.006 11.792 37.984-5.836 8.415-17.354 19.96-5.568 40.59 0 0-.606 6.352-1.093 15.053h32.814c.104-1.967 2.387-10.583 2.314-12.763-.323-9.463.188-21.349 1.314-26.841 2.016-9.986 6.54-21.617 5.889-40.273-.031-1.346-.08-2.497-.123-3.496"
+                                fill="rgba(47, 74, 92, 0.05)"
+                                stroke={primaryColor}
+                                strokeWidth="1.2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </g>
+                    </g>
+
                     {/* Scaled & Positioned Lower Body Silhouette */}
-                    <g transform="scale(1.5) translate(0, -170)">
+                    <g transform="scale(0.9) translate(0, -30)">
                         <path
                             d="M 40 -60 
                  Q 55 50 35 180 
@@ -181,11 +197,10 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                  C -35 340 -45 320 -45 300 
                  Q -60 260 -50 200 
                  Q -55 120 -75 50 
-                 Q -90 0 -50 -60 
-                 Z"
+                 Q -90 0 -50 -60"
                             fill="rgba(47, 74, 92, 0.05)"
                             stroke={primaryColor}
-                            strokeWidth="1.3"
+                            strokeWidth="4"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                         />
@@ -193,7 +208,7 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
 
                     {/* COUNTDOWN */}
                     {isAligned && holdDuration > 0 && (
-                        <g transform="translate(0, -180)">
+                        <g transform="translate(0, -100)">
                             <text x="0" y="-32" textAnchor="middle"
                                 fill={successColor}
                                 fontSize="100"
@@ -207,8 +222,8 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                                 fill={brandSlate}
                                 fontSize="22"
                                 fontWeight="700"
-                                textTransform="uppercase"
                                 letterSpacing="2px"
+                                style={{ textTransform: 'uppercase' }}
                             >
                                 Steady
                             </text>

@@ -5,12 +5,12 @@ import React from 'react';
  * Redesigned with cyan/blue color scheme and improved UX
  */
 const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }) => {
-  const brandSage = '#8FA99B';
+  const brandSage = '#00FF00'; // Changed back to green for landmark feedback
   const brandSlate = '#2F4A5C';
   const brandDeepSage = '#6F8F84';
   const brandSand = '#EFE9DF';
 
-  const primaryColor = isAligned ? brandSage : brandSlate;
+  const primaryColor = isAligned ? '#00FF00' : 'rgba(255, 255, 255, 0.3)';
   const successColor = brandSage;
   const guidanceColor = brandDeepSage;
 
@@ -68,30 +68,29 @@ const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }
           backgroundColor: 'rgba(47, 74, 92, 0.95)',
           backdropFilter: 'blur(16px)',
           border: `2px solid ${isAligned ? successColor : 'rgba(255,255,255,0.1)'}`,
-          borderRadius: '24px',
-          padding: '14px 28px',
+          borderRadius: '20px',
+          padding: '10px 20px',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: '10px',
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           pointerEvents: 'auto',
-          minWidth: '280px',
+          minWidth: '220px',
           maxWidth: '90vw',
           justifyContent: 'center'
         }}>
           <div style={{
             color: '#FFFFFF',
-            fontSize: 'clamp(18px, 5vw, 22px)',
-            fontWeight: '700',
+            fontSize: 'clamp(14px, 3.5vw, 16px)',
+            fontWeight: '500',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             textAlign: 'center',
-            letterSpacing: '-0.02em',
-            textTransform: 'uppercase'
+            letterSpacing: '0.02em'
           }}>
-            {isAligned ? '✓ Hold Still' : (feedbackMessage || 'Align Upper Body')}
+            {isAligned ? '✓ Hold Still' : (feedbackMessage || 'Align full body front')}
 
             {!isAligned && feedbackMessage && (
               <div style={{
@@ -188,8 +187,8 @@ const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }
                 fill={brandSlate}
                 fontSize="22"
                 fontWeight="700"
-                textTransform="uppercase"
                 letterSpacing="2px"
+                style={{ textTransform: 'uppercase' }}
               >
                 Steady
               </text>
