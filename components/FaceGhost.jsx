@@ -5,17 +5,17 @@ import React from 'react';
  * Consistent positioning across all devices
  */
 const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
-  const brandSage = '#8FA99B';
+  const brandSage = '#00FF00'; // Changed back to green for landmark feedback
   const brandSlate = '#2F4A5C';
   const brandDeepSage = '#6F8F84';
   const brandSand = '#EFE9DF';
 
-  const primaryColor = isAligned ? brandSage : brandSlate;
+  const primaryColor = isAligned ? '#00FF00' : 'rgba(255, 255, 255, 0.3)';
   const successColor = brandSage;
   const guidanceColor = brandDeepSage;
 
-  const progress = (holdDuration / 3000) * 100;
-  const countdown = Math.ceil((3000 - holdDuration) / 1000);
+  const progress = ( holdDuration / 5000 ) * 100;
+  const countdown = Math.ceil( ( 5000 - holdDuration ) / 1000 );
   const feedbackMessage = stage1Debug?.feedbackMessage || '';
 
   return (
@@ -69,28 +69,27 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
           backgroundColor: 'rgba(47, 74, 92, 0.95)',
           backdropFilter: 'blur(16px)',
           border: `2px solid ${isAligned ? successColor : 'rgba(255,255,255,0.1)'}`,
-          borderRadius: '24px',
-          padding: '14px 28px',
+          borderRadius: '20px',
+          padding: '10px 20px',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: '10px',
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           pointerEvents: 'auto',
-          minWidth: '280px',
+          minWidth: '220px',
           maxWidth: '90vw',
           justifyContent: 'center'
         }}>
           <div style={{
             color: '#FFFFFF',
-            fontSize: 'clamp(18px, 5vw, 22px)',
-            fontWeight: '700',
+            fontSize: 'clamp(14px, 3.5vw, 16px)',
+            fontWeight: '500',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             textAlign: 'center',
-            letterSpacing: '-0.02em',
-            textTransform: 'uppercase'
+            letterSpacing: '0.02em'
           }}>
             {isAligned ? '✓ Hold Still' : (feedbackMessage || 'Center your face')}
 
@@ -193,8 +192,8 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
             />
           </g>
 
-          {/* COUNTDOWN */}
-          {isAligned && holdDuration > 0 && (
+          {/* COUNTDOWN - Show at 2000ms to display 3-2-1 (not 2-1) */ }
+          { isAligned && holdDuration >= 2000 && (
             <g>
               <text x="0" y="-32" textAnchor="middle"
                 fill={successColor}
@@ -209,8 +208,8 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
                 fill={brandSlate}
                 fontSize="22"
                 fontWeight="700"
-                textTransform="uppercase"
                 letterSpacing="2px"
+                style={{ textTransform: 'uppercase' }}
               >
                 Steady
               </text>
