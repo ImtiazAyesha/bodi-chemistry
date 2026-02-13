@@ -47,7 +47,7 @@ function CapturePage() {
     const [showResults, setShowResults] = useState(false);
 
     // Auto-capture timer states
-    const [holdDuration, setHoldDuration] = useState(0); // 0 to 3000ms
+    const [holdDuration, setHoldDuration] = useState(0); // 0 to 5000ms (2s silent + 3s countdown)
     const alignmentTimerRef = useRef(null);
 
     // Screen freeze states
@@ -249,9 +249,8 @@ function CapturePage() {
                             if (!isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
                                 const fl = faceResult.faceLandmarks[0];
 
-                                // Draw landmarks on VISIBLE canvas for real-time feedback
-                                drawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "rgba(0, 255, 0, 0.3)", lineWidth: 0.1 });
-                                drawingUtils.drawLandmarks(fl, { color: "#00FF00", radius: 1 });
+                                // Landmarks are drawn on HIDDEN canvas only (see lines below)
+                                // This keeps the visible canvas clean for user experience
 
                                 // Calculate metrics
                                 const irisWidth = calculateDistance(fl[468], fl[473]);
@@ -298,9 +297,8 @@ function CapturePage() {
                             if (poseResult.landmarks && poseResult.landmarks.length > 0) {
                                 const pl = poseResult.landmarks[0];
 
-                                // Draw landmarks on VISIBLE canvas for real-time feedback
-                                drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(0, 255, 0, 0.5)", lineWidth: 1.5 });
-                                drawingUtils.drawLandmarks(pl, { color: "#00FF00", radius: 2 });
+                                // Landmarks are drawn on HIDDEN canvas only (see lines below)
+                                // This keeps the visible canvas clean for user experience
 
                                 // METRIC 4: Shoulder Height Asymmetry (Normalized by Body Height)
                                 // Uses Left Shoulder (11), Right Shoulder (12), Ankles (27, 28)
@@ -936,9 +934,9 @@ function CapturePage() {
             alignmentTimerRef.current = setInterval(() => {
                 setHoldDuration(prev => {
                     const newDuration = prev + 100;
-                    if (newDuration >= 3000) {
+                    if (newDuration >= 5000) {
                         // Auto-capture triggered
-                        console.log('Auto-capture triggered at 3000ms!'); // DEBUG
+                        console.log('Auto-capture triggered at 5000ms!'); // DEBUG
                         clearInterval(alignmentTimerRef.current);
                         handleCapture();
                         return 0;
@@ -1412,47 +1410,86 @@ function CapturePage() {
                 {captureStage === 'STAGE_4_LOWER_SIDE' && !isFrozen && <LowerBodySideGhost isAligned={isAligned} holdDuration={holdDuration} stage4Debug={stage4Debug} />}
 
                 {/* Frozen Image Overlay */}
-                {isFrozen && frozenImage && (
-                    <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        zIndex: 20,
-                        backgroundColor: '#EFE9DF'
-                    }}>
-                        <img
-                            src={frozenImage}
-                            alt="Captured"
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover', // FIXED: Cover entire screen to match live view
-                                objectPosition: 'center',
-                                transform: 'scaleX(-1)',
-                                display: 'block'
-                            }}
-                        />
-
-                        {/* Overlay Gradient for contrast */}
+                {
+                    isFrozen && frozenImage && (
                         <div style={{
                             position: 'absolute',
-                            inset: 0,
-                            background: 'radial-gradient(circle at 50% 50%, rgba(239, 233, 223, 0.2) 0%, rgba(47, 74, 92, 0.4) 100%)',
-                            pointerEvents: 'none'
-                        }} />
-
-                        <div style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            textAlign: 'center',
+                            top: 0,
+                            left: 0,
                             width: '100%',
-                            padding: '0 20px'
+                            height: '100%',
+                            zIndex: 20,
+                            backgroundColor: '#EFE9DF'
+                        }}>
+                            <img
+                                src={frozenImage}
+                                alt="Captured"
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover', // FIXED: Cover entire screen to match live view
+                                    objectPosition: 'center',
+                                    transform: 'scaleX(-1)',
+                                    display: 'block'
+                                }}
+                            />
+
+                            {/* Overlay Gradient for contrast */}
+                            <div style={{
+                                position: 'absolute',
+                                inset: 0,
+                                background: 'radial-gradient(circle at 50% 50%, rgba(239, 233, 223, 0.2) 0%, rgba(47, 74, 92, 0.4) 100%)',
+                                pointerEvents: 'none'
+                            }} />
+
+                            <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                textAlign: 'center',
+                                width: '100%',
+                                padding: '0 20px'
+                            }}>
+                                <div style={{
+                                    fontSize: 'clamp(40px, 10vw, 80px)',
+                                    color: '#00FF00',
+                                    fontWeight: '900',
+                                    letterSpacing: '6px',
+                                    textTransform: 'uppercase',
+                                    textShadow: '0 0 60px rgba(0, 255, 0, 0.8)',
+                                    animation: 'fadeIn 0.2s ease-out'
+                                }}>
+                                    Captured
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
+
+                {/* Review Buttons - REMOVED: Auto-advance implemented */}
+
+
+                {/* Validation Error Overlay - Auto-retry */}
+                {
+                    validationError && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            zIndex: 25,
+                            backgroundColor: 'rgba(47, 74, 92, 0.95)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            animation: 'fadeInScale 0.3s ease-out'
                         }}>
                             <div style={{
+<<<<<<< HEAD
                                 fontSize: 'clamp(40px, 10vw, 80px)',
                                 color: '#00FF00',
                                 fontWeight: '900',
@@ -1467,55 +1504,65 @@ function CapturePage() {
                     </div>
                 )}
 
-                {/* Review Buttons - REMOVED: Auto-advance implemented */}
+            {/* Review Buttons - REMOVED: Auto-advance implemented */}
 
-                {/* Validation Error Overlay - Auto-retry */}
-                {validationError && (
+
+            {/* Validation Error Overlay - Auto-retry */}
+            {validationError && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 25,
+                    backgroundColor: 'rgba(47, 74, 92, 0.95)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    animation: 'fadeInScale 0.3s ease-out'
+                }}>
                     <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        zIndex: 25,
-                        backgroundColor: 'rgba(47, 74, 92, 0.95)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        animation: 'fadeInScale 0.3s ease-out'
+                        fontSize: 'clamp(24px, 6vw, 48px)',
+                        color: '#EFE9DF',
+                        fontWeight: '700',
+                        marginBottom: '20px',
+                        textAlign: 'center',
+                        padding: '0 20px'
                     }}>
-                        <div style={{
-                            fontSize: 'clamp(24px, 6vw, 48px)',
-                            color: '#EFE9DF',
-                            fontWeight: '700',
-                            marginBottom: '20px',
-                            textAlign: 'center',
-                            padding: '0 20px'
-                        }}>
-                            ⚠️ {validationError}
-                        </div>
-                        <div style={{
-                            fontSize: 'clamp(16px, 4vw, 24px)',
-                            color: '#8FA99B',
-                            textAlign: 'center',
-                            padding: '0 20px'
-                        }}>
-                            Please reposition and try again
-                        </div>
-                        <div style={{
-                            marginTop: '30px',
-                            fontSize: 'clamp(14px, 3vw, 18px)',
-                            color: 'rgba(239, 233, 223, 0.7)',
-                            fontStyle: 'italic'
-                        }}>
-                            Auto-retrying in 2 seconds...
-                        </div>
+                        ⚠️ {validationError}
                     </div>
-                )}
+                    <div style={{
+                        fontSize: 'clamp(16px, 4vw, 24px)',
+                        color: '#8FA99B',
+                        textAlign: 'center',
+                        padding: '0 20px'
+                    }}>
+                        Please reposition and try again
+                    </div>
+                    <div style={{
+                        marginTop: '30px',
+                        fontSize: 'clamp(14px, 3vw, 18px)',
+                        color: 'rgba(239, 233, 223, 0.7)',
+                        fontStyle: 'italic'
+                    }}>
+                        Auto-retrying in 2 seconds...
+                    </div>
+                </div>
+            )}
 
 
-                <style>{`
+
+            <style>{`
+          @keyframes fadeIn {
+            0% {
+              opacity: 0;
+            }
+            100% {
+              opacity: 1;
+            }
+          }
           @keyframes fadeInScale {
             0% {
               opacity: 0;
@@ -1537,8 +1584,8 @@ function CapturePage() {
             }
           }
         `}</style>
-            </div>
-        </div>
+        </div >
+        </div >
     );
 }
 

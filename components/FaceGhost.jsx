@@ -14,8 +14,8 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
   const successColor = brandSage;
   const guidanceColor = brandDeepSage;
 
-  const progress = (holdDuration / 3000) * 100;
-  const countdown = Math.ceil((3000 - holdDuration) / 1000);
+  const progress = ( holdDuration / 5000 ) * 100;
+  const countdown = Math.ceil( ( 5000 - holdDuration ) / 1000 );
   const feedbackMessage = stage1Debug?.feedbackMessage || '';
 
   return (
@@ -192,8 +192,8 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
             />
           </g>
 
-          {/* COUNTDOWN */}
-          {isAligned && holdDuration > 0 && (
+          {/* COUNTDOWN - Show at 2000ms to display 3-2-1 (not 2-1) */ }
+          { isAligned && holdDuration >= 2000 && (
             <g>
               <text x="0" y="-32" textAnchor="middle"
                 fill={successColor}
