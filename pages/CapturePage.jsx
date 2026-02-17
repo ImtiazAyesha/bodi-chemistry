@@ -1205,7 +1205,7 @@ function CapturePage() {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover', // FIXED: Cover entire container, no black bars
+                        objectFit: 'contain', // FIXED: Preserve aspect ratio, prevent stretching
                         transform: "scaleX(-1)", // Mirror for selfie view
                         visibility: "hidden"
                     }}
