@@ -63,15 +63,15 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                 </div>
             </div>
 
-            {/* SVG Container - Portrait-first scaling */}
+            {/* SVG Container - Sized to match camera's 4:3 aspect ratio */}
             <svg
                 style={{
                     position: 'absolute',
                     top: '160px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    width: 'auto',
-                    height: 'calc(100dvh - 160px)',
+                    width: 'min(100vw, 133.33vh)',
+                    height: 'min(75vw, max(calc(100vh - 160px), 400px))',
                     maxWidth: '100vw',
                     pointerEvents: 'none',
                 }}

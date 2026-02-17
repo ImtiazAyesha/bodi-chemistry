@@ -65,17 +65,16 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
         </div>
       </div>
 
-      {/* SVG Face Outline - Centered for natural face positioning */}
+      {/* SVG Face Outline - Sized to match camera's 4:3 aspect ratio */}
       <svg
         style={{
           position: 'absolute',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 'auto',
-          height: '100dvh',
+          width: 'min(100vw, 133.33vh)',
+          height: 'min(75vw, max(100vh, 400px))',
           maxWidth: '100vw',
-          maxHeight: '100dvh',
           pointerEvents: 'none',
         }}
         viewBox="0 0 480 960"

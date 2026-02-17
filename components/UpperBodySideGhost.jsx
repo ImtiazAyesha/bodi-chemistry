@@ -67,7 +67,7 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
         style={{
           position: 'relative',
           width: 'auto',
-          height: 'calc(100dvh - 180px)',
+          height: 'max(calc(100dvh - 180px), 400px)',
           maxWidth: '100vw',
           pointerEvents: 'none',
           margin: 'auto 0'

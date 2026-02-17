@@ -65,8 +65,8 @@ const UpperBodyFrontGhost = ({ isAligned, holdDuration = 0, stage2Debug = null }
       <svg
         style={{
           position: 'relative',
-          width: 'auto',
-          height: 'calc(100dvh - 180px)',
+          width: 'min(100vw, 133.33vh)',
+          height: 'min(75vw, max(calc(100vh - 180px), 400px))',
           maxWidth: '100vw',
           pointerEvents: 'none',
           margin: 'auto 0'
