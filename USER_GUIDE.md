@@ -1,12 +1,12 @@
 # 📖 Bodi Kemistri Wellness Platform - User Guide
 
-## 🎯 What is Bodi Kemistri?
+## What is Bodi Kemistri?
 
 Bodi Kemistri is an AI-powered wellness assessment platform that analyzes your body alignment and posture using your device's camera. The system captures 4 different views of your body and provides a comprehensive wellness score with personalized recommendations.
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### System Requirements
 - **Device:** Computer or laptop with a webcam
