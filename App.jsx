@@ -15,17 +15,6 @@ import Step2 from './pages/Step2';
 import Step3 from './pages/Step3';
 import Step4 from './pages/Step4';
 
-/**
- * Main App Component with React Router
- * 
- * Routes:
- * / - Landing page
- * /questionnaire - Self-assessment questionnaire
- * /instructions - Pre-capture instructions
- * /capture - 4-stage camera capture
- * /processing - Pattern analysis processing
- * /results - Final results and report
- */
 function App() {
   return (
     <Router>
