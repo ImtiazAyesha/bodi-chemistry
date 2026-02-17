@@ -65,7 +65,7 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
-                    transform: 'translate(-50%, -50%)',
+                    transform: 'translate(-50%, -40%)', // ✨ FIXED: Moved down from -50% to -40%
                     // Much larger on small screens: 140vw on mobile, 100vw on desktop
                     width: window.innerWidth < 640 ? 'min(140vw, 180vh)' : 'min(100vw, 133.33vh)',
                     height: window.innerWidth < 640 ? 'min(105vw, max(calc(140vh - 160px), 560px))' : 'min(75vw, max(calc(100vh - 160px), 400px))',

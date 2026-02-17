@@ -64,14 +64,14 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
         </div>
       </div>
 
-      {/* SVG Container - Responsive sizing for small screens */}
+      {/* SVG Container - Responsive sizing that stays within viewport */}
       <svg
         style={{
           position: 'relative',
-          // Larger on small screens for better visibility
-          width: window.innerWidth < 640 ? 'min(100vw, 120vh)' : 'auto',
-          height: window.innerWidth < 640 ? 'max(calc(120vh - 180px), 500px)' : 'max(calc(100dvh - 180px), 400px)',
-          maxWidth: '150vw', // Allow overflow for larger ghost on small screens
+          width: 'auto',
+          height: 'calc(60dvh)', // Reduced from 100dvh - 200px to 60dvh
+          maxHeight: '60vh',
+          maxWidth: '100vw',
           pointerEvents: 'none',
           margin: 'auto 0'
         }}
@@ -84,8 +84,8 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
           </clipPath>
         </defs>
 
-        {/* SIDE SILHOUETTE - Positioned higher (y=680 instead of 780) */}
-        <g transform="translate(240, 680)" clipPath="url(#side-upper-clip)">
+        {/* ✨ FIXED: SIDE SILHOUETTE - Moved much higher (y=480 instead of 680) to prevent overflow */}
+        <g transform="translate(240, 480)" clipPath="url(#side-upper-clip)">
 
           {/* Glow effect focused on torso */}
           {isAligned && (
@@ -96,8 +96,8 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
             />
           )}
 
-          {/* Increased scale for better viewport coverage */}
-          <g transform="scale(6.0) translate(-93.5, -95)">
+          {/* ✨ FIXED: Reduced scale from 6.0 to 4.5 to fit within viewport */}
+          <g transform="scale(4.5) translate(-93.5, -95)">
             <path
               d="M118.373 103.686c1.534-7.039 3.118-30.954-7.727-40.355-3.161-2.74-10.645-7.989-12.767-10.802-.398-.53-.666-1.339-.828-2.262 1.173-2.743 2.938-6.293 2.938-6.293 1.571-2.037 4.274-1.4 5.735-1.233 4.165.411 5.176-.837 5.176-.837.901-.572.421-2.886.421-2.886-.372-1.184.164-1.791.499-2.256.896-1.303.341-1.884.341-1.884l-.109-.554c1.005-.354 1.06-.904 1.06-.904l-.067-1.851c-.177-1.267.384-1.355.384-1.355 2.302-.097 2.217-1.583 2.217-1.583.073-.816-2.801-5.636-2.801-5.636-1.353-2.469.462-4.003.56-5.294.451-5.949-1.632-9.539-4.421-12.353C104.393.67 98.574-.097 94.79.009c-9.715.28-13.576 3.44-16.475 6.814-6.043 7.03-4.615 13.058-4.615 13.058.231 3.593 5.325 10.026 5.325 10.026 4.068 5.593 2.208 10.013 2.208 10.013l.07.013c.036 3.498-.561 7.514-3.069 9.971-8.181 7.989-15.019 21.787-7.2 43.528 3.373 9.365 16.623 31.006 11.792 37.984-5.836 8.415-17.354 19.96-5.568 40.59 0 0-.606 6.352-1.093 15.053h32.814c.104-1.967 2.387-10.583 2.314-12.763-.323-9.463.188-21.349 1.314-26.841 2.016-9.986 6.54-21.617 5.889-40.273-.031-1.346-.08-2.497-.123-3.496"
               fill="rgba(47, 74, 92, 0.05)"
