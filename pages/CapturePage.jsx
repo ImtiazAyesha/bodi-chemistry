@@ -1046,7 +1046,25 @@ function CapturePage() {
 
 
 
-        // Step 4: Save capture data (only if validation passed)
+        // Step 4: Capture landmarks at the moment of capture
+        const video = webcamRef.current?.video;
+        const now = performance.now();
+
+        let faceLandmarks = null;
+        let poseLandmarks = null;
+
+        // Detect landmarks based on stage
+        if ( captureStage === 'STAGE_1_FACE' && faceLandmarkerRef.current ) {
+            const faceResult = faceLandmarkerRef.current.detectForVideo( video, now );
+            faceLandmarks = faceResult?.faceLandmarks?.[ 0 ] || null;
+        }
+
+        if ( poseLandmarkerRef.current ) {
+            const poseResult = poseLandmarkerRef.current.detectForVideo( video, now );
+            poseLandmarks = poseResult?.landmarks?.[ 0 ] || null;
+        }
+
+        // Step 5: Save capture data with landmarks (only if validation passed)
         switch (captureStage) {
             case 'STAGE_1_FACE':
                 setCaptureData(prev => ({
@@ -1058,6 +1076,10 @@ function CapturePage() {
                             jawShift: metrics.face.jawShift,
                             headTilt: metrics.face.headTilt,
                             nostrilAsym: metrics.face.nostrilAsym
+                        },
+                        landmarks: {
+                            face: faceLandmarks,
+                            pose: null
                         }
                     }
                 }));
@@ -1068,7 +1090,11 @@ function CapturePage() {
                     ...prev,
                     stage2: {
                         image: imageDataURL,
-                        metrics: { shoulderHeight: metrics.body.shoulderHeight }
+                        metrics: { shoulderHeight: metrics.body.shoulderHeight },
+                        landmarks: {
+                            face: null,
+                            pose: poseLandmarks
+                        }
                     }
                 }));
                 break;
@@ -1078,7 +1104,11 @@ function CapturePage() {
                     ...prev,
                     stage3: {
                         image: imageDataURL,
-                        metrics: { fhpAngle: metrics.body.fhpAngle }
+                        metrics: { fhpAngle: metrics.body.fhpAngle },
+                        landmarks: {
+                            face: null,
+                            pose: poseLandmarks
+                        }
                     }
                 }));
                 break;
@@ -1092,6 +1122,10 @@ function CapturePage() {
                             pelvicTilt: metrics.body.pelvicTilt,
                             kneeAngle: metrics.body.kneeAngle,
                             footArchRatio: metrics.body.footArchRatio
+                        },
+                        landmarks: {
+                            face: null,
+                            pose: poseLandmarks
                         }
                     }
                 }));
@@ -1205,7 +1239,7 @@ function CapturePage() {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover', // FIXED: Cover entire container, no black bars
+                        objectFit: 'contain', // FIXED: Preserve aspect ratio, prevent stretching
                         transform: "scaleX(-1)", // Mirror for selfie view
                         visibility: "hidden"
                     }}
