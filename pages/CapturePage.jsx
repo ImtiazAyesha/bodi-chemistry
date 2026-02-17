@@ -85,6 +85,9 @@ function CapturePage() {
     // Questionnaire Data (loaded from sessionStorage)
     const [questionnaireData, setQuestionnaireData] = useState(null);
 
+    // Detect screen orientation for proper video constraints
+    const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+
     // Load questionnaire data from sessionStorage on mount
     useEffect(() => {
         const storedData = sessionStorage.getItem('questionnaireData');
@@ -98,6 +101,21 @@ function CapturePage() {
         } else {
 
         }
+    }, []);
+
+    // Track orientation changes
+    useEffect(() => {
+        const handleOrientationChange = () => {
+            setIsPortrait(window.innerHeight > window.innerWidth);
+        };
+
+        window.addEventListener('resize', handleOrientationChange);
+        window.addEventListener('orientationchange', handleOrientationChange);
+
+        return () => {
+            window.removeEventListener('resize', handleOrientationChange);
+            window.removeEventListener('orientationchange', handleOrientationChange);
+        };
     }, []);
 
     // Refs for render loop
@@ -1115,10 +1133,11 @@ function CapturePage() {
         });
     };
 
+    // Dynamic video constraints based on screen orientation
     const videoConstraints = {
         facingMode: "user",
-        width: 960,
-        height: 720,
+        width: isPortrait ? 720 : 960,   // Portrait: 720x960 (3:4), Landscape: 960x720 (4:3)
+        height: isPortrait ? 960 : 720,
     };
 
     // Show results screen
@@ -1205,7 +1224,7 @@ function CapturePage() {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain', // FIXED: Preserve aspect ratio, prevent stretching
+                        objectFit: 'cover', // Full-screen view, crops edges to fill viewport
                         transform: "scaleX(-1)", // Mirror for selfie view
                         visibility: "hidden"
                     }}
@@ -1214,15 +1233,15 @@ function CapturePage() {
 
                 <canvas
                     ref={canvasRef}
-                    width={960}
-                    height={720}
+                    width={isPortrait ? 720 : 960}
+                    height={isPortrait ? 960 : 720}
                     style={{
                         position: "absolute",
                         top: 0,
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain', // FIXED: Preserve aspect ratio, prevent stretching
+                        objectFit: 'cover', // Full-screen view, crops edges to fill viewport
                         transform: "scaleX(-1)",
                         zIndex: 2
                     }}
@@ -1231,8 +1250,8 @@ function CapturePage() {
                 {/* Hidden canvas for landmark rendering (not visible to user) */}
                 <canvas
                     ref={hiddenCanvasRef}
-                    width={960}
-                    height={720}
+                    width={isPortrait ? 720 : 960}
+                    height={isPortrait ? 960 : 720}
                     style={{ display: 'none' }}
                 />
 

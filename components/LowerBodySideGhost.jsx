@@ -1,9 +1,3 @@
-import React from 'react';
-
-/**
- * Stage 4: Lower Body Side Ghost - Professional & User-Friendly
- * Uses the exact lower body outline requested, styled with the professional app theme.
- */
 const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null }) => {
     const brandSage = '#00FF00'; // Changed back to green for landmark feedback
     const brandSlate = '#2F4A5C';
