@@ -1,9 +1,3 @@
-import React from 'react';
-
-/**
- * Face Ghost - Professional Structure with Div Banner
- * Consistent positioning across all devices
- */
 const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
   const brandSage = '#00FF00'; // Changed back to green for landmark feedback
   const brandSlate = '#2F4A5C';
@@ -14,10 +8,11 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
   const successColor = brandSage;
   const guidanceColor = brandDeepSage;
 
-  const progress = (holdDuration / 3000) * 100;
-  const countdown = Math.ceil((3000 - holdDuration) / 1000);
+  // Calculate countdown: 2s green hold (no countdown), then 3s countdown (3, 2, 1)
+  const isInHoldPeriod = holdDuration < 2000;
+  const countdownDuration = holdDuration - 2000; // Duration after 2s hold
+  const countdown = isInHoldPeriod ? null : Math.ceil((3000 - countdownDuration) / 1000);
   const feedbackMessage = stage1Debug?.feedbackMessage || '';
-
 
   return (
     <div style={{
@@ -65,16 +60,17 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
         </div>
       </div>
 
-      {/* SVG Face Outline - Sized to match camera's 4:3 aspect ratio */}
+      {/* SVG Face Outline - Centered and sized to prevent clipping */}
       <svg
         style={{
           position: 'absolute',
-          top: '50%',
+          top: '45%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 'min(100vw, 133.33vh)',
-          height: 'min(75vw, max(100vh, 400px))',
-          maxWidth: '100vw',
+          // Optimized sizing: large but prevents clipping
+          width: window.innerWidth < 640 ? 'min(130vw, 170vh)' : 'min(100vw, 133.33vh)',
+          height: window.innerWidth < 640 ? 'min(97.5vw, max(130vh, 520px))' : 'min(75vw, max(100vh, 400px))',
+          maxWidth: '160vw',
           pointerEvents: 'none',
         }}
         viewBox="0 0 480 960"
@@ -110,8 +106,8 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
             />
           </g>
 
-          {/* COUNTDOWN - Show immediately to display full 3-2-1 sequence */}
-          {isAligned && holdDuration >= 0 && (
+          {/* COUNTDOWN - Show only after 2s hold period (displays 5-4-3-2-1) */}
+          {isAligned && !isInHoldPeriod && countdown !== null && (
             <g>
               <text x="0" y="-32" textAnchor="middle"
                 fill={successColor}

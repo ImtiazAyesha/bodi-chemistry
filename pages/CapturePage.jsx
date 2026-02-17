@@ -47,7 +47,7 @@ function CapturePage() {
     const [showResults, setShowResults] = useState(false);
 
     // Auto-capture timer states
-    const [holdDuration, setHoldDuration] = useState(0); // 0 to 3000ms (3s countdown: 3, 2, 1)
+    const [holdDuration, setHoldDuration] = useState(0); // 0 to 5000ms (2s green hold + 3s countdown: 3, 2, 1)
     const alignmentTimerRef = useRef(null);
 
     // Screen freeze states
@@ -801,7 +801,7 @@ function CapturePage() {
         }
     };
 
-    // Auto-capture timer effect - 3 seconds total (3, 2, 1)
+    // Auto-capture timer effect - 5 seconds total (2s green hold + 3s countdown)
     useEffect(() => {
 
 
@@ -810,8 +810,8 @@ function CapturePage() {
             alignmentTimerRef.current = setInterval(() => {
                 setHoldDuration(prev => {
                     const newDuration = prev + 100;
-                    if (newDuration >= 3000) {
-                        // Auto-capture triggered
+                    if (newDuration >= 5000) {
+                        // Auto-capture triggered after 2s hold + 3s countdown
                         clearInterval(alignmentTimerRef.current);
                         handleCapture();
                         return 0;
@@ -1062,8 +1062,6 @@ function CapturePage() {
             return;
         }
 
-
-
         // Step 4: Capture landmarks at the moment of capture
         const video = webcamRef.current?.video;
         const now = performance.now();
@@ -1072,14 +1070,14 @@ function CapturePage() {
         let poseLandmarks = null;
 
         // Detect landmarks based on stage
-        if ( captureStage === 'STAGE_1_FACE' && faceLandmarkerRef.current ) {
-            const faceResult = faceLandmarkerRef.current.detectForVideo( video, now );
-            faceLandmarks = faceResult?.faceLandmarks?.[ 0 ] || null;
+        if (captureStage === 'STAGE_1_FACE' && faceLandmarkerRef.current) {
+            const faceResult = faceLandmarkerRef.current.detectForVideo(video, now);
+            faceLandmarks = faceResult?.faceLandmarks?.[0] || null;
         }
 
-        if ( poseLandmarkerRef.current ) {
-            const poseResult = poseLandmarkerRef.current.detectForVideo( video, now );
-            poseLandmarks = poseResult?.landmarks?.[ 0 ] || null;
+        if (poseLandmarkerRef.current) {
+            const poseResult = poseLandmarkerRef.current.detectForVideo(video, now);
+            poseLandmarks = poseResult?.landmarks?.[0] || null;
         }
 
         // Step 5: Save capture data with landmarks (only if validation passed)
@@ -1156,37 +1154,37 @@ function CapturePage() {
 
     // Restart handler
     const handleRestart = () => {
-        console.log( '🔄 Restarting application - cleaning up resources...' );
+        console.log('🔄 Restarting application - cleaning up resources...');
 
         // CRITICAL: Stop camera stream
-        if ( webcamRef.current?.video?.srcObject ) {
+        if (webcamRef.current?.video?.srcObject) {
             const stream = webcamRef.current.video.srcObject;
-            stream.getTracks().forEach( track => {
+            stream.getTracks().forEach(track => {
                 track.stop();
-                console.log( '📹 Stopped camera track:', track.kind );
-            } );
+                console.log('📹 Stopped camera track:', track.kind);
+            });
             webcamRef.current.video.srcObject = null;
         }
 
         // CRITICAL: Cancel animation frame loop
-        if ( window.requestAnimationFrame && renderLoopRef.current ) {
-            cancelAnimationFrame( renderLoopRef.current );
-            console.log( '🎬 Cancelled animation frame' );
+        if (window.requestAnimationFrame && renderLoopRef.current) {
+            cancelAnimationFrame(renderLoopRef.current);
+            console.log('🎬 Cancelled animation frame');
         }
 
         // CRITICAL: Reset camera running flag
         cameraRunningRef.current = false;
-        console.log( '🚫 Reset camera running flag' );
+        console.log('🚫 Reset camera running flag');
 
         // CRITICAL: Clear MediaPipe model refs (they will be reloaded)
         faceLandmarkerRef.current = null;
         poseLandmarkerRef.current = null;
-        console.log( '🧹 Cleared MediaPipe model refs' );
+        console.log('🧹 Cleared MediaPipe model refs');
 
         // Reset timing refs
         lastInferenceTimeRef.current = 0;
         lastAlignmentCheckRef.current = 0;
-        console.log( '⏱️ Reset timing refs' );
+        console.log('⏱️ Reset timing refs');
 
         // Clear render loop ref
         renderLoopRef.current = null;
@@ -1195,11 +1193,11 @@ function CapturePage() {
         setAppStage('LANDING');
         setCaptureStage('STAGE_1_FACE');
         setIsAligned(false);
-        setIsFrozen( false );
-        setFrozenImage( null );
-        setShowReviewButtons( false );
-        setValidationError( '' );
-        setHoldDuration( 0 );
+        setIsFrozen(false);
+        setFrozenImage(null);
+        setShowReviewButtons(false);
+        setValidationError('');
+        setHoldDuration(0);
 
         // Reset capture data
         setCaptureData({
@@ -1226,10 +1224,10 @@ function CapturePage() {
         });
 
         // Clear sessionStorage
-        sessionStorage.removeItem( 'bodiKemistriCapture' );
-        sessionStorage.removeItem( 'bodiKemistriQuestionnaire' );
+        sessionStorage.removeItem('bodiKemistriCapture');
+        sessionStorage.removeItem('bodiKemistriQuestionnaire');
 
-        console.log( '✅ Restart complete - ready for new analysis' );
+        console.log('✅ Restart complete - ready for new analysis');
     };
 
     // Dynamic video constraints based on screen orientation
@@ -1323,7 +1321,7 @@ function CapturePage() {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover', // Full-screen view, crops edges to fill viewport
+                        objectFit: 'contain', // FIXED: Preserve aspect ratio, prevent distortion
                         transform: "scaleX(-1)", // Mirror for selfie view
                         visibility: "hidden"
                     }}
@@ -1340,7 +1338,7 @@ function CapturePage() {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover', // Full-screen view, crops edges to fill viewport
+                        objectFit: 'contain', // FIXED: Preserve aspect ratio, prevent distortion
                         transform: "scaleX(-1)",
                         zIndex: 2
                     }}
