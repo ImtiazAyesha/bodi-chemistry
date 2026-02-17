@@ -1138,15 +1138,80 @@ function CapturePage() {
 
     // Restart handler
     const handleRestart = () => {
+        console.log( '🔄 Restarting application - cleaning up resources...' );
+
+        // CRITICAL: Stop camera stream
+        if ( webcamRef.current?.video?.srcObject ) {
+            const stream = webcamRef.current.video.srcObject;
+            stream.getTracks().forEach( track => {
+                track.stop();
+                console.log( '📹 Stopped camera track:', track.kind );
+            } );
+            webcamRef.current.video.srcObject = null;
+        }
+
+        // CRITICAL: Cancel animation frame loop
+        if ( window.requestAnimationFrame && renderLoopRef.current ) {
+            cancelAnimationFrame( renderLoopRef.current );
+            console.log( '🎬 Cancelled animation frame' );
+        }
+
+        // CRITICAL: Reset camera running flag
+        cameraRunningRef.current = false;
+        console.log( '🚫 Reset camera running flag' );
+
+        // CRITICAL: Clear MediaPipe model refs (they will be reloaded)
+        faceLandmarkerRef.current = null;
+        poseLandmarkerRef.current = null;
+        console.log( '🧹 Cleared MediaPipe model refs' );
+
+        // Reset timing refs
+        lastInferenceTimeRef.current = 0;
+        lastAlignmentCheckRef.current = 0;
+        console.log( '⏱️ Reset timing refs' );
+
+        // Clear render loop ref
+        renderLoopRef.current = null;
+
+        // Reset state variables
         setAppStage('LANDING');
         setCaptureStage('STAGE_1_FACE');
         setIsAligned(false);
+        setIsFrozen( false );
+        setFrozenImage( null );
+        setShowReviewButtons( false );
+        setValidationError( '' );
+        setHoldDuration( 0 );
+
+        // Reset capture data
         setCaptureData({
-            stage1: { image: null, metrics: { eyeSym: 0, jawShift: 0, headTilt: 0, nostrilAsym: 0 } },
-            stage2: { image: null, metrics: { shoulderHeight: 0 } },
-            stage3: { image: null, metrics: { fhpAngle: 0 } },
-            stage4: { image: null, metrics: { pelvicTilt: 0, kneeAngle: 0, footArchRatio: 0 } }
+            stage1: {
+                image: null,
+                metrics: { eyeSym: 0, jawShift: 0, headTilt: 0, nostrilAsym: 0 },
+                landmarks: { face: null, pose: null }
+            },
+            stage2: {
+                image: null,
+                metrics: { shoulderHeight: 0 },
+                landmarks: { face: null, pose: null }
+            },
+            stage3: {
+                image: null,
+                metrics: { fhpAngle: 0 },
+                landmarks: { face: null, pose: null }
+            },
+            stage4: {
+                image: null,
+                metrics: { pelvicTilt: 0, kneeAngle: 0, footArchRatio: 0 },
+                landmarks: { face: null, pose: null }
+            }
         });
+
+        // Clear sessionStorage
+        sessionStorage.removeItem( 'bodiKemistriCapture' );
+        sessionStorage.removeItem( 'bodiKemistriQuestionnaire' );
+
+        console.log( '✅ Restart complete - ready for new analysis' );
     };
 
     const videoConstraints = {
