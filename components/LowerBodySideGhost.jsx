@@ -1,9 +1,3 @@
-import React from 'react';
-
-/**
- * Stage 4: Lower Body Side Ghost - Professional & User-Friendly
- * Uses the exact lower body outline requested, styled with the professional app theme.
- */
 const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null }) => {
     const brandSage = '#00FF00'; // Changed back to green for landmark feedback
     const brandSlate = '#2F4A5C';
@@ -63,15 +57,15 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                 </div>
             </div>
 
-            {/* SVG Container - Portrait-first scaling */}
+            {/* SVG Container - Sized to match camera's 4:3 aspect ratio */}
             <svg
                 style={{
                     position: 'absolute',
                     top: '160px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    width: 'auto',
-                    height: 'calc(100dvh - 160px)',
+                    width: 'min(100vw, 133.33vh)',
+                    height: 'min(75vw, max(calc(100vh - 160px), 400px))',
                     maxWidth: '100vw',
                     pointerEvents: 'none',
                 }}
