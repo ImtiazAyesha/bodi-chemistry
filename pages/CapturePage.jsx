@@ -47,7 +47,7 @@ function CapturePage() {
     const [showResults, setShowResults] = useState(false);
 
     // Auto-capture timer states
-    const [holdDuration, setHoldDuration] = useState(0); // 0 to 5000ms (2s silent + 3s countdown)
+    const [holdDuration, setHoldDuration] = useState(0); // 0 to 3000ms (3s countdown: 3, 2, 1)
     const alignmentTimerRef = useRef(null);
 
     // Screen freeze states
@@ -92,12 +92,11 @@ function CapturePage() {
             try {
                 const parsed = JSON.parse(storedData);
                 setQuestionnaireData(parsed);
-                console.log('✅ Loaded questionnaire data from sessionStorage:', parsed);
             } catch (error) {
                 console.error('❌ Failed to parse questionnaire data:', error);
             }
         } else {
-            console.warn('⚠️ No questionnaire data found in sessionStorage');
+
         }
     }, []);
 
@@ -116,7 +115,6 @@ function CapturePage() {
     // Restart render loop when unfrozen
     useEffect(() => {
         if (!isFrozen && renderLoopRef.current && appStage === 'CAPTURE') {
-            console.log('🔄 Restarting render loop - screen unfrozen');
             renderLoopRef.current();
         }
     }, [isFrozen, appStage]);
@@ -124,7 +122,7 @@ function CapturePage() {
     // Run INTEGRATED pattern analysis when entering PROCESSING stage
     useEffect(() => {
         if (appStage === 'PROCESSING' && captureData.stage4.image && questionnaireData) {
-            console.log('=== STARTING INTEGRATED PATTERN ANALYSIS (useEffect) ===');
+
 
             // Combine all metrics for pattern analysis
             const bodyMetrics = {
@@ -144,16 +142,9 @@ function CapturePage() {
 
             const questionnaireScores = questionnaireData.normalizedScores;
 
-            console.log('Body Metrics:', bodyMetrics);
-            console.log('Face Metrics:', faceMetrics);
-            console.log('Questionnaire Scores:', questionnaireScores);
-
             // Run INTEGRATED pattern fusion (Body 50%, Face 30%, Questionnaire 20%)
             const integratedResult = integrateAllModalities(bodyMetrics, faceMetrics, questionnaireScores);
             setPatternResults(integratedResult);
-
-            console.log('Integrated Pattern Analysis Complete:', integratedResult);
-            console.log('=== INTEGRATED PATTERN ANALYSIS END ===\n');
         }
     }, [appStage, captureData, questionnaireData]);
 
@@ -211,7 +202,6 @@ function CapturePage() {
 
                     // Skip inference if screen is frozen - STOP THE LOOP
                     if (isFrozen) {
-                        console.log('🛑 Render loop stopped - screen is frozen');
                         return; // Don't continue the loop
                     }
 
@@ -336,13 +326,7 @@ function CapturePage() {
                                     console.warn('Could not calculate pelvic tilt - missing landmarks');
                                 }
 
-                                // Log interpretation for debugging
-                                console.log('Pelvic Tilt Analysis:', {
-                                    angle: pelvicTilt,
-                                    level: pelvicInterpretation.level,
-                                    description: pelvicInterpretation.description,
-                                    score: pelvicInterpretation.score
-                                });
+
 
                                 // METRIC 7: Knee Valgus Angle (Joint Angle at Knee)
                                 // Uses Hip (23) -> Knee (25) -> Ankle (27)
@@ -364,13 +348,7 @@ function CapturePage() {
                                     console.warn('Could not calculate foot arch ratio - missing landmarks');
                                 }
 
-                                // Log both feet for debugging
-                                console.log('Foot Arch Analysis:', {
-                                    left: footArchData.left,
-                                    right: footArchData.right,
-                                    average: footArchData.average,
-                                    asymmetry: footArchData.asymmetry
-                                });
+
 
                                 currentBodyMetrics = {
                                     shoulderHeight: formatMetric(shoulderHeight, 3),
@@ -384,15 +362,11 @@ function CapturePage() {
                             // Alignment check for Stage 4 (pose only, no face) - MOVED OUTSIDE pose block
                             // This ensures it runs even if pose landmarks aren't detected
                             if (isStage4) {
-                                console.log('Stage 4: Checking alignment...'); // Debug: confirm we reach here
-                                console.log('Stage 4: poseResult =', poseResult); // DEBUG: What's in poseResult?
-                                console.log('Stage 4: poseResult.landmarks =', poseResult?.landmarks); // DEBUG: Are landmarks present?
+
 
                                 const shouldCheckAlignment = (now - lastAlignmentCheckRef.current) >= ALIGNMENT_CHECK_INTERVAL;
                                 if (shouldCheckAlignment) {
                                     const poseLandmarks = poseResult?.landmarks?.[0];
-                                    console.log('Stage 4: Passing poseLandmarks =', poseLandmarks); // DEBUG: What are we passing?
-                                    console.log('Stage 4: Calling checkAlignment with stage =', captureStageRef.current); // DEBUG: What stage?
 
                                     const aligned = checkAlignment(captureStageRef.current, null, poseLandmarks);
                                     setIsAligned(aligned);
@@ -406,13 +380,7 @@ function CapturePage() {
                                 const shouldCheckAlignment = (now - lastAlignmentCheckRef.current) >= ALIGNMENT_CHECK_INTERVAL;
                                 if (shouldCheckAlignment) {
                                     const poseLandmarks = poseResult?.landmarks?.[0];
-                                    console.log(`🔍 ${captureStageRef.current} Alignment Check:`, {
-                                        hasLandmarks: !!poseLandmarks,
-                                        landmarkCount: poseLandmarks?.length || 0
-                                    });
                                     const aligned = checkAlignment(captureStageRef.current, null, poseLandmarks);
-                                    console.log(`🎯 ${captureStageRef.current} Alignment Result:`, aligned);
-                                    console.log(`📊 Setting isAligned to:`, aligned);
                                     setIsAligned(aligned);
                                     lastAlignmentCheckRef.current = now;
                                 }
@@ -423,43 +391,15 @@ function CapturePage() {
                                 body: currentBodyMetrics
                             });
 
-                            // ✅ Draw landmarks on VISIBLE canvas for live feedback
-                            // This shows users the green dots/mesh during alignment
-                            const visibleDrawingUtils = new DrawingUtils(ctx);
-
-                            // Draw face landmarks on visible canvas (Stages 1-3)
-                            if (!isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
-                                const fl = faceResult.faceLandmarks[0];
-                                visibleDrawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "rgba(0, 255, 0, 0.3)", lineWidth: 0.1 });
-                                visibleDrawingUtils.drawLandmarks(fl, { color: "#00FF00", radius: 1 });
-                            }
-
-                            // Draw pose landmarks on visible canvas (All stages)
-                            if (poseResult.landmarks && poseResult.landmarks.length > 0) {
-                                const pl = poseResult.landmarks[0];
-                                visibleDrawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(0, 255, 0, 0.5)", lineWidth: 1.5 });
-                                visibleDrawingUtils.drawLandmarks(pl, { color: "#00FF00", radius: 2 });
-                            }
+                            // ❌ REMOVED: Landmark drawing on VISIBLE canvas
+                            // Landmarks are now ONLY drawn on the hidden canvas for capture
+                            // This keeps the UI clean while preserving detection functionality
 
 
                             // ✅ CRITICAL: Draw landmarks on HIDDEN canvas for capture
                             // This ensures captured images have visible landmarks for analysis
                             if (hiddenCtx) {
                                 const drawingUtils = new DrawingUtils(hiddenCtx);
-
-                                // DEBUG: Log for Stage 4
-                                if (isStage4) {
-                                    console.log('%c🔍 STAGE 4 DEBUG - Hidden Canvas Drawing:', 'color: #FF6B6B; font-weight: bold');
-                                    console.log('   hiddenCtx exists:', !!hiddenCtx);
-                                    console.log('   poseResult:', poseResult);
-                                    console.log('   poseResult.landmarks:', poseResult?.landmarks);
-                                    console.log('   landmarks length:', poseResult?.landmarks?.length);
-                                    if (poseResult?.landmarks?.length > 0) {
-                                        console.log('   ✅ LANDMARKS DETECTED - Drawing on hidden canvas');
-                                    } else {
-                                        console.log('   ❌ NO LANDMARKS - Hidden canvas will be blank!');
-                                    }
-                                }
 
                                 // Draw face landmarks (Stages 1-3)
                                 if (!isStage4 && faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0) {
@@ -473,13 +413,6 @@ function CapturePage() {
                                     const pl = poseResult.landmarks[0];
                                     drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: "rgba(0, 255, 0, 0.5)", lineWidth: 1.5 });
                                     drawingUtils.drawLandmarks(pl, { color: "#00FF00", radius: 2 });
-
-                                    // DEBUG: Confirm drawing for Stage 4
-                                    if (isStage4) {
-                                        console.log('%c   ✅ DREW LANDMARKS ON HIDDEN CANVAS', 'color: #10B981; font-weight: bold');
-                                    }
-                                } else if (isStage4) {
-                                    console.log('%c   ❌ SKIPPED DRAWING - No landmarks detected', 'color: #EF4444; font-weight: bold');
                                 }
                             }
 
@@ -627,12 +560,7 @@ function CapturePage() {
                 const hasFeet2 = !!((leftFoot2 && rightFoot2) || (leftAnkle2 && rightAnkle2)); // Feet OR ankles
                 const hasFullBody = hasShoulders2 && hasHips2 && hasFeet2;
 
-                console.log('Stage 2 Full Body Check:', {
-                    hasShoulders: hasShoulders2,
-                    hasHips: hasHips2,
-                    hasFeet: hasFeet2,
-                    hasFullBody: hasFullBody
-                });
+
 
                 // Update feedback if landmarks missing
                 if (!hasFullBody) {
@@ -663,14 +591,12 @@ function CapturePage() {
             case 'STAGE_3_UPPER_SIDE':
                 // RIGHT SIDE PROFILE DETECTION - Fixed to reject left side and partial turns
                 if (!poseLandmarks) {
-                    console.log('Stage 3 Debug: No pose landmarks detected');
                     return false;
                 }
                 const leftShoulder3 = poseLandmarks[11];
                 const rightShoulder3 = poseLandmarks[12];
 
                 if (!leftShoulder3 || !rightShoulder3) {
-                    console.log('Stage 3 Debug: Shoulders not detected');
                     return false;
                 }
 
@@ -711,11 +637,6 @@ function CapturePage() {
                     aligned: isSideView && isRightSide && isInFrame
                 });
 
-                // EXPLICIT CHECK - Print why alignment is failing
-                if (!isSideView) console.warn('❌ STAGE 3: Not in side view! shoulderDistance =', shoulderDistance);
-                if (!isRightSide) console.warn('❌ STAGE 3: Not right side! leftZ =', leftShoulderZ, 'rightZ =', rightShoulderZ);
-                if (!isInFrame) console.warn('❌ STAGE 3: Not in frame! isHorizontallyCentered =', isHorizontallyCentered, 'isVerticallyCentered =', isVerticallyCentered);
-
                 // Generate granular feedback for Stage 3
                 let feedbackMsg3 = '';
                 if (!isSideView) {
@@ -734,10 +655,8 @@ function CapturePage() {
 
             case 'STAGE_4_LOWER_SIDE':
                 // FIXED: Comprehensive side detection with Z-depth + feet verification
-                console.log('%c========== STAGE 4: LOWER BODY SIDE ==========', 'color: #9333EA; font-weight: bold; font-size: 14px');
 
                 if (!poseLandmarks) {
-                    console.log('%c❌ No pose landmarks detected', 'color: #EF4444');
                     return false;
                 }
 
@@ -746,46 +665,19 @@ function CapturePage() {
 
                 // Check if hips are detected
                 if (!leftHip4 || !rightHip4) {
-                    console.log('%c❌ Hip landmarks not detected', 'color: #EF4444');
-                    console.log('   Left Hip (#23):', leftHip4 ? '✅ Detected' : '❌ Missing');
-                    console.log('   Right Hip (#24):', rightHip4 ? '✅ Detected' : '❌ Missing');
                     return false;
                 }
-
-                console.log('%c📍 Hip Landmarks Detected:', 'color: #10B981; font-weight: bold');
-                console.log('   Left Hip (#23):', { x: leftHip4.x.toFixed(3), y: leftHip4.y.toFixed(3), z: (leftHip4.z || 0).toFixed(3) });
-                console.log('   Right Hip (#24):', { x: rightHip4.x.toFixed(3), y: rightHip4.y.toFixed(3), z: (rightHip4.z || 0).toFixed(3) });
 
                 // ✅ CHECK 1: Hip Distance (Side View Detection)
                 // STRICT: 80-90% side turn required
                 const hipDistance4 = Math.abs(leftHip4.x - rightHip4.x);
                 const isSideView4 = hipDistance4 < 0.08; // VERY STRICT: 0.08 (was 0.12) for 80-90% side profile
 
-                console.log('%c\n✅ CHECK 1: Hip Distance (Side View Detection)', 'color: #3B82F6; font-weight: bold');
-                console.log('   Hip Distance:', hipDistance4.toFixed(3), '(threshold: < 0.08 - STRICT 80-90% turn)');
-                console.log('   Is Side View?', isSideView4 ? '✅ YES' : '❌ NO');
-                if (!isSideView4) {
-                    console.log('   ⚠️ Hips too far apart - user likely facing camera or at an angle');
-                }
-
                 // ✅ CHECK 2: Z-Depth (Right Side Verification) - STRICT!
                 const leftHipZ = leftHip4.z || 0;
                 const rightHipZ = rightHip4.z || 0;
                 const zDepthDifference = leftHipZ - rightHipZ;
                 const isRightSide4 = leftHipZ < rightHipZ - 0.05; // STRICT: 0.05 (was 0.02) for clear depth separation
-
-                console.log('%c\n✅ CHECK 2: Z-Depth (Right Side Verification)', 'color: #3B82F6; font-weight: bold');
-                console.log('   Left Hip Z:', leftHipZ.toFixed(3), '(closer to camera = more negative)');
-                console.log('   Right Hip Z:', rightHipZ.toFixed(3));
-                console.log('   Z-Depth Difference:', zDepthDifference.toFixed(3), '(threshold: < -0.05 - STRICT)');
-                console.log('   Is Right Side?', isRightSide4 ? '✅ YES' : '❌ NO');
-                if (!isRightSide4) {
-                    if (Math.abs(zDepthDifference) < 0.05) {
-                        console.log('   ⚠️ Both hips at same depth - user likely facing camera (FRONT VIEW)');
-                    } else if (zDepthDifference > 0) {
-                        console.log('   ⚠️ Right hip closer than left - user turned to LEFT side (wrong direction)');
-                    }
-                }
 
                 // ✅ CHECK 3: Feet Distance (Optional Bonus Check)
                 const leftAnkle4 = poseLandmarks[27];
@@ -808,39 +700,12 @@ function CapturePage() {
                     feetDetectionMethod = 'ankle landmarks (fallback)';
                 }
 
-                console.log('%c\n✅ CHECK 3: Feet Distance (Optional Bonus Check)', 'color: #3B82F6; font-weight: bold');
-                console.log('   Detection Method:', feetDetectionMethod);
-                if (footDistance4 !== null) {
-                    console.log('   Foot Distance:', footDistance4.toFixed(3), '(threshold: < 0.10 - STRICT)');
-                    console.log('   Feet Aligned?', feetAligned ? '✅ YES' : '❌ NO');
-                    if (!feetAligned) {
-                        console.log('   ⚠️ Feet too far apart - likely pointing forward instead of sideways');
-                    }
-                } else {
-                    console.log('   ℹ️ Feet/ankles not detected - skipping this check (won\'t block alignment)');
-                }
-
                 // ✅ CHECK 4: Frame Positioning
                 const hipCenterX4 = (leftHip4.x + rightHip4.x) / 2;
                 const hipCenterY4 = (leftHip4.y + rightHip4.y) / 2;
                 const isHorizontallyCentered4 = hipCenterX4 >= 0.35 && hipCenterX4 <= 0.65;
                 const isVerticallyCentered4 = hipCenterY4 >= 0.30 && hipCenterY4 <= 0.70;
                 const isInFrame4 = isHorizontallyCentered4 && isVerticallyCentered4;
-
-                console.log('%c\n✅ CHECK 4: Frame Positioning', 'color: #3B82F6; font-weight: bold');
-                console.log('   Hip Center X:', hipCenterX4.toFixed(3), '(range: 0.35 - 0.65)');
-                console.log('   Hip Center Y:', hipCenterY4.toFixed(3), '(range: 0.30 - 0.70)');
-                console.log('   Horizontally Centered?', isHorizontallyCentered4 ? '✅ YES' : '❌ NO');
-                console.log('   Vertically Centered?', isVerticallyCentered4 ? '✅ YES' : '❌ NO');
-                console.log('   In Frame?', isInFrame4 ? '✅ YES' : '❌ NO');
-                if (!isInFrame4) {
-                    if (!isHorizontallyCentered4) {
-                        console.log('   ⚠️ User needs to move', hipCenterX4 < 0.35 ? 'LEFT' : 'RIGHT');
-                    }
-                    if (!isVerticallyCentered4) {
-                        console.log('   ⚠️ User needs to', hipCenterY4 < 0.30 ? 'COME CLOSER' : 'STEP BACK');
-                    }
-                }
 
                 // ✅ CHECK 5: Landmark Visibility (Ankles + Shoulders)
                 // Stage 4 requires full body visible (upper + lower)
@@ -852,27 +717,8 @@ function CapturePage() {
                 const hasAnkles = !!(leftAnkle4 && rightAnkle4);
                 const hasRequiredLandmarks = hasShoulders && hasAnkles;
 
-                console.log('%c\n✅ CHECK 5: Landmark Visibility', 'color: #3B82F6; font-weight: bold');
-                console.log('   Left Shoulder (#11):', hasShoulders && leftShoulder4 ? '✅ Detected' : '❌ Missing');
-                console.log('   Right Shoulder (#12):', hasShoulders && rightShoulder4 ? '✅ Detected' : '❌ Missing');
-                console.log('   Left Ankle (#27):', hasAnkles && leftAnkle4 ? '✅ Detected' : '❌ Missing');
-                console.log('   Right Ankle (#28):', hasAnkles && rightAnkle4 ? '✅ Detected' : '❌ Missing');
-                console.log('   Full Body Visible?', hasRequiredLandmarks ? '✅ YES' : '❌ NO');
-                if (!hasRequiredLandmarks) {
-                    if (!hasShoulders) console.log('   ⚠️ Shoulders not detected - move upper body into frame');
-                    if (!hasAnkles) console.log('   ⚠️ Ankles not detected - move lower body into frame');
-                }
-
                 // ✅ FINAL ALIGNMENT CHECK (All conditions must pass)
                 const aligned = isSideView4 && isRightSide4 && feetAligned && isInFrame4 && hasRequiredLandmarks;
-
-                console.log('%c\n🎯 FINAL ALIGNMENT RESULT:', 'color: #F59E0B; font-weight: bold; font-size: 13px');
-                console.log('   ✓ Side View:', isSideView4 ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ Right Side:', isRightSide4 ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ Feet Aligned:', feetAligned ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ In Frame:', isInFrame4 ? '✅ PASS' : '❌ FAIL');
-                console.log('   ✓ Landmarks Visible:', hasRequiredLandmarks ? '✅ PASS' : '❌ FAIL');
-                console.log('%c   → ALIGNED: ' + (aligned ? '✅ YES - COUNTDOWN STARTING!' : '❌ NO - ADJUST POSITION'), aligned ? 'color: #10B981; font-weight: bold' : 'color: #EF4444; font-weight: bold');
 
                 // Enhanced Feedback Messages (PRIORITY ORDER)
                 let feedbackMessage = '';
@@ -906,10 +752,6 @@ function CapturePage() {
                     feedbackIcon = '✓';
                 }
 
-                console.log('%c\n💬 User Feedback:', 'color: #8B5CF6; font-weight: bold');
-                console.log('   Message:', feedbackMessage);
-                console.log('   Icon:', feedbackIcon);
-
                 // Comprehensive Debug Info
                 const debugInfo4 = {
                     hipDistance: hipDistance4.toFixed(3),
@@ -930,8 +772,6 @@ function CapturePage() {
                     feedbackIcon: feedbackIcon
                 };
 
-                console.log('%c========================================\n', 'color: #9333EA');
-
                 // Store debug info for on-screen display
                 setStage4Debug(debugInfo4);
 
@@ -943,19 +783,17 @@ function CapturePage() {
         }
     };
 
-    // Auto-capture timer effect
+    // Auto-capture timer effect - 3 seconds total (3, 2, 1)
     useEffect(() => {
-        console.log('Countdown effect: isAligned =', isAligned, 'holdDuration =', holdDuration); // DEBUG
+
 
         if (isAligned && !showResults) {
             // Start countdown timer
-            console.log('Starting countdown timer...'); // DEBUG
             alignmentTimerRef.current = setInterval(() => {
                 setHoldDuration(prev => {
                     const newDuration = prev + 100;
-                    if (newDuration >= 5000) {
+                    if (newDuration >= 3000) {
                         // Auto-capture triggered
-                        console.log('Auto-capture triggered at 5000ms!'); // DEBUG
                         clearInterval(alignmentTimerRef.current);
                         handleCapture();
                         return 0;
@@ -965,7 +803,6 @@ function CapturePage() {
             }, 100);
         } else {
             // Reset timer if not aligned
-            console.log('NOT aligned - resetting countdown'); // DEBUG
             if (alignmentTimerRef.current) {
                 clearInterval(alignmentTimerRef.current);
                 alignmentTimerRef.current = null;
@@ -980,23 +817,31 @@ function CapturePage() {
         };
     }, [isAligned, showResults]);
 
-    // Helper function to capture frame WITH landmarks from hidden canvas
+    // Helper function to capture frame WITHOUT landmarks (clean video capture)
     const captureCleanFrame = () => {
-        // Use HIDDEN canvas which has landmarks rendered
-        const canvas = hiddenCanvasRef.current;
-        if (!canvas) {
-            console.error('❌ Hidden canvas not available for capture');
+        const video = webcamRef.current?.video;
+        if (!video) {
+            console.error('❌ Video not available for capture');
             return null;
         }
 
+        // Create a temporary canvas to capture clean video frame
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = video.videoWidth;
+        tempCanvas.height = video.videoHeight;
+        const ctx = tempCanvas.getContext('2d');
+
+        // Draw the video frame WITHOUT any landmarks
+        ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
         // Log capture dimensions for debugging
-        console.log(`✅ Captured image with landmarks: ${canvas.width}x${canvas.height}px`);
+        console.log(`✅ Captured clean image: ${tempCanvas.width}x${tempCanvas.height}px`);
 
         // Show flash effect
         showFlashEffect();
 
-        // Return image data URL with landmarks from hidden canvas
-        return canvas.toDataURL('image/jpeg', 0.95);
+        // Return clean image data URL (no landmarks)
+        return tempCanvas.toDataURL('image/jpeg', 0.95);
     };
 
     // Flash effect on capture
@@ -1028,17 +873,11 @@ function CapturePage() {
             switch (stage) {
                 case 'STAGE_1_FACE':
                     const faceResult = faceLandmarkerRef.current.detectForVideo(video, now);
-                    console.log('🔍 STAGE 1 Validation:', {
-                        hasFaceResult: !!faceResult,
-                        hasFaceLandmarks: !!faceResult?.faceLandmarks,
-                        landmarkCount: faceResult?.faceLandmarks?.length || 0
-                    });
+
 
                     if (!faceResult || !faceResult.faceLandmarks || faceResult.faceLandmarks.length === 0) {
-                        console.error('❌ STAGE 1 Validation FAILED: No face landmarks detected');
                         return { isValid: false, error: 'Face landmarks not detected' };
                     }
-                    console.log('✅ STAGE 1 Validation PASSED');
                     return { isValid: true, error: '' };
 
                 case 'STAGE_2_UPPER_FRONT':
@@ -1049,25 +888,13 @@ function CapturePage() {
                     const hasLandmarks = poseResult?.landmarks?.[0];
                     const landmarkPoints = hasLandmarks ? Object.keys(poseResult.landmarks[0]).length : 0;
 
-                    console.log(`🔍 ${stage} Validation:`, {
-                        hasPoseResult: !!poseResult,
-                        hasLandmarks: !!poseResult?.landmarks,
-                        landmarkArrayLength: landmarkCount,
-                        landmarkPoints: landmarkPoints
-                    });
+
 
                     // STRICT CHECK: Must have landmarks array AND at least 33 landmark points
                     if (!poseResult || !poseResult.landmarks || landmarkCount === 0 || landmarkPoints < 33) {
-                        console.error(`❌ ${stage} Validation FAILED:`, {
-                            reason: !poseResult ? 'No pose result' :
-                                !poseResult.landmarks ? 'No landmarks array' :
-                                    landmarkCount === 0 ? 'Empty landmarks array' :
-                                        'Insufficient landmark points (need 33+)'
-                        });
                         return { isValid: false, error: 'Body landmarks not detected' };
                     }
 
-                    console.log(`✅ ${stage} Validation PASSED - ${landmarkPoints} landmarks detected`);
                     return { isValid: true, error: '' };
 
                 default:
@@ -1082,7 +909,6 @@ function CapturePage() {
 
     // Handle Continue button click
     const handleContinue = () => {
-        console.log('Continue clicked - advancing to next stage');
         setShowReviewButtons(false);
         setValidationError('');
 
@@ -1103,7 +929,6 @@ function CapturePage() {
                     break;
                 case 'STAGE_4_LOWER_SIDE':
                     // All captures complete - run pattern analysis
-                    console.log('=== STARTING PATTERN ANALYSIS ===');
 
                     // Combine all metrics for pattern analysis
                     const combinedMetrics = {
@@ -1122,19 +947,16 @@ function CapturePage() {
                         }
                     };
 
-                    console.log('Combined Metrics for Pattern Analysis:', combinedMetrics);
+
 
                     // Run integrated pattern analysis (Body 50%, Face 30%, Questionnaire 20%)
-                    console.log('=== CALLING INTEGRATED PATTERN FUSION ===');
                     const integratedResults = integrateAllModalities(
                         combinedMetrics.body,
                         combinedMetrics.face,
                         questionnaireData.normalizedScores
                     );
 
-                    console.log('Integrated Pattern Results:', integratedResults);
                     setPatternResults(integratedResults);
-                    console.log('=== PATTERN ANALYSIS END ===\n');
 
                     // Show results after analysis
                     setAppStage('PROCESSING');
@@ -1147,7 +969,6 @@ function CapturePage() {
 
     // Handle Retake button click
     const handleRetake = () => {
-        console.log('Retake clicked - resetting current stage');
         setShowReviewButtons(false);
         setValidationError('');
         setIsFrozen(false);
@@ -1186,7 +1007,6 @@ function CapturePage() {
 
     // Auto-retry after validation failure
     const handleAutoRetry = (errorMessage) => {
-        console.log('Auto-retry triggered:', errorMessage);
         setValidationError(errorMessage);
         setIsValidating(true);
 
@@ -1205,7 +1025,7 @@ function CapturePage() {
     const handleCapture = () => {
         if (!isAligned) return;
 
-        console.log('🎯 Capture triggered for stage:', captureStage);
+
 
         // Step 1: Capture frame FIRST (from hidden canvas with landmarks)
         const imageDataURL = captureCleanFrame();
@@ -1220,12 +1040,11 @@ function CapturePage() {
 
         if (!validation.isValid) {
             // Validation FAILED - Auto-retry
-            console.log('❌ Validation failed:', validation.error);
             handleAutoRetry(validation.error);
             return;
         }
 
-        console.log('✅ Validation passed - saving capture data');
+
 
         // Step 4: Save capture data (only if validation passed)
         switch (captureStage) {
@@ -1279,13 +1098,8 @@ function CapturePage() {
                 break;
         }
 
-        // Step 5: Auto-advance to next stage after brief "Captured" message
-        console.log('📸 Auto-advancing to next stage');
-
-        // Auto-advance after 800ms (time to show "Captured" message)
-        setTimeout(() => {
-            handleContinue();
-        }, 800);
+        // Show Retake/Continue buttons instead of auto-advancing
+        setShowReviewButtons(true);
     };
 
     // Restart handler
@@ -1438,58 +1252,133 @@ function CapturePage() {
                             width: '100%',
                             height: '100%',
                             zIndex: 20,
-                            backgroundColor: '#EFE9DF'
+                            backgroundColor: '#EFE9DF',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '20px'
                         }}>
-                            <img
-                                src={frozenImage}
-                                alt="Captured"
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover', // FIXED: Cover entire screen to match live view
-                                    objectPosition: 'center',
-                                    transform: 'scaleX(-1)',
-                                    display: 'block'
-                                }}
-                            />
-
-                            {/* Overlay Gradient for contrast */}
+                            {/* Centered Image Card */}
                             <div style={{
-                                position: 'absolute',
-                                inset: 0,
-                                background: 'radial-gradient(circle at 50% 50%, rgba(239, 233, 223, 0.2) 0%, rgba(47, 74, 92, 0.4) 100%)',
-                                pointerEvents: 'none'
-                            }} />
-
-                            <div style={{
-                                position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                textAlign: 'center',
-                                width: '100%',
-                                padding: '0 20px'
+                                position: 'relative',
+                                width: '90%',
+                                maxWidth: '500px',
+                                aspectRatio: '3/4',
+                                borderRadius: '24px',
+                                overflow: 'hidden',
+                                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                                marginBottom: '32px'
                             }}>
+                                <img
+                                    src={frozenImage}
+                                    alt="Captured"
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        transform: 'scaleX(-1)',
+                                        display: 'block'
+                                    }}
+                                />
+
+                                {/* Success Message Overlay on Image */}
                                 <div style={{
-                                    fontSize: 'clamp(40px, 10vw, 80px)',
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    fontSize: 'clamp(40px, 10vw, 56px)',
                                     color: '#00FF00',
                                     fontWeight: '900',
-                                    letterSpacing: '6px',
-                                    textTransform: 'uppercase',
-                                    textShadow: '0 0 60px rgba(0, 255, 0, 0.8)',
+                                    textAlign: 'center',
+                                    textShadow: '0 4px 30px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 255, 0, 0.6)',
+                                    letterSpacing: '2px',
+                                    pointerEvents: 'none',
                                     animation: 'fadeIn 0.2s ease-out'
                                 }}>
-                                    Captured
+                                    ✓ Captured
                                 </div>
                             </div>
+
+                            {/* CTA Buttons Below Card */}
+                            {showReviewButtons && (
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '12px',
+                                    width: '90%',
+                                    maxWidth: '500px'
+                                }}>
+                                    {/* Retake Button */}
+                                    <button
+                                        onClick={handleRetake}
+                                        style={{
+                                            flex: 1,
+                                            padding: '16px 24px',
+                                            fontSize: 'clamp(16px, 4vw, 18px)',
+                                            fontWeight: '600',
+                                            color: '#2F4A5C',
+                                            backgroundColor: '#FFFFFF',
+                                            border: '2px solid #2F4A5C',
+                                            borderRadius: '12px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.3s ease',
+                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.target.style.backgroundColor = '#2F4A5C';
+                                            e.target.style.color = '#FFFFFF';
+                                            e.target.style.transform = 'translateY(-2px)';
+                                            e.target.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.15)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.target.style.backgroundColor = '#FFFFFF';
+                                            e.target.style.color = '#2F4A5C';
+                                            e.target.style.transform = 'translateY(0)';
+                                            e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                                        }}
+                                    >
+                                        Retake
+                                    </button>
+
+                                    {/* Continue Button */}
+                                    <button
+                                        onClick={handleContinue}
+                                        style={{
+                                            flex: 1,
+                                            padding: '16px 24px',
+                                            fontSize: 'clamp(16px, 4vw, 18px)',
+                                            fontWeight: '600',
+                                            color: '#FFFFFF',
+                                            backgroundColor: '#00FF00',
+                                            border: '2px solid #00FF00',
+                                            borderRadius: '12px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.3s ease',
+                                            boxShadow: '0 4px 12px rgba(0, 255, 0, 0.3)',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.target.style.backgroundColor = '#00DD00';
+                                            e.target.style.transform = 'translateY(-2px)';
+                                            e.target.style.boxShadow = '0 6px 16px rgba(0, 255, 0, 0.4)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.target.style.backgroundColor = '#00FF00';
+                                            e.target.style.transform = 'translateY(0)';
+                                            e.target.style.boxShadow = '0 4px 12px rgba(0, 255, 0, 0.3)';
+                                        }}
+                                    >
+                                        Continue
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )
                 }
-
-
-
-                {/* Review Buttons - REMOVED: Auto-advance implemented */}
-
 
                 {/* Validation Error Overlay - Auto-retry */}
                 {validationError && (
@@ -1535,40 +1424,6 @@ function CapturePage() {
                         </div>
                     </div>
                 )}
-
-
-
-
-                <style>{`
-          @keyframes fadeIn {
-            0% {
-              opacity: 0;
-            }
-            100% {
-              opacity: 1;
-            }
-          }
-          @keyframes fadeInScale {
-            0% {
-              opacity: 0;
-              transform: translate(-50%, -50%) scale(0.85);
-            }
-            100% {
-              opacity: 1;
-              transform: translate(-50%, -50%) scale(1);
-            }
-          }
-          @keyframes pulse {
-            0%, 100% {
-              box-shadow: 0 0 20px rgba(143,169,155,0.4);
-              transform: translateX(-50%) scale(1);
-            }
-            50% {
-              box-shadow: 0 0 40px rgba(143,169,155,0.8);
-              transform: translateX(-50%) scale(1.02);
-            }
-          }
-        `}</style>
             </div >
         </div >
     );

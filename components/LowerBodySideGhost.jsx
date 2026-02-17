@@ -12,8 +12,8 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
 
     const primaryColor = isAligned ? '#00FF00' : 'rgba(255, 255, 255, 0.3)';
     const successColor = brandSage;
-    const progress = ( holdDuration / 5000 ) * 100;
-    const countdown = Math.ceil( ( 5000 - holdDuration ) / 1000 );
+    const progress = (holdDuration / 3000) * 100;
+    const countdown = Math.ceil((3000 - holdDuration) / 1000);
     const feedbackMessage = stage4Debug?.feedbackMessage || '';
 
     return (
@@ -29,7 +29,7 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
             flexDirection: 'column',
             alignItems: 'center'
         }}>
-            {/* Top badges - Separate pills */}
+            {/* Top badges - Step badge only */}
             <div style={{
                 marginTop: '24px',
                 display: 'flex',
@@ -60,94 +60,6 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                     }}>
                         Step 4: Side Profile Lower
                     </span>
-                </div>
-
-                {/* Guidance Pill */}
-                <div style={{
-                    backgroundColor: 'rgba(47, 74, 92, 0.95)',
-                    backdropFilter: 'blur(16px)',
-                    border: `2px solid ${isAligned ? successColor : 'rgba(255,255,255,0.1)'}`,
-                    borderRadius: '20px',
-                    padding: '10px 20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                    pointerEvents: 'auto',
-                    minWidth: '220px',
-                    maxWidth: '90vw',
-                    justifyContent: 'center'
-                }}>
-                    <div style={{
-                        color: '#FFFFFF',
-                        fontSize: 'clamp(14px, 3.5vw, 16px)',
-                        fontWeight: '500',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        textAlign: 'center',
-                        letterSpacing: '0.02em'
-                    }}>
-                        {isAligned ? '✓ Hold Position' : (feedbackMessage || 'Align full side body')}
-
-                        {!isAligned && feedbackMessage && (
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '32px',
-                                height: '32px',
-                                backgroundColor: 'rgba(255,255,255,0.1)',
-                                borderRadius: '50%',
-                                border: '1px solid rgba(255,255,255,0.2)'
-                            }}>
-                                <svg width="20" height="20" viewBox="0 0 20 20">
-                                    <g transform="translate(10, 10)">
-                                        {(feedbackMessage.toLowerCase().includes('up')) && (
-                                            <path d="M 0 -6 L -5 1 L -2 1 L -2 6 L 2 6 L 2 1 L 5 1 Z" fill="#FFFFFF">
-                                                <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
-                                            </path>
-                                        )}
-                                        {(feedbackMessage.toLowerCase().includes('down')) && (
-                                            <path d="M 0 6 L -5 -1 L -2 -1 L -2 -6 L 2 -6 L 2 -1 L 5 -1 Z" fill="#FFFFFF">
-                                                <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
-                                            </path>
-                                        )}
-                                        {(feedbackMessage.toLowerCase().includes('left')) && (
-                                            <path d="M -6 0 L 1 -5 L 1 -2 L 6 -2 L 6 2 L 1 2 L 1 5 Z" fill="#FFFFFF">
-                                                <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
-                                            </path>
-                                        )}
-                                        {(feedbackMessage.toLowerCase().includes('right')) && (
-                                            <path d="M 6 0 L -1 -5 L -1 -2 L -6 -2 L -6 2 L -1 2 L -1 5 Z" fill="#FFFFFF">
-                                                <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
-                                            </path>
-                                        )}
-                                        {(feedbackMessage.toLowerCase().includes('closer')) && (
-                                            <path d="M -7 0 L -1 -4 L -1 -1 L 1 -1 L 1 -4 L 7 0 L 1 4 L 1 1 L -1 1 L -1 4 Z" fill="#FFFFFF">
-                                                <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
-                                            </path>
-                                        )}
-                                        {(feedbackMessage.toLowerCase().includes('back')) && (
-                                            <g>
-                                                <path d="M -1 0 L -7 -4 L -7 -1 L -9 -1 L -9 1 L -7 1 L -7 4 Z" fill="#FFFFFF" />
-                                                <path d="M 1 0 L 7 -4 L 7 -1 L 9 -1 L 9 1 L 7 1 L 7 4 Z" fill="#FFFFFF" />
-                                                <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
-                                            </g>
-                                        )}
-                                        {(feedbackMessage.toLowerCase().includes('turn')) && (
-                                            <g>
-                                                <circle cx="0" cy="0" r="7" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
-                                                <path d="M 5 -5 L 8 -5 L 5 -8 Z" fill="#FFFFFF" />
-                                                <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
-                                            </g>
-                                        )}
-                                    </g>
-                                </svg>
-                            </div>
-                        )}
-                    </div>
                 </div>
             </div>
 
@@ -224,8 +136,8 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                         />
                     </g>
 
-                    {/* COUNTDOWN - Show at 2000ms to display 3-2-1 (not 2-1) */ }
-                    { isAligned && holdDuration >= 2000 && (
+                    {/* COUNTDOWN - Show immediately to display full 3-2-1 sequence */}
+                    {isAligned && holdDuration >= 0 && (
                         <g transform="translate(0, -100)">
                             <text x="0" y="-32" textAnchor="middle"
                                 fill={successColor}
@@ -237,7 +149,7 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                                 {countdown}
                             </text>
                             <text x="0" y="24" textAnchor="middle"
-                                fill={brandSlate}
+                                fill={successColor}
                                 fontSize="22"
                                 fontWeight="700"
                                 letterSpacing="2px"
@@ -249,6 +161,94 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                     )}
                 </g>
             </svg>
+
+            {/* Footer-style Guidance */}
+            <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                width: '100%',
+                backgroundColor: 'rgba(47, 74, 92, 0.95)',
+                backdropFilter: 'blur(16px)',
+                borderTop: `2px solid ${isAligned ? successColor : 'rgba(255,255,255,0.1)'}`,
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                pointerEvents: 'auto'
+            }}>
+                <div style={{
+                    color: '#FFFFFF',
+                    fontSize: 'clamp(14px, 3.5vw, 16px)',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    textAlign: 'center',
+                    letterSpacing: '0.02em'
+                }}>
+                    {isAligned ? '✓ Hold Position' : (feedbackMessage || 'Align full side body')}
+
+                    {!isAligned && feedbackMessage && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '32px',
+                            height: '32px',
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderRadius: '50%',
+                            border: '1px solid rgba(255,255,255,0.2)'
+                        }}>
+                            <svg width="20" height="20" viewBox="0 0 20 20">
+                                <g transform="translate(10, 10)">
+                                    {(feedbackMessage.toLowerCase().includes('up')) && (
+                                        <path d="M 0 -6 L -5 1 L -2 1 L -2 6 L 2 6 L 2 1 L 5 1 Z" fill="#FFFFFF">
+                                            <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                                        </path>
+                                    )}
+                                    {(feedbackMessage.toLowerCase().includes('down')) && (
+                                        <path d="M 0 6 L -5 -1 L -2 -1 L -2 -6 L 2 -6 L 2 -1 L 5 -1 Z" fill="#FFFFFF">
+                                            <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                                        </path>
+                                    )}
+                                    {(feedbackMessage.toLowerCase().includes('left')) && (
+                                        <path d="M -6 0 L 1 -5 L 1 -2 L 6 -2 L 6 2 L 1 2 L 1 5 Z" fill="#FFFFFF">
+                                            <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                                        </path>
+                                    )}
+                                    {(feedbackMessage.toLowerCase().includes('right')) && (
+                                        <path d="M 6 0 L -1 -5 L -1 -2 L -6 -2 L -6 2 L -1 2 L -1 5 Z" fill="#FFFFFF">
+                                            <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                                        </path>
+                                    )}
+                                    {(feedbackMessage.toLowerCase().includes('closer')) && (
+                                        <path d="M -7 0 L -1 -4 L -1 -1 L 1 -1 L 1 -4 L 7 0 L 1 4 L 1 1 L -1 1 L -1 4 Z" fill="#FFFFFF">
+                                            <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
+                                        </path>
+                                    )}
+                                    {(feedbackMessage.toLowerCase().includes('back')) && (
+                                        <g>
+                                            <path d="M -1 0 L -7 -4 L -7 -1 L -9 -1 L -9 1 L -7 1 L -7 4 Z" fill="#FFFFFF" />
+                                            <path d="M 1 0 L 7 -4 L 7 -1 L 9 -1 L 9 1 L 7 1 L 7 4 Z" fill="#FFFFFF" />
+                                            <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite" />
+                                        </g>
+                                    )}
+                                    {(feedbackMessage.toLowerCase().includes('turn')) && (
+                                        <g>
+                                            <circle cx="0" cy="0" r="7" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
+                                            <path d="M 5 -5 L 8 -5 L 5 -8 Z" fill="#FFFFFF" />
+                                            <animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite" />
+                                        </g>
+                                    )}
+                                </g>
+                            </svg>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };

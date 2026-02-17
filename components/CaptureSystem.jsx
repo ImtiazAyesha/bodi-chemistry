@@ -132,12 +132,13 @@ function CaptureSystem({ initialStage = 'STAGE_1_FACE', lockedMode = false }) {
 
                             if (faceResult?.faceLandmarks?.length > 0) {
                                 const fl = faceResult.faceLandmarks[0];
-                                if (showLandmarks) {
-                                    const landmarkColor = "#00FF00";
-                                    const connectorColor = "rgba(0, 255, 0, 0.3)";
-                                    drawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: connectorColor, lineWidth: 0.1 });
-                                    drawingUtils.drawLandmarks(fl, { color: landmarkColor, radius: 1 });
-                                }
+                                // Landmarks visualization removed - keeping detection only
+                                // if (showLandmarks) {
+                                //     const landmarkColor = "#00FF00";
+                                //     const connectorColor = "rgba(0, 255, 0, 0.3)";
+                                //     drawingUtils.drawConnectors(fl, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: connectorColor, lineWidth: 0.1 });
+                                //     drawingUtils.drawLandmarks(fl, { color: landmarkColor, radius: 1 });
+                                // }
                                 // Basic Face Logic (eye, jaw, tilt, nostril)
                                 const irisWidth = calculateDistance(fl[468], fl[473]) || 1;
                                 const tilt = calculateAngle(fl[33], fl[263]);
@@ -151,12 +152,13 @@ function CaptureSystem({ initialStage = 'STAGE_1_FACE', lockedMode = false }) {
 
                             if (poseResult?.landmarks?.length > 0) {
                                 const pl = poseResult.landmarks[0];
-                                if (showLandmarks) {
-                                    const landmarkColor = "#00FF00";
-                                    const connectorColor = "rgba(0, 255, 0, 0.5)";
-                                    drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: connectorColor, lineWidth: 1.5 });
-                                    drawingUtils.drawLandmarks(pl, { color: landmarkColor, radius: 2 });
-                                }
+                                // Landmarks visualization removed - keeping detection only
+                                // if (showLandmarks) {
+                                //     const landmarkColor = "#00FF00";
+                                //     const connectorColor = "rgba(0, 255, 0, 0.5)";
+                                //     drawingUtils.drawConnectors(pl, PoseLandmarker.POSE_CONNECTIONS, { color: connectorColor, lineWidth: 1.5 });
+                                //     drawingUtils.drawLandmarks(pl, { color: landmarkColor, radius: 2 });
+                                // }
                                 // Body metrics calculation logic simplified here for CaptureSystem
                                 const sh = calculateShoulderHeightAsymmetry(pl);
                                 const fhp = calculateCraniovertebralAngle(pl[0], pl[7], pl[11]);
@@ -184,12 +186,13 @@ function CaptureSystem({ initialStage = 'STAGE_1_FACE', lockedMode = false }) {
     }, [appStage, initialStage]);
 
     const checkAlignment = (stage, faceLandmarks, poseLandmarks) => {
-        // Alignment thresholds (matching CapturePage.jsx)
+        // Alignment thresholds - adjusted for centered face ghost
         if (stage === 'STAGE_1_FACE') {
             if (!faceLandmarks) return false;
             const nose = faceLandmarks[1];
-            const aligned = nose.x >= 0.4 && nose.x <= 0.6 && nose.y >= 0.25 && nose.y <= 0.45;
-            setStage1Debug({ aligned, feedbackMessage: aligned ? '' : (nose.x < 0.4 ? 'LEFT' : 'RIGHT') });
+            // Centered alignment: nose should be in the middle of the frame
+            const aligned = nose.x >= 0.4 && nose.x <= 0.6 && nose.y >= 0.35 && nose.y <= 0.55;
+            setStage1Debug({ aligned, feedbackMessage: aligned ? '' : (nose.x < 0.4 ? 'Move right' : nose.x > 0.6 ? 'Move left' : nose.y < 0.35 ? 'Move down' : 'Move up') });
             return aligned;
         }
         if (stage === 'STAGE_2_UPPER_FRONT') {
@@ -216,17 +219,18 @@ function CaptureSystem({ initialStage = 'STAGE_1_FACE', lockedMode = false }) {
         return false;
     };
 
-    // Countdown logic
+    // Countdown logic - 3 seconds total (3, 2, 1)
     useEffect(() => {
         if (isAligned && !isFrozen) {
             alignmentTimerRef.current = setInterval(() => {
                 setHoldDuration(prev => {
-                    if (prev + 100 >= 3000) {
+                    const newDuration = prev + 100;
+                    if (newDuration >= 3000) {
                         clearInterval(alignmentTimerRef.current);
                         handleCapture();
                         return 0;
                     }
-                    return prev + 100;
+                    return newDuration;
                 });
             }, 100);
         } else {
@@ -267,21 +271,33 @@ function CaptureSystem({ initialStage = 'STAGE_1_FACE', lockedMode = false }) {
                 stage4: { image: imageDataURL, metrics: { pelvicTilt: metrics.body.pelvicTilt, kneeAngle: metrics.body.kneeAngle, footArchRatio: metrics.body.footArchRatio } }
             }));
         }
+        // No automatic progression - user must choose Retake or Continue
+    };
 
-        setTimeout(() => {
-            setIsFrozen(false); setFrozenImage(null); setIsAligned(false);
-            if (lockedMode) return;
+    const handleRetake = () => {
+        setIsFrozen(false);
+        setFrozenImage(null);
+        setIsAligned(false);
+        setHoldDuration(0);
+    };
 
-            if (captureStage === 'STAGE_1_FACE') setCaptureStage('STAGE_2_UPPER_FRONT');
-            else if (captureStage === 'STAGE_2_UPPER_FRONT') setCaptureStage('STAGE_3_UPPER_SIDE');
-            else if (captureStage === 'STAGE_3_UPPER_SIDE') setCaptureStage('STAGE_4_LOWER_SIDE');
-            else {
-                // Finalize analysis
-                const integratedResults = integrateAllModalities(metrics.body, metrics.face, questionnaireData.normalizedScores);
-                setPatternResults(integratedResults);
-                setAppStage('PROCESSING');
-            }
-        }, 2000);
+    const handleContinue = () => {
+        setIsFrozen(false);
+        setFrozenImage(null);
+        setIsAligned(false);
+        setHoldDuration(0);
+
+        if (lockedMode) return;
+
+        if (captureStage === 'STAGE_1_FACE') setCaptureStage('STAGE_2_UPPER_FRONT');
+        else if (captureStage === 'STAGE_2_UPPER_FRONT') setCaptureStage('STAGE_3_UPPER_SIDE');
+        else if (captureStage === 'STAGE_3_UPPER_SIDE') setCaptureStage('STAGE_4_LOWER_SIDE');
+        else {
+            // Finalize analysis
+            const integratedResults = integrateAllModalities(metrics.body, metrics.face, questionnaireData.normalizedScores);
+            setPatternResults(integratedResults);
+            setAppStage('PROCESSING');
+        }
     };
 
     const handleRestart = () => {
@@ -311,9 +327,130 @@ function CaptureSystem({ initialStage = 'STAGE_1_FACE', lockedMode = false }) {
                 {!isFrozen && captureStage === 'STAGE_4_LOWER_SIDE' && <LowerBodySideGhost isAligned={isAligned} holdDuration={holdDuration} stage4Debug={stage4Debug} />}
 
                 {isFrozen && frozenImage && (
-                    <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: '#EFE9DF' }}>
-                        <img src={frozenImage} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} alt="Captured" />
-                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '64px', color: '#00FF00', fontWeight: '900', textAlign: 'center' }}>✓ Captured</div>
+                    <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 20,
+                        backgroundColor: '#EFE9DF',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px'
+                    }}>
+                        {/* Centered Image Card */}
+                        <div style={{
+                            position: 'relative',
+                            width: '90%',
+                            maxWidth: '500px',
+                            aspectRatio: '3/4',
+                            borderRadius: '24px',
+                            overflow: 'hidden',
+                            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                            marginBottom: '32px'
+                        }}>
+                            <img
+                                src={frozenImage}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    transform: 'scaleX(-1)'
+                                }}
+                                alt="Captured"
+                            />
+
+                            {/* Success Message Overlay on Image */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                fontSize: 'clamp(40px, 10vw, 56px)',
+                                color: '#00FF00',
+                                fontWeight: '900',
+                                textAlign: 'center',
+                                textShadow: '0 4px 30px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 255, 0, 0.6)',
+                                letterSpacing: '2px',
+                                pointerEvents: 'none'
+                            }}>
+                                ✓ Captured
+                            </div>
+                        </div>
+
+                        {/* CTA Buttons Below Card */}
+                        <div style={{
+                            display: 'flex',
+                            gap: '12px',
+                            width: '90%',
+                            maxWidth: '500px'
+                        }}>
+                            {/* Retake Button */}
+                            <button
+                                onClick={handleRetake}
+                                style={{
+                                    flex: 1,
+                                    padding: '16px 24px',
+                                    fontSize: 'clamp(16px, 4vw, 18px)',
+                                    fontWeight: '600',
+                                    color: '#2F4A5C',
+                                    backgroundColor: '#FFFFFF',
+                                    border: '2px solid #2F4A5C',
+                                    borderRadius: '12px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#2F4A5C';
+                                    e.target.style.color = '#FFFFFF';
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.15)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#FFFFFF';
+                                    e.target.style.color = '#2F4A5C';
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                                }}
+                            >
+                                Retake
+                            </button>
+
+                            {/* Continue Button */}
+                            <button
+                                onClick={handleContinue}
+                                style={{
+                                    flex: 1,
+                                    padding: '16px 24px',
+                                    fontSize: 'clamp(16px, 4vw, 18px)',
+                                    fontWeight: '600',
+                                    color: '#FFFFFF',
+                                    backgroundColor: '#00FF00',
+                                    border: '2px solid #00FF00',
+                                    borderRadius: '12px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: '0 4px 12px rgba(0, 255, 0, 0.3)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#00DD00';
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = '0 6px 16px rgba(0, 255, 0, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#00FF00';
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = '0 4px 12px rgba(0, 255, 0, 0.3)';
+                                }}
+                            >
+                                Continue
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
