@@ -223,7 +223,7 @@ export const checkStage3Alignment = (poseLandmarks) => {
 };
 
 /**
- * Check alignment for Stage 4: Lower body side capture
+ * Check alignment for Stage 4: Full body side capture (RIGHT side profile).
  * @param {Array} poseLandmarks - MediaPipe pose landmarks
  * @returns {Object} Comprehensive alignment data with debug info
  */
@@ -236,115 +236,162 @@ export const checkStage4Alignment = (poseLandmarks) => {
         };
     }
 
-    // ── Required landmarks for Stage 4: Lower Body Side ───────────────────
-    // Stage 4 = RIGHT side profile → the LEFT leg is the FRONT-FACING leg.
-    // So we only require the LEFT side's lower-leg landmarks to be visible.
-    // Arms and hands are intentionally NOT required.
+    // ── Grab all landmarks we need ─────────────────────────────────────────
     const nose = poseLandmarks[0];
+    const leftShoulder = poseLandmarks[11];
+    const rightShoulder = poseLandmarks[12];
     const leftHip = poseLandmarks[23];
     const rightHip = poseLandmarks[24];
     const leftKnee = poseLandmarks[25];
     const leftAnkle = poseLandmarks[27];
-    const leftHeel = poseLandmarks[29];  // front-leg heel
-    const leftFoot = poseLandmarks[31];  // front-leg foot index
+    const leftHeel = poseLandmarks[29];
+    const leftFoot = poseLandmarks[31];
 
-    // Use isVisible() — NOT a simple null check — because MediaPipe always
-    // returns a landmark object even for off-screen body parts.
+    // Both hips are required to compute orientation — bail early if missing.
+    if (!isVisible(leftHip) || !isVisible(rightHip)) {
+        return {
+            aligned: false,
+            feedbackMessage: 'TURN SIDEWAYS & SHOW HIPS',
+            feedbackIcon: '↻'
+        };
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ✅ GATE 1 — SIDE-VIEW ORIENTATION (PRIMARY GATE)
+    //
+    // In a true side profile the two hips stack almost directly behind each
+    // other, so their X-coordinates are very close together.
+    // Threshold < 0.10 means the hips are within 10% of frame width apart.
+    //
+    // We ALSO check shoulder separation as a second confirmation:
+    // shoulders must be similarly stacked (< 0.12) to rule out a pose where
+    // the hips happen to be close but the torso is still facing forward.
+    // ══════════════════════════════════════════════════════════════════════
+    const hipDistance = Math.abs(leftHip.x - rightHip.x);
+
+    // Shoulder separation — only meaningful if both shoulders are visible.
+    const shouldersVisible = isVisible(leftShoulder) && isVisible(rightShoulder);
+    const shoulderDistance = shouldersVisible
+        ? Math.abs(leftShoulder.x - rightShoulder.x)
+        : 0; // treat as "not blocking" if shoulders are off-frame
+
+    // Primary side-view gate: hips must be stacked tightly.
+    const hipsAreSideOn = hipDistance < 0.10;
+    // Secondary confirmation: if shoulders ARE visible they must also be stacked.
+    const shouldersAreSideOn = !shouldersVisible || shoulderDistance < 0.13;
+
+    const isSideView = hipsAreSideOn && shouldersAreSideOn;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ✅ GATE 2 — RIGHT-SIDE DIRECTION (Z-depth)
+    //
+    // For a RIGHT side profile the left hip is CLOSER to the camera
+    // (more negative Z in MediaPipe's coordinate system).
+    // We require a clear separation of at least 0.05 to avoid noise.
+    // ══════════════════════════════════════════════════════════════════════
+    const leftHipZ = leftHip.z || 0;
+    const rightHipZ = rightHip.z || 0;
+    const zDepthDifference = leftHipZ - rightHipZ;
+    const isRightSide = leftHipZ < rightHipZ - 0.05;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ✅ GATE 3 — LANDMARK VISIBILITY
+    //
+    // Only checked AFTER orientation is confirmed, so a front-facing user
+    // never gets "SHOW YOUR KNEE" when they should be turning first.
+    // ══════════════════════════════════════════════════════════════════════
     const hasHead = isVisible(nose);
-    const hasHips = isVisible(leftHip) && isVisible(rightHip);
+    const hasHips = isVisible(leftHip) && isVisible(rightHip); // already confirmed above
 
-    // LEFT knee must be in the lower half of the frame (y > 0.45).
-    // The left knee is the front-facing one in a right side profile.
-    const isKneeInFrame = (lm) => isVisible(lm) && lm.y > 0.45;
-    const hasKnee = isKneeInFrame(leftKnee);
+    // In a right side profile the LEFT leg is the front-facing leg.
+    // Knee must be in the lower half of the frame (y > 0.45).
+    const hasKnee = isVisible(leftKnee) && leftKnee.y > 0.45;
 
-    // For the front-leg (LEFT) ankle/heel/foot, require y > 0.70 (lower 30%
-    // of frame). We check all three left-side lower-leg points and require
-    // AT LEAST 2 to be confirmed — a single extrapolated point near the edge
-    // can still slip through, but two independent points cannot both be faked.
+    // Require at least 2 of the 3 lower-left-leg points to be in the bottom
+    // 30 % of the frame (y > 0.70) — guards against extrapolated edge points.
     const isFootInFrame = (lm) => isVisible(lm) && lm.y > 0.70;
     const frontLegPointsVisible = [leftAnkle, leftHeel, leftFoot].filter(isFootInFrame).length;
     const hasFeet = frontLegPointsVisible >= 2;
 
     const hasRequiredLandmarks = hasHead && hasHips && hasKnee && hasFeet;
 
-    // We still need both hips to compute side-view metrics
-    if (!isVisible(leftHip) || !isVisible(rightHip)) {
-        return {
-            aligned: false,
-            feedbackMessage: 'HIPS NOT DETECTED',
-            feedbackIcon: '❌'
-        };
-    }
-
-    // ✅ CHECK 1: Hip Distance (Side View Detection)
-    const hipDistance = Math.abs(leftHip.x - rightHip.x);
-    const isSideView = hipDistance < 0.08; // VERY STRICT for 80-90% side profile
-
-    // ✅ CHECK 2: Z-Depth (Right Side Verification)
-    const leftHipZ = leftHip.z || 0;
-    const rightHipZ = rightHip.z || 0;
-    const zDepthDifference = leftHipZ - rightHipZ;
-    const isRightSide = leftHipZ < rightHipZ - 0.05;
-
-    // ✅ CHECK 3: Front-leg (LEFT) foot confirmed in-frame.
-    // Since we only track the left (front-facing) leg in a right side profile,
-    // there is no right-side foot to compare X-distance against.
-    // feetAligned simply mirrors hasFeet — the ≥2 point check above already
-    // provides the strictness needed to block off-screen extrapolation.
-    const feetAligned = hasFeet;
-    const footDistance = null;
-    const feetDetectionMethod = hasFeet ? 'left leg (front-facing)' : 'not detected';
-
-    // ✅ CHECK 4: Frame Positioning
+    // ══════════════════════════════════════════════════════════════════════
+    // ✅ GATE 4 — FRAME POSITIONING (centering)
+    // ══════════════════════════════════════════════════════════════════════
     const hipCenterX = (leftHip.x + rightHip.x) / 2;
     const hipCenterY = (leftHip.y + rightHip.y) / 2;
     const isHorizontallyCentered = hipCenterX >= 0.35 && hipCenterX <= 0.65;
     const isVerticallyCentered = hipCenterY >= 0.30 && hipCenterY <= 0.70;
     const isInFrame = isHorizontallyCentered && isVerticallyCentered;
 
-    // ✅ FINAL ALIGNMENT CHECK
-    const aligned = hasRequiredLandmarks && isSideView && isRightSide && feetAligned && isInFrame;
+    // ══════════════════════════════════════════════════════════════════════
+    // ✅ FINAL ALIGNMENT — ALL GATES MUST PASS
+    // ══════════════════════════════════════════════════════════════════════
+    const aligned = isSideView && isRightSide && hasRequiredLandmarks && isInFrame;
 
-    // ── Feedback (priority: missing landmarks first, then orientation, then position) ──
+    // ── Debug logging ──────────────────────────────────────────────────────
+    console.log('Stage 4 Debug:', {
+        hipDistance: hipDistance.toFixed(3),
+        shoulderDistance: shoulderDistance.toFixed(3),
+        hipsAreSideOn,
+        shouldersAreSideOn,
+        isSideView,
+        leftHipZ: leftHipZ.toFixed(3),
+        rightHipZ: rightHipZ.toFixed(3),
+        isRightSide,
+        hasHead,
+        hasKnee,
+        hasFeet,
+        hasRequiredLandmarks,
+        hipCenterX: hipCenterX.toFixed(3),
+        hipCenterY: hipCenterY.toFixed(3),
+        isInFrame,
+        aligned
+    });
+
+    // ── Feedback (GATE ORDER drives priority) ─────────────────────────────
+    // Gate 1 (orientation) is always evaluated first so a front-facing user
+    // always sees "TURN TO YOUR RIGHT SIDE" before any landmark feedback.
     let feedbackMessage = '';
     let feedbackIcon = '';
 
-    if (!hasHead) {
+    if (!isSideView) {
+        // Primary gate failed — user is not turned sideways yet.
+        if (hipDistance >= 0.25) {
+            feedbackMessage = 'TURN TO YOUR RIGHT SIDE';   // clearly front-facing
+        } else {
+            feedbackMessage = 'TURN MORE TO YOUR RIGHT';   // partially turned
+        }
+        feedbackIcon = '↻';
+    } else if (!isRightSide) {
+        // Turned sideways but facing the wrong direction.
+        feedbackMessage = 'TURN TO YOUR RIGHT (NOT LEFT)';
+        feedbackIcon = '↻';
+    } else if (!hasHead) {
         feedbackMessage = 'SHOW YOUR HEAD';
         feedbackIcon = '⬆️';
-    } else if (!hasHips) {
-        feedbackMessage = 'HIPS NOT VISIBLE';
-        feedbackIcon = '❌';
     } else if (!hasKnee) {
         feedbackMessage = 'SHOW YOUR KNEE';
         feedbackIcon = '⬇️';
     } else if (!hasFeet) {
         feedbackMessage = 'STEP BACK - SHOW FULL LEGS';
         feedbackIcon = '⬆️';
-    } else if (!isSideView) {
-        feedbackMessage = 'TURN TO YOUR RIGHT SIDE';
-        feedbackIcon = '↻';
-    } else if (!isRightSide) {
-        feedbackMessage = 'TURN TO YOUR RIGHT (NOT LEFT)';
-        feedbackIcon = '↻';
-    } else if (!feetAligned && footDistance !== null) {
-        feedbackMessage = 'TURN YOUR FEET SIDEWAYS TOO';
-        feedbackIcon = '↻';
     } else if (!isHorizontallyCentered) {
         if (hipCenterX < 0.35) {
             feedbackMessage = hipCenterX < 0.25 ? 'MOVE LEFT' : 'A BIT LEFT';
+            feedbackIcon = '⬅';
         } else {
             feedbackMessage = hipCenterX > 0.75 ? 'MOVE RIGHT' : 'A BIT RIGHT';
+            feedbackIcon = '➡️';
         }
-        feedbackIcon = hipCenterX < 0.35 ? '⬅' : '➡️';
     } else if (!isVerticallyCentered) {
         if (hipCenterY > 0.70) {
             feedbackMessage = hipCenterY > 0.80 ? 'STEP BACK' : 'A BIT BACK';
+            feedbackIcon = '⬆️';
         } else {
             feedbackMessage = hipCenterY < 0.20 ? 'COME CLOSER' : 'A BIT CLOSER';
+            feedbackIcon = '⬇️';
         }
-        feedbackIcon = hipCenterY > 0.70 ? '⬆️' : '⬇️';
     } else {
         feedbackMessage = 'PERFECT! HOLD STILL';
         feedbackIcon = '✓';
@@ -354,14 +401,17 @@ export const checkStage4Alignment = (poseLandmarks) => {
         aligned,
         feedbackMessage,
         feedbackIcon,
+        // Debug fields
         hipDistance: hipDistance.toFixed(3),
+        shoulderDistance: shoulderDistance.toFixed(3),
+        hipsAreSideOn,
+        shouldersAreSideOn,
         isSideView,
         leftHipZ: leftHipZ.toFixed(3),
         rightHipZ: rightHipZ.toFixed(3),
         zDepthDifference: zDepthDifference.toFixed(3),
         isRightSide,
-        footDistance: footDistance ? footDistance.toFixed(3) : 'not detected',
-        feetAligned,
+        hasFeet,
         hipPosition: {
             x: hipCenterX.toFixed(3),
             y: hipCenterY.toFixed(3)
