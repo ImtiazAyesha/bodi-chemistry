@@ -172,7 +172,7 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
                 ]
               },
               {
-                title: "Anterior Upper", data: captureData.stage2, color: "border-brand-deepSage", metrics: [
+                title: "Anterior Full", data: captureData.stage2, color: "border-brand-deepSage", metrics: [
                   { l: "Shoulder Ht", v: captureData.stage2.metrics.shoulderHeight }
                 ]
               },
@@ -182,7 +182,7 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
                 ]
               },
               {
-                title: "Lateral Lower", data: captureData.stage4, color: "border-brand-sage/50", metrics: [
+                title: "Lateral Full", data: captureData.stage4, color: "border-brand-sage/50", metrics: [
                   { l: "Pelvic Tilt", v: `${captureData.stage4.metrics.pelvicTilt}°` },
                   { l: "Knee Angle", v: `${captureData.stage4.metrics.kneeAngle}°` }
                 ]
