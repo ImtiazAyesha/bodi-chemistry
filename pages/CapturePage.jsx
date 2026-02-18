@@ -537,40 +537,66 @@ function CapturePage() {
         };
     }, [isAligned, showResults]);
 
-    // ✨ COMPLETELY FIXED: Capture frame WITHOUT letterboxing (no black bars!)
-    const captureCleanFrame = () => {
+    const captureFrameWithLandmarks = (faceLandmarks, poseLandmarks, isStage4) => {
         const video = webcamRef.current?.video;
         if (!video) {
             console.error('❌ Video not available for capture');
             return null;
         }
 
-        // ✨ KEY FIX: Create canvas that matches VIDEO aspect ratio, not a fixed size
-        // This eliminates black bars completely!
+        // Create canvas matching the video's native aspect ratio (no black bars)
         const tempCanvas = document.createElement('canvas');
-
-        // Use video's natural dimensions to preserve aspect ratio
         const videoAspect = video.videoWidth / video.videoHeight;
-
-        // Set canvas to a reasonable size while maintaining video aspect ratio
         const targetWidth = 720;
         tempCanvas.width = targetWidth;
-        tempCanvas.height = targetWidth / videoAspect;
+        tempCanvas.height = Math.round(targetWidth / videoAspect);
 
         const ctx = tempCanvas.getContext('2d');
 
-        // Draw video to fill entire canvas (no letterboxing!)
+        // Step 1: Draw the clean video frame
         ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
-        // Log capture dimensions for debugging
-        console.log(`✅ Captured clean image: ${tempCanvas.width}x${tempCanvas.height}px (from video ${video.videoWidth}x${video.videoHeight}, aspect: ${videoAspect.toFixed(2)})`);
+        // Step 2: Bake landmarks directly on top — same canvas, same coordinate space
+        // DrawingUtils multiplies normalized (0-1) coords by canvas.width/canvas.height,
+        // so as long as we draw on this canvas they will always be perfectly aligned.
+        try {
+            const drawingUtils = new DrawingUtils(ctx);
 
-        // Show flash effect
+            // Face landmarks (Stages 1, 2, 3)
+            if (!isStage4 && faceLandmarks && faceLandmarks.length > 0) {
+                drawingUtils.drawConnectors(
+                    faceLandmarks,
+                    FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+                    { color: 'rgba(0, 255, 0, 0.3)', lineWidth: 0.5 }
+                );
+                drawingUtils.drawLandmarks(
+                    faceLandmarks,
+                    { color: '#00FF00', radius: 1.5, fillColor: '#00FF00' }
+                );
+            }
+
+            // Pose landmarks (All stages)
+            if (poseLandmarks && poseLandmarks.length > 0) {
+                drawingUtils.drawConnectors(
+                    poseLandmarks,
+                    PoseLandmarker.POSE_CONNECTIONS,
+                    { color: 'rgba(0, 255, 0, 0.6)', lineWidth: 2 }
+                );
+                drawingUtils.drawLandmarks(
+                    poseLandmarks,
+                    { color: '#00FF00', radius: 3, fillColor: '#00FF00' }
+                );
+            }
+        } catch (err) {
+            console.warn('captureFrameWithLandmarks: landmark draw error', err);
+        }
+
+        console.log(`✅ Captured composite image: ${tempCanvas.width}x${tempCanvas.height}px (video: ${video.videoWidth}x${video.videoHeight})`);
+
         showFlashEffect();
-
-        // Return clean image data URL (no landmarks, no black bars!)
         return tempCanvas.toDataURL('image/jpeg', 0.95);
     };
+
 
     // Flash effect on capture
     const showFlashEffect = () => {
@@ -750,34 +776,15 @@ function CapturePage() {
     const handleCapture = () => {
         if (!isAligned) return;
 
-
-
-        // Step 1: Capture frame FIRST (from hidden canvas with landmarks)
-        const imageDataURL = captureCleanFrame();
-        if (!imageDataURL) return;
-
-        // Step 2: Freeze the screen immediately
-        setIsFrozen(true);
-        setFrozenImage(imageDataURL);
-
-        // Step 3: Validate landmarks on the CURRENT frame (same moment as capture)
-        const validation = validateCapturedLandmarks(captureStage);
-
-        if (!validation.isValid) {
-            // Validation FAILED - Auto-retry
-            handleAutoRetry(validation.error);
-            return;
-        }
-
-        // Step 4: Capture landmarks at the moment of capture
         const video = webcamRef.current?.video;
         const now = performance.now();
+        const isStage4 = captureStage === 'STAGE_4_LOWER_SIDE';
 
+        // Step 1: Detect landmarks at the exact moment of capture
         let faceLandmarks = null;
         let poseLandmarks = null;
 
-        // Detect landmarks based on stage
-        if (captureStage === 'STAGE_1_FACE' && faceLandmarkerRef.current) {
+        if (!isStage4 && faceLandmarkerRef.current) {
             const faceResult = faceLandmarkerRef.current.detectForVideo(video, now);
             faceLandmarks = faceResult?.faceLandmarks?.[0] || null;
         }
@@ -787,7 +794,26 @@ function CapturePage() {
             poseLandmarks = poseResult?.landmarks?.[0] || null;
         }
 
-        // Step 5: Save capture data with landmarks (only if validation passed)
+        // Step 2: Capture composite image (video frame + landmarks baked in)
+        // This is the ONLY reliable approach — see captureFrameWithLandmarks() comments.
+        const imageDataURL = captureFrameWithLandmarks(faceLandmarks, poseLandmarks, isStage4);
+        if (!imageDataURL) return;
+
+        // Step 3: Freeze the screen immediately
+        setIsFrozen(true);
+        setFrozenImage(imageDataURL);
+
+        // Step 4: Validate landmarks
+        const validation = validateCapturedLandmarks(captureStage);
+        if (!validation.isValid) {
+            handleAutoRetry(validation.error);
+            return;
+        }
+
+        // Step 5: Save capture data
+        // NOTE: landmarks are now BAKED INTO the image — no separate landmark data needed.
+        // The `landmarks` field is kept for backward compatibility but is no longer used
+        // by ResultsScreen to draw an overlay.
         switch (captureStage) {
             case 'STAGE_1_FACE':
                 setCaptureData(prev => ({
@@ -800,10 +826,7 @@ function CapturePage() {
                             headTilt: metrics.face.headTilt,
                             nostrilAsym: metrics.face.nostrilAsym
                         },
-                        landmarks: {
-                            face: faceLandmarks,
-                            pose: null
-                        }
+                        landmarks: null  // baked into image
                     }
                 }));
                 break;
@@ -814,10 +837,7 @@ function CapturePage() {
                     stage2: {
                         image: imageDataURL,
                         metrics: { shoulderHeight: metrics.body.shoulderHeight },
-                        landmarks: {
-                            face: null,
-                            pose: poseLandmarks
-                        }
+                        landmarks: null  // baked into image
                     }
                 }));
                 break;
@@ -828,10 +848,7 @@ function CapturePage() {
                     stage3: {
                         image: imageDataURL,
                         metrics: { fhpAngle: metrics.body.fhpAngle },
-                        landmarks: {
-                            face: null,
-                            pose: poseLandmarks
-                        }
+                        landmarks: null  // baked into image
                     }
                 }));
                 break;
@@ -846,16 +863,13 @@ function CapturePage() {
                             kneeAngle: metrics.body.kneeAngle,
                             footArchRatio: metrics.body.footArchRatio
                         },
-                        landmarks: {
-                            face: null,
-                            pose: poseLandmarks
-                        }
+                        landmarks: null  // baked into image
                     }
                 }));
                 break;
         }
 
-        // Show Retake/Continue buttons instead of auto-advancing
+        // Show Retake/Continue buttons
         setShowReviewButtons(true);
     };
 
