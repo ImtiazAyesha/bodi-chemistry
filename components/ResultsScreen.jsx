@@ -8,6 +8,7 @@ import PatternCard from './PatternCard';
  * Results Screen Component
  * Displays all 4 captured images and calculated metrics
  */
+
 const ResultsScreen = ({ captureData, questionnaireData, patternResults, onRestart }) => {
   // Calculate overall score
   const calculateOverallScore = () => {
@@ -195,12 +196,12 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
                 transition={{ delay: i * 0.1 }}
                 className="bg-white border border-brand-sage/10 rounded-3xl overflow-hidden hover:border-brand-sage/40 hover:shadow-brand transition-all duration-500 group"
               >
-                <div className="relative aspect-[3/4] bg-brand-sand overflow-hidden">
+                <div className="relative bg-black overflow-hidden">
                   {item.data.image ? (
                     <img
                       src={item.data.image}
                       alt={item.title}
-                      className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
+                      className="w-full h-auto block grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full text-brand-deepSage/40 text-[10px] uppercase font-display font-bold">No Data Signal</div>
