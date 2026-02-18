@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FiZap } from 'react-icons/fi';
 import { generatePDF } from '../utils/pdfGenerator';
@@ -93,6 +93,16 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
   };
 
   const score = calculateOverallScore();
+
+  // One ref per captured image — declared at component level to satisfy React's
+  // Rules of Hooks (hooks must not be called inside loops, conditions, or nested functions).
+  // LandmarkOverlay reads imageRef.current.naturalWidth/naturalHeight to set its
+  // canvas pixel buffer, ensuring landmarks align perfectly with the actual image.
+  const imgRef0 = useRef(null);
+  const imgRef1 = useRef(null);
+  const imgRef2 = useRef(null);
+  const imgRef3 = useRef(null);
+  const imgRefs = [imgRef0, imgRef1, imgRef2, imgRef3];
 
   return (
     <div className="min-h-screen bg-brand-sand text-brand-slate overflow-y-auto overflow-x-hidden relative selection:bg-brand-sage/30 pb-12 sm:pb-20">
@@ -199,16 +209,21 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
                 <div className="relative aspect-[3/4] bg-brand-sand overflow-hidden">
                   {item.data.image ? (
                     <>
-                      <img src={ item.data.image } alt={ item.title } className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700" />
+                      {/* imageRef lets LandmarkOverlay read naturalWidth/naturalHeight */}
+                      <img
+                        ref={imgRefs[i]}
+                        src={item.data.image}
+                        alt={item.title}
+                        className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
+                      />
 
-                      {/* Landmark Overlay */ }
-                      { item.data.landmarks && (
+                      {/* Landmark Overlay — imageRef replaces hardcoded width/height */}
+                      {item.data.landmarks && (
                         <LandmarkOverlay
-                          landmarks={ item.data.landmarks }
-                          width={ 960 }
-                          height={ 720 }
+                          landmarks={item.data.landmarks}
+                          imageRef={imgRefs[i]}
                         />
-                      ) }
+                      )}
                     </>
                   ) : (
                     <div className="flex items-center justify-center h-full text-brand-deepSage/40 text-[10px] uppercase font-display font-bold">No Data Signal</div>
