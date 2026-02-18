@@ -63,25 +63,6 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
         </div>
       </div>
 
-      {/*
-        SVG Ghost — always centered in the space between badge and footer.
-        Key fixes vs. the old version:
-          1. No more `position: absolute` + `top: 45%` which caused the ghost
-             to drift off-screen when mobile browser chrome (address/nav bars)
-             changed the effective viewport height in production.
-          2. The viewBox is 480 × 960 (1 : 2 portrait). We now give the SVG a
-             matching 1 : 2 aspect ratio so the face silhouette sits exactly
-             where the viewBox geometry says it should — at the vertical midpoint
-             of the rendered element — instead of being crammed into a square
-             container where it appeared in the top half.
-          3. Width is capped at `min(55vw, 38svh)` so the ghost never exceeds
-             the available width on narrow phones, and `38svh` (half of 76svh
-             available height) keeps the 2 : 1 tall SVG fully on-screen even on
-             short devices like iPhone SE. `svh` (small viewport height) already
-             excludes the mobile browser chrome, so this is production-safe.
-          4. `flex: 1` + `display: flex` + `align/justify: center` on the
-             wrapper div lets the browser do the centering — no magic numbers.
-      */}
       <div style={{
         flex: 1,
         display: 'flex',
@@ -114,7 +95,7 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
           </defs>
 
           {/* FACE SILHOUETTE - Centered for professional capture */}
-          <g transform="translate(240, 400)" clipPath="url(#head-mask)">
+          <g transform="translate(240, 460)" clipPath="url(#head-mask)">
 
             {/* Centered Glow effect */}
             {isAligned && (
