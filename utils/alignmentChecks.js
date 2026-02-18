@@ -1,7 +1,9 @@
-/**
- * Stage-specific alignment validation functions
- * Extracted from CapturePage.jsx for modularity
- */
+const isVisible = (lm) => {
+    if (!lm) return false;
+    const inFrame = lm.x >= 0 && lm.x <= 1 && lm.y >= 0 && lm.y <= 1;
+    const confident = lm.visibility === undefined || lm.visibility > 0.4;
+    return inFrame && confident;
+};
 
 /**
  * Check alignment for Stage 1: Face capture
@@ -57,49 +59,75 @@ export const checkStage2Alignment = (poseLandmarks) => {
         return { aligned: false, feedbackMessage: 'BODY NOT DETECTED', feedbackIcon: '❌' };
     }
 
-    // Get shoulder and hip landmarks
+    // ── Required landmarks for Stage 2: Upper Body Front ──────────────────
+    // Must be VISIBLY IN-FRAME: head, shoulders, hips, knees, ankles/feet.
+    // Arms and hands are intentionally NOT required.
+    const nose = poseLandmarks[0];
     const leftShoulder = poseLandmarks[11];
     const rightShoulder = poseLandmarks[12];
     const leftHip = poseLandmarks[23];
     const rightHip = poseLandmarks[24];
+    const leftKnee = poseLandmarks[25];
+    const rightKnee = poseLandmarks[26];
+    const leftAnkle = poseLandmarks[27];
+    const rightAnkle = poseLandmarks[28];
+    const leftFoot = poseLandmarks[31];
+    const rightFoot = poseLandmarks[32];
 
-    // Validate all landmarks exist
-    if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) {
-        return { aligned: false, feedbackMessage: 'SHOW FULL BODY', feedbackIcon: '⬇️' };
-    }
+    // Use isVisible() — NOT a simple null check — because MediaPipe always
+    // returns a landmark object even for off-screen body parts. The coords
+    // just go outside 0–1. isVisible() catches that.
+    const hasHead = isVisible(nose);
+    const hasShoulders = isVisible(leftShoulder) && isVisible(rightShoulder);
+    const hasHips = isVisible(leftHip) && isVisible(rightHip);
+    const hasKnees = isVisible(leftKnee) && isVisible(rightKnee);
+    // Accept either foot index OR ankle as the foot landmark
+    const hasFeet = (isVisible(leftFoot) && isVisible(rightFoot))
+        || (isVisible(leftAnkle) && isVisible(rightAnkle));
 
-    // Calculate shoulder center
-    const shoulderCenterX = (leftShoulder.x + rightShoulder.x) / 2;
-    const shoulderCenterY = (leftShoulder.y + rightShoulder.y) / 2;
+    const hasFullBody = hasHead && hasShoulders && hasHips && hasKnees && hasFeet;
 
-    // Calculate hip center
-    const hipCenterX = (leftHip.x + rightHip.x) / 2;
-    const hipCenterY = (leftHip.y + rightHip.y) / 2;
-
-    // Calculate torso center (midpoint between shoulders and hips)
+    // ── Torso-centre positioning ───────────────────────────────────────────
+    // Only meaningful when shoulders + hips are detected
+    const shoulderCenterX = hasShoulders ? (leftShoulder.x + rightShoulder.x) / 2 : 0.5;
+    const shoulderCenterY = hasShoulders ? (leftShoulder.y + rightShoulder.y) / 2 : 0.5;
+    const hipCenterX = hasHips ? (leftHip.x + rightHip.x) / 2 : 0.5;
+    const hipCenterY = hasHips ? (leftHip.y + rightHip.y) / 2 : 0.5;
     const torsoCenterX = (shoulderCenterX + hipCenterX) / 2;
     const torsoCenterY = (shoulderCenterY + hipCenterY) / 2;
 
-    // Full body alignment: centered horizontally, middle of frame vertically
     const isXAligned = torsoCenterX >= 0.42 && torsoCenterX <= 0.58;
     const isYAligned = torsoCenterY >= 0.35 && torsoCenterY <= 0.55;
 
-    // Generate granular feedback
+    // ── Feedback (priority: missing landmarks first, then positioning) ─────
     let feedbackMsg = '';
     let feedbackIcon = '';
 
-    if (!isXAligned) {
-        if (torsoCenterX < 0.40) {
+    if (!hasHead) {
+        feedbackMsg = 'SHOW YOUR HEAD';
+        feedbackIcon = '⬆️';
+    } else if (!hasShoulders) {
+        feedbackMsg = 'SHOW YOUR SHOULDERS';
+        feedbackIcon = '⬆️';
+    } else if (!hasHips) {
+        feedbackMsg = 'SHOW YOUR HIPS';
+        feedbackIcon = '⬇️';
+    } else if (!hasKnees) {
+        feedbackMsg = 'SHOW YOUR KNEES';
+        feedbackIcon = '⬇️';
+    } else if (!hasFeet) {
+        feedbackMsg = 'STEP BACK - SHOW FULL LEGS';
+        feedbackIcon = '⬆️';
+    } else if (!isXAligned) {
+        if (torsoCenterX < 0.42) {
             feedbackMsg = torsoCenterX < 0.30 ? 'MOVE LEFT' : 'A BIT LEFT';
+            feedbackIcon = '⬅';
         } else {
             feedbackMsg = torsoCenterX > 0.70 ? 'MOVE RIGHT' : 'A BIT RIGHT';
+            feedbackIcon = '➡️';
         }
-        feedbackIcon = torsoCenterX < 0.40 ? '⬅' : '➡️';
     } else if (!isYAligned) {
-        // For full body capture, Y position indicates distance
-        // High Y (torso low in frame) = TOO CLOSE → need to step back
-        // Low Y (torso high in frame) = TOO FAR → need to come closer
-        if (torsoCenterY > 0.60) {
+        if (torsoCenterY > 0.55) {
             feedbackMsg = torsoCenterY > 0.70 ? 'STEP BACK' : 'A BIT BACK';
             feedbackIcon = '⬆️';
         } else {
@@ -108,32 +136,7 @@ export const checkStage2Alignment = (poseLandmarks) => {
         }
     }
 
-    // Check full body landmarks (shoulders + hips + feet/ankles)
-    const leftAnkle = poseLandmarks[27];
-    const rightAnkle = poseLandmarks[28];
-    const leftFoot = poseLandmarks[31];
-    const rightFoot = poseLandmarks[32];
-
-    const hasShoulders = !!(leftShoulder && rightShoulder);
-    const hasHips = !!(leftHip && rightHip);
-    const hasFeet = !!((leftFoot && rightFoot) || (leftAnkle && rightAnkle));
-    const hasFullBody = hasShoulders && hasHips && hasFeet;
-
-    // Update feedback if landmarks missing
-    if (!hasFullBody) {
-        if (!hasShoulders) {
-            feedbackMsg = 'SHOW SHOULDERS';
-            feedbackIcon = '⬆️';
-        } else if (!hasHips) {
-            feedbackMsg = 'SHOW HIPS';
-            feedbackIcon = '⬇️';
-        } else if (!hasFeet) {
-            feedbackMsg = 'STEP BACK - SHOW FULL BODY';
-            feedbackIcon = '⬆️';
-        }
-    }
-
-    const aligned = isXAligned && isYAligned && hasFullBody;
+    const aligned = hasFullBody && isXAligned && isYAligned;
 
     return {
         aligned,
@@ -233,10 +236,33 @@ export const checkStage4Alignment = (poseLandmarks) => {
         };
     }
 
+    // ── Required landmarks for Stage 4: Lower Body Side ───────────────────
+    // Must be VISIBLY IN-FRAME: head, hip, knee, ankle/foot.
+    // Arms and hands are intentionally NOT required.
+    const nose = poseLandmarks[0];
     const leftHip = poseLandmarks[23];
     const rightHip = poseLandmarks[24];
+    const leftKnee = poseLandmarks[25];
+    const rightKnee = poseLandmarks[26];
+    const leftAnkle = poseLandmarks[27];
+    const rightAnkle = poseLandmarks[28];
+    const leftFoot = poseLandmarks[31];
+    const rightFoot = poseLandmarks[32];
 
-    if (!leftHip || !rightHip) {
+    // Use isVisible() — NOT a simple null check — because MediaPipe always
+    // returns a landmark object even for off-screen body parts.
+    const hasHead = isVisible(nose);
+    const hasHips = isVisible(leftHip) && isVisible(rightHip);
+    // In a side view only one knee may be clearly visible; require at least one
+    const hasKnee = isVisible(leftKnee) || isVisible(rightKnee);
+    // Accept either foot index OR ankle
+    const hasFeet = (isVisible(leftFoot) || isVisible(rightFoot))
+        || (isVisible(leftAnkle) || isVisible(rightAnkle));
+
+    const hasRequiredLandmarks = hasHead && hasHips && hasKnee && hasFeet;
+
+    // We still need both hips to compute side-view metrics
+    if (!isVisible(leftHip) || !isVisible(rightHip)) {
         return {
             aligned: false,
             feedbackMessage: 'HIPS NOT DETECTED',
@@ -252,23 +278,18 @@ export const checkStage4Alignment = (poseLandmarks) => {
     const leftHipZ = leftHip.z || 0;
     const rightHipZ = rightHip.z || 0;
     const zDepthDifference = leftHipZ - rightHipZ;
-    const isRightSide = leftHipZ < rightHipZ - 0.05; // STRICT for clear depth separation
+    const isRightSide = leftHipZ < rightHipZ - 0.05;
 
-    // ✅ CHECK 3: Feet Distance (Optional Bonus Check)
-    const leftAnkle = poseLandmarks[27];
-    const rightAnkle = poseLandmarks[28];
-    const leftFoot = poseLandmarks[31];
-    const rightFoot = poseLandmarks[32];
-
+    // ✅ CHECK 3: Feet side-alignment (both feet should be roughly at same X)
     let feetAligned = true;
     let footDistance = null;
     let feetDetectionMethod = 'not detected';
 
-    if (leftFoot && rightFoot) {
+    if (isVisible(leftFoot) && isVisible(rightFoot)) {
         footDistance = Math.abs(leftFoot.x - rightFoot.x);
-        feetAligned = footDistance < 0.10; // STRICT for true side stance
+        feetAligned = footDistance < 0.10;
         feetDetectionMethod = 'feet landmarks';
-    } else if (leftAnkle && rightAnkle) {
+    } else if (isVisible(leftAnkle) && isVisible(rightAnkle)) {
         footDistance = Math.abs(leftAnkle.x - rightAnkle.x);
         feetAligned = footDistance < 0.10;
         feetDetectionMethod = 'ankle landmarks (fallback)';
@@ -281,22 +302,26 @@ export const checkStage4Alignment = (poseLandmarks) => {
     const isVerticallyCentered = hipCenterY >= 0.30 && hipCenterY <= 0.70;
     const isInFrame = isHorizontallyCentered && isVerticallyCentered;
 
-    // ✅ CHECK 5: Landmark Visibility (Ankles + Shoulders)
-    const leftShoulder = poseLandmarks[11];
-    const rightShoulder = poseLandmarks[12];
-
-    const hasShoulders = !!(leftShoulder && rightShoulder);
-    const hasAnkles = !!(leftAnkle && rightAnkle);
-    const hasRequiredLandmarks = hasShoulders && hasAnkles;
-
     // ✅ FINAL ALIGNMENT CHECK
-    const aligned = isSideView && isRightSide && feetAligned && isInFrame && hasRequiredLandmarks;
+    const aligned = hasRequiredLandmarks && isSideView && isRightSide && feetAligned && isInFrame;
 
-    // Enhanced Feedback Messages (PRIORITY ORDER)
+    // ── Feedback (priority: missing landmarks first, then orientation, then position) ──
     let feedbackMessage = '';
     let feedbackIcon = '';
 
-    if (!isSideView) {
+    if (!hasHead) {
+        feedbackMessage = 'SHOW YOUR HEAD';
+        feedbackIcon = '⬆️';
+    } else if (!hasHips) {
+        feedbackMessage = 'HIPS NOT VISIBLE';
+        feedbackIcon = '❌';
+    } else if (!hasKnee) {
+        feedbackMessage = 'SHOW YOUR KNEE';
+        feedbackIcon = '⬇️';
+    } else if (!hasFeet) {
+        feedbackMessage = 'STEP BACK - SHOW FULL LEGS';
+        feedbackIcon = '⬆️';
+    } else if (!isSideView) {
         feedbackMessage = 'TURN TO YOUR RIGHT SIDE';
         feedbackIcon = '↻';
     } else if (!isRightSide) {

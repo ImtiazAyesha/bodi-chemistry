@@ -228,33 +228,40 @@ function CapturePage() {
 
                     const shouldRunInference = (now - lastInferenceTimeRef.current) >= INFERENCE_INTERVAL_MS;
 
-                    // ✅ FULLY COMPATIBLE FIX: Dynamically sync BOTH canvases to the ACTUAL
-                    // video resolution delivered by this device at runtime.
-                    // This eliminates all offsetX/offsetY letterboxing — the live canvas,
-                    // capture canvas, and MediaPipe all share the exact same coordinate space
-                    // on every phone (Infinix Note 40, Samsung S24 FE, iPhone, etc.)
-                    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
+                    // ✨ FIXED: Draw video with proper aspect ratio preservation
+                    // Calculate aspect ratios
+                    const videoAspect = video.videoWidth / video.videoHeight;
+                    const canvasAspect = canvas.width / canvas.height;
+
+                    let drawWidth, drawHeight, offsetX, offsetY;
+
+                    if (videoAspect > canvasAspect) {
+                        // Video is wider - fit to width
+                        drawWidth = canvas.width;
+                        drawHeight = canvas.width / videoAspect;
+                        offsetX = 0;
+                        offsetY = (canvas.height - drawHeight) / 2;
+                    } else {
+                        // Video is taller - fit to height
+                        drawHeight = canvas.height;
+                        drawWidth = canvas.height * videoAspect;
+                        offsetX = (canvas.width - drawWidth) / 2;
+                        offsetY = 0;
                     }
 
-                    // Draw video frame on VISIBLE canvas — full frame, no offset, no letterboxing
+                    // Draw video frame on VISIBLE canvas (clean, no landmarks) with proper aspect ratio
                     ctx.save();
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
 
-                    // Hidden canvas also synced to exact video resolution
+                    // Draw video frame + landmarks on HIDDEN canvas (for capture) with proper aspect ratio
                     const hiddenCanvas = hiddenCanvasRef.current;
                     let hiddenCtx = null;
                     if (hiddenCanvas) {
-                        if (hiddenCanvas.width !== video.videoWidth || hiddenCanvas.height !== video.videoHeight) {
-                            hiddenCanvas.width = video.videoWidth;
-                            hiddenCanvas.height = video.videoHeight;
-                        }
                         hiddenCtx = hiddenCanvas.getContext("2d");
                         hiddenCtx.save();
                         hiddenCtx.clearRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
-                        hiddenCtx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+                        hiddenCtx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
                     }
 
                     if (shouldRunInference && !showResults) {
@@ -1052,15 +1059,15 @@ function CapturePage() {
 
                 <canvas
                     ref={canvasRef}
-                    width={1}
-                    height={1}
+                    width={isPortrait ? 720 : 960}
+                    height={isPortrait ? 960 : 720}
                     style={{
                         position: "absolute",
                         top: 0,
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover',
+                        objectFit: 'contain', // FIXED: Preserve aspect ratio, prevent distortion
                         transform: "scaleX(-1)",
                         zIndex: 2
                     }}
@@ -1069,8 +1076,8 @@ function CapturePage() {
                 {/* Hidden canvas for landmark rendering (not visible to user) */}
                 <canvas
                     ref={hiddenCanvasRef}
-                    width={1}
-                    height={1}
+                    width={isPortrait ? 720 : 960}
+                    height={isPortrait ? 960 : 720}
                     style={{ display: 'none' }}
                 />
 
