@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { FiZap } from 'react-icons/fi';
 import { generatePDF } from '../utils/pdfGenerator';
 import PatternCard from './PatternCard';
-import LandmarkOverlay from './LandmarkOverlay';
 
 /**
  * Results Screen Component
@@ -198,18 +197,11 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
               >
                 <div className="relative aspect-[3/4] bg-brand-sand overflow-hidden">
                   {item.data.image ? (
-                    <>
-                      <img src={ item.data.image } alt={ item.title } className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700" />
-
-                      {/* Landmark Overlay */ }
-                      { item.data.landmarks && (
-                        <LandmarkOverlay
-                          landmarks={ item.data.landmarks }
-                          width={ 960 }
-                          height={ 720 }
-                        />
-                      ) }
-                    </>
+                    <img
+                      src={item.data.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
+                    />
                   ) : (
                     <div className="flex items-center justify-center h-full text-brand-deepSage/40 text-[10px] uppercase font-display font-bold">No Data Signal</div>
                   )}

@@ -537,40 +537,72 @@ function CapturePage() {
         };
     }, [isAligned, showResults]);
 
-    // ✨ COMPLETELY FIXED: Capture frame WITHOUT letterboxing (no black bars!)
-    const captureCleanFrame = () => {
+    const captureFrameWithLandmarks = (faceLandmarks, poseLandmarks, isStage4) => {
         const video = webcamRef.current?.video;
         if (!video) {
             console.error('❌ Video not available for capture');
             return null;
         }
 
-        // ✨ KEY FIX: Create canvas that matches VIDEO aspect ratio, not a fixed size
-        // This eliminates black bars completely!
+        // Create canvas matching the video's native aspect ratio (no black bars)
         const tempCanvas = document.createElement('canvas');
-
-        // Use video's natural dimensions to preserve aspect ratio
         const videoAspect = video.videoWidth / video.videoHeight;
-
-        // Set canvas to a reasonable size while maintaining video aspect ratio
         const targetWidth = 720;
         tempCanvas.width = targetWidth;
-        tempCanvas.height = targetWidth / videoAspect;
+        tempCanvas.height = Math.round(targetWidth / videoAspect);
 
         const ctx = tempCanvas.getContext('2d');
 
-        // Draw video to fill entire canvas (no letterboxing!)
+        // Step 1: Draw the clean video frame
         ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
-        // Log capture dimensions for debugging
-        console.log(`✅ Captured clean image: ${tempCanvas.width}x${tempCanvas.height}px (from video ${video.videoWidth}x${video.videoHeight}, aspect: ${videoAspect.toFixed(2)})`);
+        // Step 2: Export the clean frame — used for the post-capture preview shown to the user
+        const cleanDataURL = tempCanvas.toDataURL('image/jpeg', 0.95);
 
-        // Show flash effect
+        // Step 3: Bake landmarks on top of the same canvas — same coordinate space,
+        // so DrawingUtils normalized coords map perfectly to the video pixels.
+        // This composite version is stored for the results screen.
+        try {
+            const drawingUtils = new DrawingUtils(ctx);
+
+            // Face landmarks (Stages 1, 2, 3)
+            if (!isStage4 && faceLandmarks && faceLandmarks.length > 0) {
+                drawingUtils.drawConnectors(
+                    faceLandmarks,
+                    FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+                    { color: 'rgba(0, 255, 0, 0.3)', lineWidth: 0.5 }
+                );
+                drawingUtils.drawLandmarks(
+                    faceLandmarks,
+                    { color: '#00FF00', radius: 1.5, fillColor: '#00FF00' }
+                );
+            }
+
+            // Pose landmarks (All stages)
+            if (poseLandmarks && poseLandmarks.length > 0) {
+                drawingUtils.drawConnectors(
+                    poseLandmarks,
+                    PoseLandmarker.POSE_CONNECTIONS,
+                    { color: 'rgba(0, 255, 0, 0.6)', lineWidth: 2 }
+                );
+                drawingUtils.drawLandmarks(
+                    poseLandmarks,
+                    { color: '#00FF00', radius: 3, fillColor: '#00FF00' }
+                );
+            }
+        } catch (err) {
+            console.warn('captureFrameWithLandmarks: landmark draw error', err);
+        }
+
+        const compositeDataURL = tempCanvas.toDataURL('image/jpeg', 0.95);
+
+        console.log(`✅ Captured image: ${tempCanvas.width}x${tempCanvas.height}px (video: ${video.videoWidth}x${video.videoHeight})`);
+
         showFlashEffect();
-
-        // Return clean image data URL (no landmarks, no black bars!)
-        return tempCanvas.toDataURL('image/jpeg', 0.95);
+        // Return both: clean for preview, composite (landmarks baked in) for results
+        return { clean: cleanDataURL, composite: compositeDataURL };
     };
+
 
     // Flash effect on capture
     const showFlashEffect = () => {
@@ -750,34 +782,15 @@ function CapturePage() {
     const handleCapture = () => {
         if (!isAligned) return;
 
-
-
-        // Step 1: Capture frame FIRST (from hidden canvas with landmarks)
-        const imageDataURL = captureCleanFrame();
-        if (!imageDataURL) return;
-
-        // Step 2: Freeze the screen immediately
-        setIsFrozen(true);
-        setFrozenImage(imageDataURL);
-
-        // Step 3: Validate landmarks on the CURRENT frame (same moment as capture)
-        const validation = validateCapturedLandmarks(captureStage);
-
-        if (!validation.isValid) {
-            // Validation FAILED - Auto-retry
-            handleAutoRetry(validation.error);
-            return;
-        }
-
-        // Step 4: Capture landmarks at the moment of capture
         const video = webcamRef.current?.video;
         const now = performance.now();
+        const isStage4 = captureStage === 'STAGE_4_LOWER_SIDE';
 
+        // Step 1: Detect landmarks at the exact moment of capture
         let faceLandmarks = null;
         let poseLandmarks = null;
 
-        // Detect landmarks based on stage
-        if (captureStage === 'STAGE_1_FACE' && faceLandmarkerRef.current) {
+        if (!isStage4 && faceLandmarkerRef.current) {
             const faceResult = faceLandmarkerRef.current.detectForVideo(video, now);
             faceLandmarks = faceResult?.faceLandmarks?.[0] || null;
         }
@@ -787,23 +800,39 @@ function CapturePage() {
             poseLandmarks = poseResult?.landmarks?.[0] || null;
         }
 
-        // Step 5: Save capture data with landmarks (only if validation passed)
+        // Step 2: Capture both a clean preview image and a composite image with landmarks baked in
+        const captured = captureFrameWithLandmarks(faceLandmarks, poseLandmarks, isStage4);
+        if (!captured) return;
+
+        // Step 3: Freeze the screen — show the CLEAN image in the preview (no landmarks)
+        setIsFrozen(true);
+        setFrozenImage(captured.clean);
+
+        // Step 4: Validate landmarks
+        const validation = validateCapturedLandmarks(captureStage);
+        if (!validation.isValid) {
+            handleAutoRetry(validation.error);
+            return;
+        }
+
+        // Step 5: Save capture data
+        // NOTE: landmarks are now BAKED INTO the image — no separate landmark data needed.
+        // The `landmarks` field is kept for backward compatibility but is no longer used
+        // by ResultsScreen to draw an overlay.
+        // Step 5: Save capture data — use the COMPOSITE image (landmarks baked in) for results screen
         switch (captureStage) {
             case 'STAGE_1_FACE':
                 setCaptureData(prev => ({
                     ...prev,
                     stage1: {
-                        image: imageDataURL,
+                        image: captured.composite,
                         metrics: {
                             eyeSym: metrics.face.eyeSym,
                             jawShift: metrics.face.jawShift,
                             headTilt: metrics.face.headTilt,
                             nostrilAsym: metrics.face.nostrilAsym
                         },
-                        landmarks: {
-                            face: faceLandmarks,
-                            pose: null
-                        }
+                        landmarks: null
                     }
                 }));
                 break;
@@ -812,12 +841,9 @@ function CapturePage() {
                 setCaptureData(prev => ({
                     ...prev,
                     stage2: {
-                        image: imageDataURL,
+                        image: captured.composite,
                         metrics: { shoulderHeight: metrics.body.shoulderHeight },
-                        landmarks: {
-                            face: null,
-                            pose: poseLandmarks
-                        }
+                        landmarks: null
                     }
                 }));
                 break;
@@ -826,12 +852,9 @@ function CapturePage() {
                 setCaptureData(prev => ({
                     ...prev,
                     stage3: {
-                        image: imageDataURL,
+                        image: captured.composite,
                         metrics: { fhpAngle: metrics.body.fhpAngle },
-                        landmarks: {
-                            face: null,
-                            pose: poseLandmarks
-                        }
+                        landmarks: null
                     }
                 }));
                 break;
@@ -840,22 +863,19 @@ function CapturePage() {
                 setCaptureData(prev => ({
                     ...prev,
                     stage4: {
-                        image: imageDataURL,
+                        image: captured.composite,
                         metrics: {
                             pelvicTilt: metrics.body.pelvicTilt,
                             kneeAngle: metrics.body.kneeAngle,
                             footArchRatio: metrics.body.footArchRatio
                         },
-                        landmarks: {
-                            face: null,
-                            pose: poseLandmarks
-                        }
+                        landmarks: null
                     }
                 }));
                 break;
         }
 
-        // Show Retake/Continue buttons instead of auto-advancing
+        // Show Retake/Continue buttons
         setShowReviewButtons(true);
     };
 

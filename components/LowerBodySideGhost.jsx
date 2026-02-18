@@ -23,7 +23,8 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
             zIndex: 10,
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center'
+            alignItems: 'center',
+            overflow: 'hidden'
         }}>
             {/* Top badges - Step badge only */}
             <div style={{
@@ -59,17 +60,20 @@ const LowerBodySideGhost = ({ isAligned, holdDuration = 0, stage4Debug = null })
                 </div>
             </div>
 
-            {/* SVG Container - Responsive sizing for small screens */}
+            {/* SVG Container - Pure CSS sizing, no JS, safe for real mobile devices */}
             <svg
                 style={{
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
-                    transform: 'translate(-50%, -40%)', // ✨ FIXED: Moved down from -50% to -40%
-                    // Much larger on small screens: 140vw on mobile, 100vw on desktop
-                    width: window.innerWidth < 640 ? 'min(140vw, 180vh)' : 'min(100vw, 133.33vh)',
-                    height: window.innerWidth < 640 ? 'min(105vw, max(calc(140vh - 160px), 560px))' : 'min(75vw, max(calc(100vh - 160px), 400px))',
-                    maxWidth: '180vw', // Allow more overflow for larger ghost on small screens
+                    transform: 'translate(-50%, -40%)',
+                    /* svh = small viewport height, excludes mobile browser chrome.
+                       min(75vw, 60svh) keeps the full-body ghost within the visible
+                       area on any real mobile device, regardless of browser chrome. */
+                    width: 'min(75vw, 60svh)',
+                    height: 'min(75vw, 60svh)',
+                    maxWidth: '75vw',
+                    maxHeight: '60svh',
                     pointerEvents: 'none',
                 }}
                 viewBox="0 0 480 960"
