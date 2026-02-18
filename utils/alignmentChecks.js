@@ -237,36 +237,34 @@ export const checkStage4Alignment = (poseLandmarks) => {
     }
 
     // ── Required landmarks for Stage 4: Lower Body Side ───────────────────
-    // Must be VISIBLY IN-FRAME: head, hip, knee, ankle/foot.
+    // Stage 4 = RIGHT side profile → the LEFT leg is the FRONT-FACING leg.
+    // So we only require the LEFT side's lower-leg landmarks to be visible.
     // Arms and hands are intentionally NOT required.
     const nose = poseLandmarks[0];
     const leftHip = poseLandmarks[23];
     const rightHip = poseLandmarks[24];
     const leftKnee = poseLandmarks[25];
-    const rightKnee = poseLandmarks[26];
     const leftAnkle = poseLandmarks[27];
-    const rightAnkle = poseLandmarks[28];
-    const leftFoot = poseLandmarks[31];
-    const rightFoot = poseLandmarks[32];
+    const leftHeel = poseLandmarks[29];  // front-leg heel
+    const leftFoot = poseLandmarks[31];  // front-leg foot index
 
     // Use isVisible() — NOT a simple null check — because MediaPipe always
     // returns a landmark object even for off-screen body parts.
     const hasHead = isVisible(nose);
     const hasHips = isVisible(leftHip) && isVisible(rightHip);
 
-    // In a side view only one knee may be clearly visible; require at least one.
-    // Also require the knee to be in the lower half of the frame (y > 0.45) so
-    // MediaPipe's off-screen extrapolation can't fake it.
+    // LEFT knee must be in the lower half of the frame (y > 0.45).
+    // The left knee is the front-facing one in a right side profile.
     const isKneeInFrame = (lm) => isVisible(lm) && lm.y > 0.45;
-    const hasKnee = isKneeInFrame(leftKnee) || isKneeInFrame(rightKnee);
+    const hasKnee = isKneeInFrame(leftKnee);
 
-    // For the ankle/foot we apply an even stricter Y threshold (y > 0.65 = lower
-    // third of the frame). MediaPipe extrapolates landmarks outside the frame and
-    // those coords can still fall within 0–1 near the edge. Requiring y > 0.65
-    // ensures the foot is genuinely visible near the bottom of the camera view.
-    const isAnkleInFrame = (lm) => isVisible(lm) && lm.y > 0.65;
-    const hasFeet = isAnkleInFrame(leftFoot) || isAnkleInFrame(rightFoot)
-        || isAnkleInFrame(leftAnkle) || isAnkleInFrame(rightAnkle);
+    // For the front-leg (LEFT) ankle/heel/foot, require y > 0.70 (lower 30%
+    // of frame). We check all three left-side lower-leg points and require
+    // AT LEAST 2 to be confirmed — a single extrapolated point near the edge
+    // can still slip through, but two independent points cannot both be faked.
+    const isFootInFrame = (lm) => isVisible(lm) && lm.y > 0.70;
+    const frontLegPointsVisible = [leftAnkle, leftHeel, leftFoot].filter(isFootInFrame).length;
+    const hasFeet = frontLegPointsVisible >= 2;
 
     const hasRequiredLandmarks = hasHead && hasHips && hasKnee && hasFeet;
 
@@ -289,28 +287,14 @@ export const checkStage4Alignment = (poseLandmarks) => {
     const zDepthDifference = leftHipZ - rightHipZ;
     const isRightSide = leftHipZ < rightHipZ - 0.05;
 
-    // ✅ CHECK 3: Feet side-alignment (both feet should be roughly at same X).
-    // Default to FALSE (not true) so the check is never silently skipped when
-    // only one foot is partially detected.
-    let feetAligned = false;
-    let footDistance = null;
-    let feetDetectionMethod = 'not detected';
-
-    if (isAnkleInFrame(leftFoot) && isAnkleInFrame(rightFoot)) {
-        footDistance = Math.abs(leftFoot.x - rightFoot.x);
-        feetAligned = footDistance < 0.10;
-        feetDetectionMethod = 'feet landmarks';
-    } else if (isAnkleInFrame(leftAnkle) && isAnkleInFrame(rightAnkle)) {
-        footDistance = Math.abs(leftAnkle.x - rightAnkle.x);
-        feetAligned = footDistance < 0.10;
-        feetDetectionMethod = 'ankle landmarks (fallback)';
-    } else if (hasFeet) {
-        // Only one foot/ankle is visible (expected in a side profile) —
-        // we can't measure X-distance, so just trust hasFeet passed and
-        // mark feetAligned true to avoid a false "turn your feet" message.
-        feetAligned = true;
-        feetDetectionMethod = 'single foot (side profile)';
-    }
+    // ✅ CHECK 3: Front-leg (LEFT) foot confirmed in-frame.
+    // Since we only track the left (front-facing) leg in a right side profile,
+    // there is no right-side foot to compare X-distance against.
+    // feetAligned simply mirrors hasFeet — the ≥2 point check above already
+    // provides the strictness needed to block off-screen extrapolation.
+    const feetAligned = hasFeet;
+    const footDistance = null;
+    const feetDetectionMethod = hasFeet ? 'left leg (front-facing)' : 'not detected';
 
     // ✅ CHECK 4: Frame Positioning
     const hipCenterX = (leftHip.x + rightHip.x) / 2;
