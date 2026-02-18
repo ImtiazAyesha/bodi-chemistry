@@ -253,11 +253,20 @@ export const checkStage4Alignment = (poseLandmarks) => {
     // returns a landmark object even for off-screen body parts.
     const hasHead = isVisible(nose);
     const hasHips = isVisible(leftHip) && isVisible(rightHip);
-    // In a side view only one knee may be clearly visible; require at least one
-    const hasKnee = isVisible(leftKnee) || isVisible(rightKnee);
-    // Accept either foot index OR ankle
-    const hasFeet = (isVisible(leftFoot) || isVisible(rightFoot))
-        || (isVisible(leftAnkle) || isVisible(rightAnkle));
+
+    // In a side view only one knee may be clearly visible; require at least one.
+    // Also require the knee to be in the lower half of the frame (y > 0.45) so
+    // MediaPipe's off-screen extrapolation can't fake it.
+    const isKneeInFrame = (lm) => isVisible(lm) && lm.y > 0.45;
+    const hasKnee = isKneeInFrame(leftKnee) || isKneeInFrame(rightKnee);
+
+    // For the ankle/foot we apply an even stricter Y threshold (y > 0.65 = lower
+    // third of the frame). MediaPipe extrapolates landmarks outside the frame and
+    // those coords can still fall within 0–1 near the edge. Requiring y > 0.65
+    // ensures the foot is genuinely visible near the bottom of the camera view.
+    const isAnkleInFrame = (lm) => isVisible(lm) && lm.y > 0.65;
+    const hasFeet = isAnkleInFrame(leftFoot) || isAnkleInFrame(rightFoot)
+        || isAnkleInFrame(leftAnkle) || isAnkleInFrame(rightAnkle);
 
     const hasRequiredLandmarks = hasHead && hasHips && hasKnee && hasFeet;
 
@@ -280,19 +289,27 @@ export const checkStage4Alignment = (poseLandmarks) => {
     const zDepthDifference = leftHipZ - rightHipZ;
     const isRightSide = leftHipZ < rightHipZ - 0.05;
 
-    // ✅ CHECK 3: Feet side-alignment (both feet should be roughly at same X)
-    let feetAligned = true;
+    // ✅ CHECK 3: Feet side-alignment (both feet should be roughly at same X).
+    // Default to FALSE (not true) so the check is never silently skipped when
+    // only one foot is partially detected.
+    let feetAligned = false;
     let footDistance = null;
     let feetDetectionMethod = 'not detected';
 
-    if (isVisible(leftFoot) && isVisible(rightFoot)) {
+    if (isAnkleInFrame(leftFoot) && isAnkleInFrame(rightFoot)) {
         footDistance = Math.abs(leftFoot.x - rightFoot.x);
         feetAligned = footDistance < 0.10;
         feetDetectionMethod = 'feet landmarks';
-    } else if (isVisible(leftAnkle) && isVisible(rightAnkle)) {
+    } else if (isAnkleInFrame(leftAnkle) && isAnkleInFrame(rightAnkle)) {
         footDistance = Math.abs(leftAnkle.x - rightAnkle.x);
         feetAligned = footDistance < 0.10;
         feetDetectionMethod = 'ankle landmarks (fallback)';
+    } else if (hasFeet) {
+        // Only one foot/ankle is visible (expected in a side profile) —
+        // we can't measure X-distance, so just trust hasFeet passed and
+        // mark feetAligned true to avoid a false "turn your feet" message.
+        feetAligned = true;
+        feetDetectionMethod = 'single foot (side profile)';
     }
 
     // ✅ CHECK 4: Frame Positioning
