@@ -27,16 +27,18 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'space-between',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      boxSizing: 'border-box',
     }}>
-      {/* Top - Step Badge */}
+      {/* Top  Badge */}
       <div style={{
+        flexShrink: 0,
         marginTop: '24px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         width: '100%',
-        pointerEvents: 'none'
+        pointerEvents: 'none',
       }}>
         <div style={{
           backgroundColor: 'rgba(255, 255, 255, 0.4)',
@@ -46,7 +48,7 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
           padding: '8px 20px',
           boxShadow: isAligned ? `0 0 30px ${successColor}20` : '0 4px 20px rgba(0,0,0,0.05)',
           transition: 'all 0.4s ease',
-          pointerEvents: 'auto'
+          pointerEvents: 'auto',
         }}>
           <span style={{
             color: isAligned ? successColor : brandSlate,
@@ -54,94 +56,120 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
             fontWeight: '700',
             letterSpacing: '2px',
             textTransform: 'uppercase',
-            fontFamily: 'inherit'
+            fontFamily: 'inherit',
           }}>
             Step 1: Face Profile
           </span>
         </div>
       </div>
 
-      {/* SVG Face Outline - Centered and sized to prevent clipping */}
-      <svg
-        style={{
-          position: 'absolute',
-          top: '45%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          /* Pure CSS sizing — no window.innerWidth JS.
-             vmin ensures it fits both narrow and short screens.
-             svh (small viewport height) excludes mobile browser chrome,
-             preventing overflow on real devices. */
-          width: 'min(85vw, 55svh)',
-          height: 'min(85vw, 55svh)',
-          maxWidth: '85vw',
-          maxHeight: '55svh',
-          pointerEvents: 'none',
-        }}
-        viewBox="0 0 480 960"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          <clipPath id="head-mask">
-            <ellipse cx="0" cy="-80" rx="200" ry="260" />
-          </clipPath>
-        </defs>
+      {/*
+        SVG Ghost — always centered in the space between badge and footer.
+        Key fixes vs. the old version:
+          1. No more `position: absolute` + `top: 45%` which caused the ghost
+             to drift off-screen when mobile browser chrome (address/nav bars)
+             changed the effective viewport height in production.
+          2. The viewBox is 480 × 960 (1 : 2 portrait). We now give the SVG a
+             matching 1 : 2 aspect ratio so the face silhouette sits exactly
+             where the viewBox geometry says it should — at the vertical midpoint
+             of the rendered element — instead of being crammed into a square
+             container where it appeared in the top half.
+          3. Width is capped at `min(55vw, 38svh)` so the ghost never exceeds
+             the available width on narrow phones, and `38svh` (half of 76svh
+             available height) keeps the 2 : 1 tall SVG fully on-screen even on
+             short devices like iPhone SE. `svh` (small viewport height) already
+             excludes the mobile browser chrome, so this is production-safe.
+          4. `flex: 1` + `display: flex` + `align/justify: center` on the
+             wrapper div lets the browser do the centering — no magic numbers.
+      */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}>
+        <svg
+          style={{
+            /* viewBox is 480 wide × 960 tall → aspect ratio 1 : 2.
+               We constrain width so height = 2 × width stays on screen.
+               38svh  → half of ~76svh usable space → height ≤ 76svh ✓
+               55vw   → safe on narrow phones                           */
+            width: 'min(55vw, 38svh)',
+            height: 'auto',          /* browser computes height from viewBox ratio */
+            maxWidth: '55vw',
+            maxHeight: '76svh',
+            display: 'block',
+            pointerEvents: 'none',
+          }}
+          viewBox="0 0 480 960"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <defs>
+            <clipPath id="head-mask">
+              <ellipse cx="0" cy="-80" rx="200" ry="260" />
+            </clipPath>
+          </defs>
 
-        {/* FACE SILHOUETTE - Centered for professional capture */}
-        <g transform="translate(240, 400)" clipPath="url(#head-mask)">
+          {/* FACE SILHOUETTE - Centered for professional capture */}
+          <g transform="translate(240, 400)" clipPath="url(#head-mask)">
 
-          {/* Centered Glow effect */}
-          {isAligned && (
-            <ellipse cx="0" cy="-80" rx="220" ry="280"
-              fill="none" stroke={successColor}
-              strokeWidth="28" opacity="0.15"
-              filter="blur(28px)"
-            />
-          )}
+            {/* Centered Glow effect */}
+            {isAligned && (
+              <ellipse cx="0" cy="-80" rx="220" ry="280"
+                fill="none" stroke={successColor}
+                strokeWidth="28" opacity="0.15"
+                filter="blur(28px)"
+              />
+            )}
 
-          {/* Large immersive scale (15.5x) tuned for all viewport aspect ratios */}
-          <g transform="scale(15.5) translate(-103.1, -18)">
-            <path
-              d="M104.265,117.959c-0.304,3.58,2.126,22.529,3.38,29.959c0.597,3.52,2.234,9.255,1.645,12.3 c-0.841,4.244-1.084,9.736-0.621,12.934c0.292,1.942,1.211,10.899-0.104,14.175c-0.688,1.718-1.949,10.522-1.949,10.522 c-3.285,8.294-1.431,7.886-1.431,7.886c1.017,1.248,2.759,0.098,2.759,0.098c1.327,0.846,2.246-0.201,2.246-0.201 c1.139,0.943,2.467-0.116,2.467-0.116c1.431,0.743,2.758-0.627,2.758-0.627c0.822,0.414,1.023-0.109,1.023-0.109 c2.466-0.158-1.376-8.05-1.376-8.05c-0.92-7.088,0.913-11.033,0.913-11.033c6.004-17.805,6.309-22.53,3.909-29.24 c-0.676-1.937-0.847-2.704-0.536-3.545c0.719-1.941,0.195-9.748,1.072-12.848c1.692-5.979,3.361-21.142,4.231-28.217 c1.169-9.53-4.141-22.308-4.141-22.308c-1.163-5.2,0.542-23.727,0.542-23.727c2.381,3.705,2.29,10.245,2.29,10.245 c-0.378,6.859,5.541,17.342,5.541,17.342c2.844,4.332,3.921,8.442,3.921,8.747c0,1.248-0.273,4.269-0.273,4.269l0.109,2.631 c0.049,0.67,0.426,2.977,0.365,4.092c-0.444,6.862,0.646,5.571,0.646,5.571c0.92,0,1.931-5.522,1.931-5.522 c0,1.424-0.348,5.687,0.42,7.295c0.919,1.918,1.595-0.329,1.607-0.78c0.243-8.737,0.768-6.448,0.768-6.448 c0.511,7.088,1.139,8.689,2.265,8.135c0.853-0.407,0.073-8.506,0.073-8.506c1.461,4.811,2.569,5.577,2.569,5.577 c2.411,1.693,0.92-2.983,0.585-3.909c-1.784-4.92-1.839-6.625-1.839-6.625c2.229,4.421,3.909,4.257,3.909,4.257 c2.174-0.694-1.9-6.954-4.287-9.953c-1.218-1.528-2.789-3.574-3.245-4.789c-0.743-2.058-1.304-8.674-1.304-8.674 c-0.225-7.807-2.155-11.198-2.155-11.198c-3.3-5.282-3.921-15.135-3.921-15.135l-0.146-16.635 c-1.157-11.347-9.518-11.429-9.518-11.429c-8.451-1.258-9.627-3.988-9.627-3.988c-1.79-2.576-0.767-7.514-0.767-7.514 c1.485-1.208,2.058-4.415,2.058-4.415c2.466-1.891,2.345-4.658,1.206-4.628c-0.914,0.024-0.707-0.733-0.707-0.733 C115.068,0.636,104.01,0,104.01,0h-1.688c0,0-11.063,0.636-9.523,13.089c0,0,0.207,0.758-0.715,0.733 c-1.136-0.03-1.242,2.737,1.215,4.628c0,0,0.572,3.206,2.058,4.415c0,0,1.023,4.938-0.767,7.514c0,0-1.172,2.73-9.627,3.988 c0,0-8.375,0.082-9.514,11.429l-0.158,16.635c0,0-0.609,9.853-3.922,15.135c0,0-1.921,3.392-2.143,11.198 c0,0-0.563,6.616-1.303,8.674c-0.451,1.209-2.021,3.255-3.249,4.789c-2.408,2.993-6.455,9.24-4.29,9.953 c0,0,1.689,0.164,3.909-4.257c0,0-0.046,1.693-1.827,6.625c-0.35,0.914-1.839,5.59,0.573,3.909c0,0,1.117-0.767,2.569-5.577 c0,0-0.779,8.099,0.088,8.506c1.133,0.555,1.751-1.047,2.262-8.135c0,0,0.524-2.289,0.767,6.448 c0.012,0.451,0.673,2.698,1.596,0.78c0.779-1.608,0.429-5.864,0.429-7.295c0,0,0.999,5.522,1.933,5.522 c0,0,1.099,1.291,0.648-5.571c-0.073-1.121,0.32-3.422,0.369-4.092l0.106-2.631c0,0-0.274-3.014-0.274-4.269 c0-0.311,1.078-4.415,3.921-8.747c0,0,5.913-10.488,5.532-17.342c0,0-0.082-6.54,2.299-10.245c0,0,1.69,18.526,0.545,23.727 c0,0-5.319,12.778-4.146,22.308c0.864,7.094,2.53,22.237,4.226,28.217c0.886,3.094,0.362,10.899,1.072,12.848 c0.32,0.847,0.152,1.627-0.536,3.545c-2.387,6.71-2.083,11.436,3.921,29.24c0,0,1.848,3.945,0.914,11.033 c0,0-3.836,7.892-1.379,8.05c0,0,0.192,0.523,1.023,0.109c0,0,1.327,1.37,2.761,0.627c0,0,1.328,1.06,2.463,0.116 c0,0,0.91,1.047,2.237,0.201c0,0,1.742,1.175,2.777-0.098c0,0,1.839,0.408-1.435-7.886c0,0-1.254-8.793-1.945-10.522 c-1.318-3.275-0.387-12.251-0.106-14.175c0.453-3.216,0.21-8.695-0.618-12.934c-0.606-3.038,1.035-8.774,1.641-12.3 c1.245-7.423,3.685-26.373,3.38-29.959l1.008,0.354C103.809,118.312,104.265,117.959,104.265,117.959z"
-              fill="rgba(47, 74, 92, 0.05)"
-              stroke={primaryColor}
-              strokeWidth="0.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </g>
-
-          {/* COUNTDOWN - Show only after 2s hold period (displays 5-4-3-2-1) */}
-          {isAligned && !isInHoldPeriod && countdown !== null && (
-            <g>
-              <text x="0" y="-32" textAnchor="middle"
-                fill={successColor}
-                fontSize="100"
-                fontFamily="inherit"
-                fontWeight="700"
-                style={{ filter: 'drop-shadow(0 0 40px rgba(143,169,155,0.6))' }}
-              >
-                {countdown}
-              </text>
-              <text x="0" y="24" textAnchor="middle"
-                fill={successColor}
-                fontSize="22"
-                fontWeight="700"
-                letterSpacing="2px"
-                style={{ textTransform: 'uppercase' }}
-              >
-                Steady
-              </text>
+            {/* Large immersive scale (15.5x) tuned for all viewport aspect ratios */}
+            <g transform="scale(15.5) translate(-103.1, -18)">
+              <path
+                d="M104.265,117.959c-0.304,3.58,2.126,22.529,3.38,29.959c0.597,3.52,2.234,9.255,1.645,12.3 c-0.841,4.244-1.084,9.736-0.621,12.934c0.292,1.942,1.211,10.899-0.104,14.175c-0.688,1.718-1.949,10.522-1.949,10.522 c-3.285,8.294-1.431,7.886-1.431,7.886c1.017,1.248,2.759,0.098,2.759,0.098c1.327,0.846,2.246-0.201,2.246-0.201 c1.139,0.943,2.467-0.116,2.467-0.116c1.431,0.743,2.758-0.627,2.758-0.627c0.822,0.414,1.023-0.109,1.023-0.109 c2.466-0.158-1.376-8.05-1.376-8.05c-0.92-7.088,0.913-11.033,0.913-11.033c6.004-17.805,6.309-22.53,3.909-29.24 c-0.676-1.937-0.847-2.704-0.536-3.545c0.719-1.941,0.195-9.748,1.072-12.848c1.692-5.979,3.361-21.142,4.231-28.217 c1.169-9.53-4.141-22.308-4.141-22.308c-1.163-5.2,0.542-23.727,0.542-23.727c2.381,3.705,2.29,10.245,2.29,10.245 c-0.378,6.859,5.541,17.342,5.541,17.342c2.844,4.332,3.921,8.442,3.921,8.747c0,1.248-0.273,4.269-0.273,4.269l0.109,2.631 c0.049,0.67,0.426,2.977,0.365,4.092c-0.444,6.862,0.646,5.571,0.646,5.571c0.92,0,1.931-5.522,1.931-5.522 c0,1.424-0.348,5.687,0.42,7.295c0.919,1.918,1.595-0.329,1.607-0.78c0.243-8.737,0.768-6.448,0.768-6.448 c0.511,7.088,1.139,8.689,2.265,8.135c0.853-0.407,0.073-8.506,0.073-8.506c1.461,4.811,2.569,5.577,2.569,5.577 c2.411,1.693,0.92-2.983,0.585-3.909c-1.784-4.92-1.839-6.625-1.839-6.625c2.229,4.421,3.909,4.257,3.909,4.257 c2.174-0.694-1.9-6.954-4.287-9.953c-1.218-1.528-2.789-3.574-3.245-4.789c-0.743-2.058-1.304-8.674-1.304-8.674 c-0.225-7.807-2.155-11.198-2.155-11.198c-3.3-5.282-3.921-15.135-3.921-15.135l-0.146-16.635 c-1.157-11.347-9.518-11.429-9.518-11.429c-8.451-1.258-9.627-3.988-9.627-3.988c-1.79-2.576-0.767-7.514-0.767-7.514 c1.485-1.208,2.058-4.415,2.058-4.415c2.466-1.891,2.345-4.658,1.206-4.628c-0.914,0.024-0.707-0.733-0.707-0.733 C115.068,0.636,104.01,0,104.01,0h-1.688c0,0-11.063,0.636-9.523,13.089c0,0,0.207,0.758-0.715,0.733 c-1.136-0.03-1.242,2.737,1.215,4.628c0,0,0.572,3.206,2.058,4.415c0,0,1.023,4.938-0.767,7.514c0,0-1.172,2.73-9.627,3.988 c0,0-8.375,0.082-9.514,11.429l-0.158,16.635c0,0-0.609,9.853-3.922,15.135c0,0-1.921,3.392-2.143,11.198 c0,0-0.563,6.616-1.303,8.674c-0.451,1.209-2.021,3.255-3.249,4.789c-2.408,2.993-6.455,9.24-4.29,9.953 c0,0,1.689,0.164,3.909-4.257c0,0-0.046,1.693-1.827,6.625c-0.35,0.914-1.839,5.59,0.573,3.909c0,0,1.117-0.767,2.569-5.577 c0,0-0.779,8.099,0.088,8.506c1.133,0.555,1.751-1.047,2.262-8.135c0,0,0.524-2.289,0.767,6.448 c0.012,0.451,0.673,2.698,1.596,0.78c0.779-1.608,0.429-5.864,0.429-7.295c0,0,0.999,5.522,1.933,5.522 c0,0,1.099,1.291,0.648-5.571c-0.073-1.121,0.32-3.422,0.369-4.092l0.106-2.631c0,0-0.274-3.014-0.274-4.269 c0-0.311,1.078-4.415,3.921-8.747c0,0,5.913-10.488,5.532-17.342c0,0-0.082-6.54,2.299-10.245c0,0,1.69,18.526,0.545,23.727 c0,0-5.319,12.778-4.146,22.308c0.864,7.094,2.53,22.237,4.226,28.217c0.886,3.094,0.362,10.899,1.072,12.848 c0.32,0.847,0.152,1.627-0.536,3.545c-2.387,6.71-2.083,11.436,3.921,29.24c0,0,1.848,3.945,0.914,11.033 c0,0-3.836,7.892-1.379,8.05c0,0,0.192,0.523,1.023,0.109c0,0,1.327,1.37,2.761,0.627c0,0,1.328,1.06,2.463,0.116 c0,0,0.91,1.047,2.237,0.201c0,0,1.742,1.175,2.777-0.098c0,0,1.839,0.408-1.435-7.886c0,0-1.254-8.793-1.945-10.522 c-1.318-3.275-0.387-12.251-0.106-14.175c0.453-3.216,0.21-8.695-0.618-12.934c-0.606-3.038,1.035-8.774,1.641-12.3 c1.245-7.423,3.685-26.373,3.38-29.959l1.008,0.354C103.809,118.312,104.265,117.959,104.265,117.959z"
+                fill="rgba(47, 74, 92, 0.05)"
+                stroke={primaryColor}
+                strokeWidth="0.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </g>
-          )}
-        </g>
-      </svg>
+
+            {/* COUNTDOWN - Show only after 2s hold period (displays 5-4-3-2-1) */}
+            {isAligned && !isInHoldPeriod && countdown !== null && (
+              <g>
+                <text x="0" y="-32" textAnchor="middle"
+                  fill={successColor}
+                  fontSize="100"
+                  fontFamily="inherit"
+                  fontWeight="700"
+                  style={{ filter: 'drop-shadow(0 0 40px rgba(143,169,155,0.6))' }}
+                >
+                  {countdown}
+                </text>
+                <text x="0" y="24" textAnchor="middle"
+                  fill={successColor}
+                  fontSize="22"
+                  fontWeight="700"
+                  letterSpacing="2px"
+                  style={{ textTransform: 'uppercase' }}
+                >
+                  Steady
+                </text>
+              </g>
+            )}
+          </g>
+        </svg>
+      </div>
 
       {/* Footer-style Guidance */}
       <div style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
+        flexShrink: 0,
+        position: 'relative',
+        bottom: 'unset',
+        left: 'unset',
         width: '100%',
         backgroundColor: 'rgba(47, 74, 92, 0.95)',
         backdropFilter: 'blur(16px)',
@@ -152,7 +180,8 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
         justifyContent: 'center',
         boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.2)',
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
+        boxSizing: 'border-box',
       }}>
         <div style={{
           color: '#FFFFFF',
@@ -162,7 +191,7 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
           alignItems: 'center',
           gap: '10px',
           textAlign: 'center',
-          letterSpacing: '0.02em'
+          letterSpacing: '0.02em',
         }}>
           {isAligned ? '✓ Hold Still' : (feedbackMessage || 'Center your face')}
 
@@ -175,7 +204,7 @@ const FaceGhost = ({ isAligned, holdDuration = 0, stage1Debug = null }) => {
               height: '32px',
               backgroundColor: 'rgba(255,255,255,0.1)',
               borderRadius: '50%',
-              border: '1px solid rgba(255,255,255,0.2)'
+              border: '1px solid rgba(255,255,255,0.2)',
             }}>
               <svg width="20" height="20" viewBox="0 0 20 20">
                 <g transform="translate(10, 10)">
