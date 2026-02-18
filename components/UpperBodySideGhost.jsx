@@ -30,7 +30,8 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      overflow: 'hidden'
     }}>
       {/* Top - Step Badge */}
       <div style={{
@@ -64,14 +65,16 @@ const UpperBodySideGhost = ({ isAligned, holdDuration = 0, stage3Debug = null })
         </div>
       </div>
 
-      {/* SVG Container - Responsive sizing that stays within viewport */}
+      {/* SVG Container - Pure CSS sizing, no JS, safe for real mobile devices */}
       <svg
         style={{
           position: 'relative',
-          width: 'auto',
-          height: 'calc(60dvh)', // Reduced from 100dvh - 200px to 60dvh
-          maxHeight: '60vh',
-          maxWidth: '100vw',
+          /* svh = small viewport height, excludes mobile browser chrome.
+             This prevents the ghost from overflowing on real devices. */
+          width: 'min(80vw, 52svh)',
+          height: 'min(80vw, 52svh)',
+          maxWidth: '80vw',
+          maxHeight: '52svh',
           pointerEvents: 'none',
           margin: 'auto 0'
         }}
