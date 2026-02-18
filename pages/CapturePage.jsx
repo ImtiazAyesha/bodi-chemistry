@@ -145,7 +145,6 @@ function CapturePage() {
     useEffect(() => {
         if (appStage === 'PROCESSING' && captureData.stage4.image && questionnaireData) {
 
-
             // Combine all metrics for pattern analysis
             const bodyMetrics = {
                 shoulderHeight: captureData.stage2.metrics.shoulderHeight,
@@ -544,12 +543,16 @@ function CapturePage() {
             return null;
         }
 
-        // Create canvas matching the video's native aspect ratio (no black bars)
+        // ✅ FIX: Use the video's EXACT native resolution for the capture canvas.
+        // MediaPipe runs inference on the live canvas which matches the video's native
+        // pixel dimensions. If we scale the capture canvas to a different size (e.g.
+        // hardcoded 720px), DrawingUtils maps the same normalized coords to different
+        // pixel positions → landmarks land in the wrong spot on many phones.
+        // Using videoWidth × videoHeight guarantees both canvases share the same
+        // coordinate space, so every landmark is pixel-perfect regardless of device.
         const tempCanvas = document.createElement('canvas');
-        const videoAspect = video.videoWidth / video.videoHeight;
-        const targetWidth = 720;
-        tempCanvas.width = targetWidth;
-        tempCanvas.height = Math.round(targetWidth / videoAspect);
+        tempCanvas.width = video.videoWidth;
+        tempCanvas.height = video.videoHeight;
 
         const ctx = tempCanvas.getContext('2d');
 
