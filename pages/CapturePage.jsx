@@ -96,11 +96,9 @@ function CapturePage() {
     // isLoadingModels: true while MediaPipe models are downloading + compiling
     // Shows a loading UI so users on slow devices don't think the app is frozen
     const [isLoadingModels, setIsLoadingModels] = useState(false);
-    const [loadingStep, setLoadingStep] = useState('');  // describes current init step
-    // cameraReady: set to true only AFTER the user grants camera permission
-    // (via onUserMedia callback on <Webcam>). Ensures the loading spinner never
-    // appears before the camera permission dialog — the correct UX order is:
-    //   1. Show permission prompt screen  →  2. Browser asks for camera  →  3. Show loading spinner
+    const [loadingStep, setLoadingStep] = useState('');
+    // cameraReady flips to true the moment the user grants camera permission.
+    // Keeps the loading spinner hidden until AFTER Allow is tapped.
     const [cameraReady, setCameraReady] = useState(false);
 
     // Pattern Analysis Results
@@ -1070,15 +1068,10 @@ function CapturePage() {
     };
 
     // Dynamic video constraints based on screen orientation
-    // ⚠️  IMPORTANT: All values use `ideal` (soft preference), NOT exact/required.
-    // Using plain strings or exact values alongside resolution constraints causes
-    // Android Chrome to fall back to the rear camera when the front camera cannot
-    // satisfy all constraints simultaneously. `ideal` guarantees front camera is
-    // always preferred while still allowing the browser to find a valid mode.
     const videoConstraints = {
-        facingMode: { ideal: 'user' },          // front camera, soft preference
-        width: { ideal: isPortrait ? 720 : 960 },
-        height: { ideal: isPortrait ? 960 : 720 },
+        facingMode: "user",
+        width: isPortrait ? 720 : 960,   // Portrait: 720x960 (3:4), Landscape: 960x720 (4:3)
+        height: isPortrait ? 960 : 720,
     };
 
     // Show results screen
@@ -1182,52 +1175,6 @@ function CapturePage() {
         );
     }
 
-    // ── Permission prompt screen ──────────────────────────────────────────
-    // This shows BEFORE the browser camera dialog pops up.
-    // It primes the user so they understand what the browser is about to ask,
-    // reducing accidental denials (especially on iOS Safari where the dialog
-    // is very brief and easy to mis-tap).
-    // Once the user grants permission, onUserMedia fires and cameraReady = true,
-    // which dismisses this screen and shows the live camera + loading spinner.
-    if (appStage === 'CAPTURE' && !cameraReady && !cameraError) {
-        return (
-            <div style={{
-                minHeight: '100dvh', width: '100vw',
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                padding: '2rem', textAlign: 'center',
-                background: 'linear-gradient(165deg, #F8F5F0 0%, #F0EBE3 40%, #E8E1D7 100%)',
-                fontFamily: 'Outfit, sans-serif',
-            }}>
-                {/* Hidden Webcam — renders immediately so browser shows the permission dialog */}
-                {/* Without this, the permission prompt never fires. It's invisible to the user. */}
-                <Webcam
-                    ref={webcamRef}
-                    audio={false}
-                    videoConstraints={videoConstraints}
-                    onUserMedia={() => setCameraReady(true)}
-                    onUserMediaError={(err) => setCameraError(getCameraErrorMessage(err))}
-                    style={{ position: 'fixed', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-                />
-                <div style={{
-                    width: 72, height: 72, borderRadius: '50%',
-                    background: 'rgba(47,74,60,0.08)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    marginBottom: '1.5rem', fontSize: '2rem',
-                }}>📷</div>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 600, color: '#2F4A3C', marginBottom: '0.75rem' }}>
-                    Camera Access Needed
-                </h2>
-                <p style={{ fontSize: '0.9rem', color: '#5a7060', maxWidth: 300, lineHeight: 1.7, marginBottom: '0.5rem' }}>
-                    Tap <strong style={{ color: '#2F4A3C' }}>Allow</strong> when your browser asks for camera permission to start your body scan.
-                </p>
-                <p style={{ fontSize: '0.78rem', color: '#8a9e90', maxWidth: 280, lineHeight: 1.6 }}>
-                    Your camera feed is processed locally on your device and is never uploaded or stored.
-                </p>
-            </div>
-        );
-    }
-
     return (
         <div
             style={{
@@ -1306,8 +1253,8 @@ function CapturePage() {
                 />
 
                 {/* ── Model Loading Overlay ────────────────────────────────────────── */}
-                {/* Only shown AFTER camera permission is granted (cameraReady = true). */}
-                {/* UX order: permission prompt → camera dialog → loading spinner → scan */}
+                {/* Shown while MediaPipe downloads + compiles on slow devices (10-60s). */}
+                {/* Without this, users see a frozen screen and think the app is broken. */}
                 {cameraReady && isLoadingModels && (
                     <div style={{
                         position: 'absolute', inset: 0, zIndex: 50,
