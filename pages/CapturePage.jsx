@@ -93,12 +93,14 @@ function CapturePage() {
     const [cameraLost, setCameraLost] = useState(false);
     // deviceCapabilities: pre-flight check result (WebGL, WASM, camera API)
     const [deviceCapabilities, setDeviceCapabilities] = useState(null);
-    // isLoadingModels: true while MediaPipe models are downloading + compiling
-    // Shows a loading UI so users on slow devices don't think the app is frozen
-    const [isLoadingModels, setIsLoadingModels] = useState(false);
+    // modelsReady: flips to true once MediaPipe finishes downloading + compiling.
+    // Starts false. We derive the loading spinner from: cameraReady && !modelsReady.
+    // This correctly handles both race directions:
+    //   • Models finish BEFORE permission (iPhone): spinner shows the moment Allow is tapped
+    //   • Permission auto-granted BEFORE models (Android returning user): spinner shows while models load
+    const [modelsReady, setModelsReady] = useState(false);
     const [loadingStep, setLoadingStep] = useState('');
-    // cameraReady flips to true the moment the user grants camera permission.
-    // Keeps the loading spinner hidden until AFTER Allow is tapped.
+    // cameraReady: flips to true the moment onUserMedia fires (permission granted + stream live)
     const [cameraReady, setCameraReady] = useState(false);
 
     // Pattern Analysis Results
@@ -243,8 +245,8 @@ function CapturePage() {
             const drawingUtils = new DrawingUtils(ctx);
 
             try {
-                // Show loading UI immediately — model init takes 10-60s on slow devices
-                setIsLoadingModels(true);
+                // Track loading progress for the spinner step labels
+                // (modelsReady stays false until everything below completes)
 
                 // ── Step 1: Load WASM runtime ──────────────────────────────────────
                 setLoadingStep('Loading scan engine…');
@@ -283,11 +285,11 @@ function CapturePage() {
                 poseLandmarkerRef.current = poseLandmarker;
 
                 setLoadingStep('Ready');
-                setIsLoadingModels(false);
+                setModelsReady(true); // ← spinner disappears on both iOS and Android
 
             } catch (err) {
                 console.error('[MediaPipe] Init failed after retries:', err);
-                setIsLoadingModels(false);
+                setModelsReady(true); // stop the spinner even on failure (error screen takes over)
                 setInitError(
                     'The body scan engine could not load. This may be due to a slow network or an unsupported browser.\n\nPlease check your connection and reload the page. If the problem persists, try Chrome or Safari.'
                 );
@@ -1067,11 +1069,15 @@ function CapturePage() {
         console.log('✅ Restart complete - ready for new analysis');
     };
 
-    // Dynamic video constraints based on screen orientation
+    // Dynamic video constraints based on screen orientation.
+    // facingMode MUST use { ideal: 'user' } not the plain string "user".
+    // Plain string + exact width/height = known Chrome Android bug where the
+    // browser picks the rear camera if the front can't satisfy exact resolution.
+    // { ideal } = soft preference: always tries front, never throws OverconstrainedError.
     const videoConstraints = {
-        facingMode: "user",
-        width: isPortrait ? 720 : 960,   // Portrait: 720x960 (3:4), Landscape: 960x720 (4:3)
-        height: isPortrait ? 960 : 720,
+        facingMode: { ideal: 'user' },
+        width: { ideal: isPortrait ? 720 : 960 },
+        height: { ideal: isPortrait ? 960 : 720 },
     };
 
     // Show results screen
@@ -1252,10 +1258,12 @@ function CapturePage() {
                     style={{ display: 'none' }}
                 />
 
-                {/* ── Model Loading Overlay ────────────────────────────────────────── */}
-                {/* Shown while MediaPipe downloads + compiles on slow devices (10-60s). */}
-                {/* Without this, users see a frozen screen and think the app is broken. */}
-                {cameraReady && isLoadingModels && (
+                {/* Spinner shows whenever camera is live but models aren't ready yet.    */}
+                {/* cameraReady = permission granted. !modelsReady = models still loading. */}
+                {/* This condition is true on BOTH devices regardless of which resolves first: */}
+                {/*   iPhone: models may finish before Allow → spinner fires the moment Allow is tapped */}
+                {/*   Android: permission auto-granted → spinner shows while models load    */}
+                {cameraReady && !modelsReady && (
                     <div style={{
                         position: 'absolute', inset: 0, zIndex: 50,
                         background: 'rgba(239, 233, 223, 0.97)',
