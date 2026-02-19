@@ -1067,26 +1067,33 @@ function CapturePage() {
         console.log('✅ Restart complete - ready for new analysis');
     };
 
-    // ─────────────────────────────────────────────────────────────────────
-    // VIDEO CONSTRAINTS — FRONT CAMERA (ANDROID FIX)
-    // ─────────────────────────────────────────────────────────────────────
-    // DO NOT change facingMode back to a plain string "user".
-    // DO NOT add exact width/height alongside facingMode.
-    //
-    // Root cause of back camera on Android:
-    //   Chrome Android evaluates ALL constraints simultaneously. When exact
-    //   width/height values are paired with facingMode:"user", the browser
-    //   picks whichever camera satisfies the RESOLUTION first — often the
-    //   rear camera. The facingMode preference is then silently ignored.
-    //
-    // Fix: use { exact: 'user' } to force the front camera regardless of
-    //   resolution, with no competing width/height exact constraints.
-    //   'exact' means "fail if no front camera" — which is correct behaviour.
-    // ─────────────────────────────────────────────────────────────────────
-    const videoConstraints = {
-        facingMode: { exact: 'user' },   // ← MUST be exact, not a plain string
-    };
+    // ─── Video constraints — cascaded fallback for Android front camera ───
+    // Start with ideal front camera (soft — never throws OverconstrainedError).
+    // If even that fails, onUserMediaError drops to bare { video: true }.
+    // DO NOT use plain string facingMode:"user" + exact width/height together —
+    // that causes Chrome Android to pick the rear camera silently.
+    const [videoConstraints, setVideoConstraints] = useState({
+        facingMode: { ideal: 'user' },   // soft preference: always tries front, never hard-fails
+    });
 
+    // Tracks whether we already tried the bare fallback, to avoid an infinite loop
+    const cameraFallbackUsedRef = useRef(false);
+
+    const handleCameraError = (err) => {
+        const isOverconstrained =
+            err?.name === 'OverconstrainedError' ||
+            err?.name === 'ConstraintNotSatisfiedError';
+
+        if (isOverconstrained && !cameraFallbackUsedRef.current) {
+            // Silently retry with no constraints — at least the camera opens
+            cameraFallbackUsedRef.current = true;
+            setVideoConstraints({ video: true });
+            return;
+        }
+
+        // Any other error (NotAllowedError, NotFoundError, etc.) — show message
+        setCameraError(getCameraErrorMessage(err));
+    };
 
     // Show results screen
     // Navigation Flow - Show different screens based on appStage
@@ -1229,7 +1236,7 @@ function CapturePage() {
                     audio={false}
                     videoConstraints={videoConstraints}
                     onUserMedia={() => setCameraReady(true)}
-                    onUserMediaError={(err) => setCameraError(getCameraErrorMessage(err))}
+                    onUserMediaError={handleCameraError}
                     style={{
                         position: "absolute",
                         top: 0,
