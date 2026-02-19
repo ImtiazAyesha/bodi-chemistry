@@ -93,6 +93,10 @@ function CapturePage() {
     const [cameraLost, setCameraLost] = useState(false);
     // deviceCapabilities: pre-flight check result (WebGL, WASM, camera API)
     const [deviceCapabilities, setDeviceCapabilities] = useState(null);
+    // isLoadingModels: true while MediaPipe models are downloading + compiling
+    // Shows a loading UI so users on slow devices don't think the app is frozen
+    const [isLoadingModels, setIsLoadingModels] = useState(false);
+    const [loadingStep, setLoadingStep] = useState('');  // describes current init step
 
     // Pattern Analysis Results
     const [patternResults, setPatternResults] = useState(null);
@@ -236,78 +240,65 @@ function CapturePage() {
             const drawingUtils = new DrawingUtils(ctx);
 
             try {
-                // ── Load MediaPipe WASM runtime (with retry for mobile networks) ──
+                // Show loading UI immediately — model init takes 10-60s on slow devices
+                setIsLoadingModels(true);
+
+                // ── Step 1: Load WASM runtime ──────────────────────────────────────
+                setLoadingStep('Loading scan engine…');
                 const vision = await retryWithBackoff(() =>
                     FilesetResolver.forVisionTasks(
                         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.10/wasm"
                     )
                 );
 
-                // ── Load models (lite pose model for all devices — lower memory, ──
-                // ── same accuracy for postural analysis, dramatically less OOM risk) ──
-                const [faceLandmarker, poseLandmarker] = await Promise.all([
-                    retryWithBackoff(() => FaceLandmarker.createFromOptions(vision, {
-                        baseOptions: {
-                            modelAssetPath:
-                                "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-                        },
-                        runningMode: "VIDEO",
-                        numFaces: 1,
-                    })),
-                    retryWithBackoff(() => PoseLandmarker.createFromOptions(vision, {
-                        baseOptions: {
-                            // ✅ LITE model: ~5MB vs 30MB full, same postural analysis accuracy
-                            modelAssetPath:
-                                "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-                        },
-                        runningMode: "VIDEO",
-                        numPoses: 1,
-                    })),
-                ]);
-
+                // ── Step 2: Load Face model (sequential — safer on low RAM) ────────
+                // Loading both models simultaneously with Promise.all() causes peak RAM
+                // usage that can trigger OOM kills on low-end Android/iOS devices.
+                // Sequential loading trades a few seconds of extra wait for stability.
+                setLoadingStep('Loading face analysis model…');
+                const faceLandmarker = await retryWithBackoff(() => FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath:
+                            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                    },
+                    runningMode: "VIDEO",
+                    numFaces: 1,
+                }));
                 faceLandmarkerRef.current = faceLandmarker;
+
+                // ── Step 3: Load Pose model (lite — same accuracy for posture) ─────
+                setLoadingStep('Loading body analysis model…');
+                const poseLandmarker = await retryWithBackoff(() => PoseLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        // ✅ LITE model: ~5MB vs 30MB full, same postural analysis accuracy
+                        modelAssetPath:
+                            "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+                    },
+                    runningMode: "VIDEO",
+                    numPoses: 1,
+                }));
                 poseLandmarkerRef.current = poseLandmarker;
+
+                setLoadingStep('Ready');
+                setIsLoadingModels(false);
 
             } catch (err) {
                 console.error('[MediaPipe] Init failed after retries:', err);
+                setIsLoadingModels(false);
                 setInitError(
                     'The body scan engine could not load. This may be due to a slow network or an unsupported browser.\n\nPlease check your connection and reload the page. If the problem persists, try Chrome or Safari.'
                 );
                 return; // Stop — do not attempt to start the camera
             }
 
-            const startCamera = async () => {
+            const startCamera = () => {
+                // ✅ CRITICAL FIX: Do NOT call getUserMedia here.
+                // react-webcam already acquires and owns the camera stream.
+                // A second getUserMedia() call causes NotReadableError on low-end
+                // Android (camera busy) or silently hangs, preventing the render
+                // loop from ever starting. Camera errors are handled by the
+                // onUserMediaError prop on the <Webcam> component in the JSX.
                 if (cameraRunningRef.current) return;
-
-                // ── Cascade camera constraints: ideal → minimal → bare ────────────
-                const constraintCandidates = [
-                    { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } },
-                    { video: { facingMode: 'user' } },
-                    { video: true },
-                ];
-
-                let stream = null;
-                for (const constraints of constraintCandidates) {
-                    try {
-                        stream = await navigator.mediaDevices.getUserMedia(constraints);
-                        break; // Success — stop trying further
-                    } catch (err) {
-                        const isOverconstrained = err?.name === 'OverconstrainedError' || err?.name === 'ConstraintNotSatisfiedError';
-                        if (!isOverconstrained) {
-                            // Non-recoverable error (permission denied, no camera, etc.)
-                            setCameraError(getCameraErrorMessage(err));
-                            return;
-                        }
-                        // Overconstrained — try next lower constraint set
-                        console.warn('[Camera] Constraint failed, trying lower quality…', err.message);
-                    }
-                }
-
-                if (!stream) {
-                    setCameraError('Camera could not be started. Please reload and try again.');
-                    return;
-                }
-
                 cameraRunningRef.current = true;
 
                 const renderLoop = async () => {
@@ -1220,14 +1211,15 @@ function CapturePage() {
                     ref={webcamRef}
                     audio={false}
                     videoConstraints={videoConstraints}
+                    onUserMediaError={(err) => setCameraError(getCameraErrorMessage(err))}
                     style={{
                         position: "absolute",
                         top: 0,
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain', // FIXED: Preserve aspect ratio, prevent distortion
-                        transform: "scaleX(-1)", // Mirror for selfie view
+                        objectFit: 'contain',
+                        transform: "scaleX(-1)",
                         visibility: "hidden"
                     }}
                 />
@@ -1255,6 +1247,38 @@ function CapturePage() {
                     height={isPortrait ? 960 : 720}
                     style={{ display: 'none' }}
                 />
+
+                {/* ── Model Loading Overlay ────────────────────────────────────────── */}
+                {/* Shown while MediaPipe downloads + compiles on slow devices (10-60s). */}
+                {/* Without this, users see a frozen screen and think the app is broken. */}
+                {isLoadingModels && (
+                    <div style={{
+                        position: 'absolute', inset: 0, zIndex: 50,
+                        background: 'rgba(239, 233, 223, 0.97)',
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'Outfit, sans-serif',
+                    }}>
+                        {/* Spinner */}
+                        <div style={{
+                            width: 52, height: 52, borderRadius: '50%',
+                            border: '4px solid rgba(47,74,60,0.15)',
+                            borderTop: '4px solid #2F4A3C',
+                            animation: 'spin 1s linear infinite',
+                            marginBottom: '1.5rem',
+                        }} />
+                        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                        <p style={{ fontSize: '1rem', fontWeight: 600, color: '#2F4A3C', marginBottom: '0.4rem' }}>
+                            Preparing your scan
+                        </p>
+                        <p style={{ fontSize: '0.8rem', color: '#5a7060', opacity: 0.8 }}>
+                            {loadingStep || 'Please wait…'}
+                        </p>
+                        <p style={{ fontSize: '0.72rem', color: '#5a7060', opacity: 0.5, marginTop: '0.5rem', maxWidth: 260, textAlign: 'center' }}>
+                            This may take up to a minute on first load
+                        </p>
+                    </div>
+                )}
 
                 {/* Ghost Overlays - Show based on stage */}
                 {captureStage === 'STAGE_1_FACE' && !isFrozen && <FaceGhost isAligned={isAligned} holdDuration={holdDuration} stage1Debug={stage1Debug} />}
