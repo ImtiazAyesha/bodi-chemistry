@@ -254,14 +254,30 @@ function CapturePage() {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
 
-                    // Draw video frame + landmarks on HIDDEN canvas (for capture) with proper aspect ratio
+                    // Draw video frame + landmarks on HIDDEN canvas (for capture)
+                    // CRITICAL: Do NOT use letterbox offsets here. DrawingUtils draws
+                    // landmarks starting at (0,0) relative to the canvas, so the video
+                    // must also be drawn from (0,0) at full canvas size — otherwise the
+                    // face pixel position and the landmark position are in different spaces,
+                    // causing the green dots to land on the wrong side of the face on
+                    // devices (e.g. Infinix Note 40, Samsung S24 FE) where the camera
+                    // delivers a different aspect ratio than requested.
                     const hiddenCanvas = hiddenCanvasRef.current;
                     let hiddenCtx = null;
                     if (hiddenCanvas) {
+                        // Sync hidden canvas pixel buffer to the actual video resolution.
+                        // This ensures DrawingUtils normalized coords (0–1) map to the
+                        // same pixel grid as the drawImage call, regardless of device.
+                        if ( hiddenCanvas.width !== video.videoWidth || hiddenCanvas.height !== video.videoHeight ) {
+                            hiddenCanvas.width = video.videoWidth;
+                            hiddenCanvas.height = video.videoHeight;
+                        }
                         hiddenCtx = hiddenCanvas.getContext("2d");
                         hiddenCtx.save();
                         hiddenCtx.clearRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
-                        hiddenCtx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+                        // Draw at full canvas size — no letterbox offset — so landmark
+                        // coords and video pixels share exactly the same coordinate space.
+                        hiddenCtx.drawImage( video, 0, 0, hiddenCanvas.width, hiddenCanvas.height );
                     }
 
                     if (shouldRunInference && !showResults) {
