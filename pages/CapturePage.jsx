@@ -6,6 +6,7 @@ import {
     PoseLandmarker,
     DrawingUtils,
 } from "@mediapipe/tasks-vision";
+import { runCapabilityChecks } from "../utils/deviceCapabilities";
 
 // Utils - Geometry & Calculations
 import { calculateDistance, calculateDistance2D, calculateAngle, calculateAngle3Points, calculateCraniovertebralAngle, calculateShoulderHeightAsymmetry, calculateFootArchBothSides, calculatePelvicTilt, interpretPelvicTilt, formatMetric } from "../utils/geometry";
@@ -83,6 +84,16 @@ function CapturePage() {
     const [stage3Debug, setStage3Debug] = useState(null);
     const [stage4Debug, setStage4Debug] = useState(null);
 
+    // ── Compatibility & Error States ──────────────────────────────────────
+    // initError: set when MediaPipe fails to load (CDN timeout, WASM, OOM)
+    const [initError, setInitError] = useState(null);
+    // cameraError: set when getUserMedia is rejected or camera is unavailable
+    const [cameraError, setCameraError] = useState(null);
+    // cameraLost: set when a running camera stream drops mid-session
+    const [cameraLost, setCameraLost] = useState(false);
+    // deviceCapabilities: pre-flight check result (WebGL, WASM, camera API)
+    const [deviceCapabilities, setDeviceCapabilities] = useState(null);
+
     // Pattern Analysis Results
     const [patternResults, setPatternResults] = useState(null);
 
@@ -91,6 +102,15 @@ function CapturePage() {
 
     // Detect screen orientation for proper video constraints
     const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+
+    // ── Pre-flight capability check ───────────────────────────────────────
+    useEffect(() => {
+        const caps = runCapabilityChecks();
+        setDeviceCapabilities(caps);
+        if (!caps.canRunMediaPipe) {
+            setInitError(caps.failureReason);
+        }
+    }, []);
 
     // Load questionnaire data from sessionStorage on mount
     useEffect(() => {
@@ -102,8 +122,6 @@ function CapturePage() {
             } catch (error) {
                 console.error('❌ Failed to parse questionnaire data:', error);
             }
-        } else {
-
         }
     }, []);
 
@@ -169,11 +187,47 @@ function CapturePage() {
         }
     }, [appStage, captureData, questionnaireData]);
 
-    // Initialize MediaPipe and Camera
+    // ── Retry-with-backoff helper (for CDN/network timeouts) ─────────────
+    const retryWithBackoff = async (fn, retries = 3, delayMs = 2000) => {
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                return await fn();
+            } catch (err) {
+                if (attempt === retries) throw err;
+                console.warn(`[MediaPipe] Attempt ${attempt} failed, retrying in ${delayMs}ms…`, err.message);
+                await new Promise(r => setTimeout(r, delayMs));
+                delayMs *= 2; // exponential backoff
+            }
+        }
+    };
+
+    // ── Camera error → user-friendly message mapper ───────────────────────
+    const getCameraErrorMessage = (err) => {
+        switch (err?.name) {
+            case 'NotAllowedError':
+            case 'PermissionDeniedError':
+                return 'Camera access was denied.\n\nOn iPhone: go to Settings → Safari → Camera and set it to "Allow", then reload.\nOn Android/Desktop: click the camera icon in the browser address bar and allow access.';
+            case 'NotFoundError':
+            case 'DevicesNotFoundError':
+                return 'No camera was found on this device. Please connect a camera and try again.';
+            case 'NotReadableError':
+            case 'TrackStartError':
+                return 'Your camera is already in use by another app. Please close other apps (e.g. FaceTime, Zoom) and reload the page.';
+            case 'OverconstrainedError':
+            case 'ConstraintNotSatisfiedError':
+                return 'Camera resolution not supported — retrying with lower quality…';
+            default:
+                return `Camera could not be started: ${err?.message || 'Unknown error'}. Please reload the page and try again.`;
+        }
+    };
+
+    // ── Initialize MediaPipe and Camera ───────────────────────────────────
     useEffect(() => {
         let animationFrameId;
 
         const initModelsAndCamera = async () => {
+            // Don't attempt init if pre-flight already detected incompatibility
+            if (initError) return;
             if (!webcamRef.current || !canvasRef.current) return;
 
             const video = webcamRef.current.video;
@@ -181,36 +235,79 @@ function CapturePage() {
             const ctx = canvas.getContext("2d");
             const drawingUtils = new DrawingUtils(ctx);
 
-            // Load MediaPipe models
-            const vision = await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.10/wasm"
-            );
+            try {
+                // ── Load MediaPipe WASM runtime (with retry for mobile networks) ──
+                const vision = await retryWithBackoff(() =>
+                    FilesetResolver.forVisionTasks(
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.10/wasm"
+                    )
+                );
 
-            const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath:
-                        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-                },
-                runningMode: "VIDEO",
-                numFaces: 1,
-            });
+                // ── Load models (lite pose model for all devices — lower memory, ──
+                // ── same accuracy for postural analysis, dramatically less OOM risk) ──
+                const [faceLandmarker, poseLandmarker] = await Promise.all([
+                    retryWithBackoff(() => FaceLandmarker.createFromOptions(vision, {
+                        baseOptions: {
+                            modelAssetPath:
+                                "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                        },
+                        runningMode: "VIDEO",
+                        numFaces: 1,
+                    })),
+                    retryWithBackoff(() => PoseLandmarker.createFromOptions(vision, {
+                        baseOptions: {
+                            // ✅ LITE model: ~5MB vs 30MB full, same postural analysis accuracy
+                            modelAssetPath:
+                                "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+                        },
+                        runningMode: "VIDEO",
+                        numPoses: 1,
+                    })),
+                ]);
 
-            const poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath:
-                        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
-                },
-                runningMode: "VIDEO",
-                numPoses: 1,
-            });
+                faceLandmarkerRef.current = faceLandmarker;
+                poseLandmarkerRef.current = poseLandmarker;
 
-            faceLandmarkerRef.current = faceLandmarker;
-            poseLandmarkerRef.current = poseLandmarker;
+            } catch (err) {
+                console.error('[MediaPipe] Init failed after retries:', err);
+                setInitError(
+                    'The body scan engine could not load. This may be due to a slow network or an unsupported browser.\n\nPlease check your connection and reload the page. If the problem persists, try Chrome or Safari.'
+                );
+                return; // Stop — do not attempt to start the camera
+            }
 
             const startCamera = async () => {
                 if (cameraRunningRef.current) return;
 
-                await navigator.mediaDevices.getUserMedia({ video: true });
+                // ── Cascade camera constraints: ideal → minimal → bare ────────────
+                const constraintCandidates = [
+                    { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } },
+                    { video: { facingMode: 'user' } },
+                    { video: true },
+                ];
+
+                let stream = null;
+                for (const constraints of constraintCandidates) {
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia(constraints);
+                        break; // Success — stop trying further
+                    } catch (err) {
+                        const isOverconstrained = err?.name === 'OverconstrainedError' || err?.name === 'ConstraintNotSatisfiedError';
+                        if (!isOverconstrained) {
+                            // Non-recoverable error (permission denied, no camera, etc.)
+                            setCameraError(getCameraErrorMessage(err));
+                            return;
+                        }
+                        // Overconstrained — try next lower constraint set
+                        console.warn('[Camera] Constraint failed, trying lower quality…', err.message);
+                    }
+                }
+
+                if (!stream) {
+                    setCameraError('Camera could not be started. Please reload and try again.');
+                    return;
+                }
+
                 cameraRunningRef.current = true;
 
                 const renderLoop = async () => {
@@ -452,8 +549,14 @@ function CapturePage() {
                             }
 
                         } catch (e) {
-                            // Silently catch MediaPipe errors (ROI dimension errors during initialization)
-                            // These are expected and don't need to be logged
+                            const msg = e?.message || '';
+                            // GPU / WebGL context lost — fatal, need to re-init
+                            if (msg.toLowerCase().includes('context lost') || msg.toLowerCase().includes('webgl')) {
+                                console.error('[RenderLoop] GPU context lost — stopping loop', e);
+                                setInitError('The camera view was interrupted (GPU context lost). Please reload the page.');
+                                return; // Stop the render loop; don't re-schedule rAF
+                            }
+                            // ROI dimension / initialization transient errors — expected, ignore
                         }
                     }
 
@@ -477,6 +580,9 @@ function CapturePage() {
         return () => {
             cameraRunningRef.current = false;
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            // ✅ Release ML model memory on unmount (prevents memory leaks)
+            try { faceLandmarkerRef.current?.close(); } catch (_) { }
+            try { poseLandmarkerRef.current?.close(); } catch (_) { }
         };
     }, [appStage]);
 
@@ -710,11 +816,18 @@ function CapturePage() {
 
 
                     // Run integrated pattern analysis (Body 50%, Face 30%, Questionnaire 20%)
-                    const integratedResults = integrateAllModalities(
-                        combinedMetrics.body,
-                        combinedMetrics.face,
-                        questionnaireData.normalizedScores
-                    );
+                    // ✅ Null-guard: sessionStorage may be cleared by iOS on low memory
+                    const normalizedScores = questionnaireData?.normalizedScores ?? {};
+                    let integratedResults = null;
+                    try {
+                        integratedResults = integrateAllModalities(
+                            combinedMetrics.body,
+                            combinedMetrics.face,
+                            normalizedScores
+                        );
+                    } catch (analysisErr) {
+                        console.error('Pattern analysis failed, proceeding without it:', analysisErr);
+                    }
 
                     setPatternResults(integratedResults);
 
@@ -1005,6 +1118,68 @@ function CapturePage() {
     }
 
     // appStage === 'CAPTURE' - Show the 4-stage capture flow
+
+    // ── Error / unsupported-device screens ───────────────────────────────
+    // These replace the camera UI with a readable, actionable message.
+    // A blank/crashed page is never shown.
+    const ErrorScreen = ({ title, message, showReload = true }) => (
+        <div style={{
+            minHeight: '100dvh', width: '100vw',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '2rem', textAlign: 'center',
+            background: 'linear-gradient(165deg, #F8F5F0 0%, #F0EBE3 40%, #E8E1D7 100%)',
+            fontFamily: 'Outfit, sans-serif',
+        }}>
+            <div style={{
+                width: 68, height: 68, borderRadius: '50%',
+                background: 'rgba(47,74,60,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '1.5rem', fontSize: '1.8rem',
+            }}>⚠️</div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#2F4A3C', marginBottom: '0.75rem' }}>
+                {title}
+            </h2>
+            <p style={{
+                fontSize: '0.95rem', color: '#5a7060',
+                maxWidth: 340, lineHeight: 1.7, marginBottom: '2rem',
+                whiteSpace: 'pre-line',
+            }}>
+                {message}
+            </p>
+            {showReload && (
+                <button
+                    onClick={() => window.location.reload()}
+                    style={{
+                        padding: '0.8rem 2.2rem', borderRadius: '12px',
+                        background: '#2F4A3C', color: '#fff',
+                        fontSize: '0.85rem', fontWeight: 600,
+                        letterSpacing: '0.08em', textTransform: 'uppercase',
+                        border: 'none', cursor: 'pointer',
+                    }}
+                >
+                    Reload Page
+                </button>
+            )}
+        </div>
+    );
+
+    if (initError) {
+        return <ErrorScreen title="Scan Engine Unavailable" message={initError} />;
+    }
+
+    if (cameraError) {
+        return <ErrorScreen title="Camera Not Available" message={cameraError} />;
+    }
+
+    if (cameraLost) {
+        return (
+            <ErrorScreen
+                title="Camera Connection Lost"
+                message={"The camera feed was interrupted.\n\nThis can happen if another app takes control of your camera or if your device goes to sleep.\n\nTap 'Reload Page' to reconnect."}
+            />
+        );
+    }
 
     return (
         <div

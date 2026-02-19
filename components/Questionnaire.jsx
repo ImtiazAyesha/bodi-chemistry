@@ -13,16 +13,23 @@ const Questionnaire = ({ onComplete }) => {
   const answeredCount = answers.filter(a => a !== null).length;
 
   const handleSubmit = (finalAnswers) => {
-    // Calculate scores
-    const result = calculateQuestionnaireScores(finalAnswers);
+    try {
+      // Calculate scores
+      const result = calculateQuestionnaireScores(finalAnswers);
 
-    // Pass results to parent component
-    onComplete({
-      answers: finalAnswers,
-      rawScores: result.rawScores,
-      normalizedScores: result.normalizedScores,
-      metadata: result.metadata
-    });
+      // Pass results to parent component
+      onComplete({
+        answers: finalAnswers,
+        rawScores: result.rawScores,
+        normalizedScores: result.normalizedScores,
+        metadata: result.metadata
+      });
+    } catch (err) {
+      console.error('[Questionnaire] Score calculation failed:', err);
+      // Don't crash — show the error in a recoverable way.
+      // The alert keeps it simple; a toast library (react-hot-toast) could be used instead.
+      alert('There was a problem processing your answers. Please try submitting again.\n\nIf this keeps happening, try reloading the page.');
+    }
   };
 
   const handleAnswer = (optionLabel) => {
