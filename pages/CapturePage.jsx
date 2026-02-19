@@ -119,6 +119,54 @@ function CapturePage() {
         }
     }, []);
 
+    // ── Front camera selection via device enumeration ─────────────────────
+    // facingMode: "user" / { ideal } / { exact } are ALL unreliable on Android.
+    // Different manufacturers (Samsung, Xiaomi, Oppo, etc.) label cameras
+    // differently and Chrome Android often ignores facingMode entirely.
+    //
+    // The only guaranteed approach: enumerate physical camera devices and select
+    // the front camera by its label string. This requires camera permission to
+    // already be granted (which it is by the time the user reaches CAPTURE).
+    useEffect(() => {
+        if (appStage !== 'CAPTURE') return;
+
+        const selectFrontCamera = async () => {
+            try {
+                if (!navigator.mediaDevices?.enumerateDevices) return;
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(d => d.kind === 'videoinput');
+
+                if (videoDevices.length === 0) return;
+
+                // Labels are only populated after permission is granted.
+                // Match common front camera label patterns across Android OEMs:
+                const frontCamera = videoDevices.find(d => {
+                    const label = d.label.toLowerCase();
+                    return (
+                        label.includes('front') ||
+                        label.includes('selfie') ||
+                        label.includes('facing front') ||
+                        label.includes('facetime') ||    // iOS
+                        label.includes('user')           // some Samsung
+                    );
+                });
+
+                if (frontCamera?.deviceId) {
+                    console.log('[Camera] Front camera found by label:', frontCamera.label);
+                    setVideoConstraints({ deviceId: { exact: frontCamera.deviceId } });
+                } else {
+                    // Labels empty (unlikely if permission granted) — keep facingMode fallback
+                    console.warn('[Camera] Could not find front camera by label, using facingMode fallback');
+                }
+            } catch (err) {
+                console.warn('[Camera] Device enumeration failed:', err.message);
+            }
+        };
+
+        selectFrontCamera();
+    }, [appStage]);
+
     // Load questionnaire data from sessionStorage on mount
     useEffect(() => {
         const storedData = sessionStorage.getItem('questionnaireData');
