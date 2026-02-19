@@ -41,15 +41,13 @@ function CapturePage() {
     const poseLandmarkerRef = useRef(null);
     const cameraRunningRef = useRef(false);
 
-    // Navigation State - Start directly at CAPTURE for testing
-    const [appStage, setAppStage] = useState('CAPTURE');
+    const [appStage, setAppStage] = useState('LANDING');
     // Possible values: 'LANDING' → 'QUESTIONNAIRE' → 'INSTRUCTIONS' → 'CAPTURE' → 'PROCESSING' → 'RESULTS'
 
     // 4-Stage Capture System
     const [captureStage, setCaptureStage] = useState('STAGE_1_FACE');
 
     const [isAligned, setIsAligned] = useState(false);
-    const [showResults, setShowResults] = useState(false);
 
     // Auto-capture timer states
     const [holdDuration, setHoldDuration] = useState(0); // 0 to 5000ms (2s green hold + 3s countdown: 3, 2, 1)
@@ -84,22 +82,16 @@ function CapturePage() {
     const [stage3Debug, setStage3Debug] = useState(null);
     const [stage4Debug, setStage4Debug] = useState(null);
 
-    // ── Compatibility & Error States ──────────────────────────────────────
-    // initError: set when MediaPipe fails to load (CDN timeout, WASM, OOM)
     const [initError, setInitError] = useState(null);
-    // cameraError: set when getUserMedia is rejected or camera is unavailable
     const [cameraError, setCameraError] = useState(null);
-    // cameraLost: set when a running camera stream drops mid-session
     const [cameraLost, setCameraLost] = useState(false);
-    // deviceCapabilities: pre-flight check result (WebGL, WASM, camera API)
-    const [deviceCapabilities, setDeviceCapabilities] = useState(null);
-    // isLoadingModels: true while MediaPipe models are downloading + compiling
-    // Shows a loading UI so users on slow devices don't think the app is frozen
     const [isLoadingModels, setIsLoadingModels] = useState(false);
     const [loadingStep, setLoadingStep] = useState('');
-    // cameraReady flips to true the moment the user grants camera permission.
-    // Keeps the loading spinner hidden until AFTER Allow is tapped.
+    // cameraReady: true once onUserMedia fires (permission granted + stream live)
     const [cameraReady, setCameraReady] = useState(false);
+    // videoConstraints: ideal facingMode on first render; handleUserMedia() upgrades
+    // this to a specific deviceId post-permission for reliable front camera on Android
+    const [videoConstraints, setVideoConstraints] = useState({ facingMode: { ideal: 'user' } });
 
     // Pattern Analysis Results
     const [patternResults, setPatternResults] = useState(null);
@@ -110,13 +102,9 @@ function CapturePage() {
     // Detect screen orientation for proper video constraints
     const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
 
-    // ── Pre-flight capability check ───────────────────────────────────────
     useEffect(() => {
-        const caps = runCapabilityChecks();
-        setDeviceCapabilities(caps);
-        if (!caps.canRunMediaPipe) {
-            setInitError(caps.failureReason);
-        }
+        const { canRunMediaPipe, failureReason } = runCapabilityChecks();
+        if (!canRunMediaPipe) setInitError(failureReason);
     }, []);
 
     // Load questionnaire data from sessionStorage on mount
@@ -166,33 +154,7 @@ function CapturePage() {
         }
     }, [isFrozen, appStage]);
 
-    // Run INTEGRATED pattern analysis when entering PROCESSING stage
-    useEffect(() => {
-        if (appStage === 'PROCESSING' && captureData.stage4.image && questionnaireData) {
-
-            // Combine all metrics for pattern analysis
-            const bodyMetrics = {
-                shoulderHeight: captureData.stage2.metrics.shoulderHeight,
-                fhpAngle: captureData.stage3.metrics.fhpAngle,
-                pelvicTilt: captureData.stage4.metrics.pelvicTilt,
-                kneeAngle: captureData.stage4.metrics.kneeAngle,
-                footArchRatio: captureData.stage4.metrics.footArchRatio
-            };
-
-            const faceMetrics = {
-                eyeSym: captureData.stage1.metrics.eyeSym,
-                jawShift: captureData.stage1.metrics.jawShift,
-                headTilt: captureData.stage1.metrics.headTilt,
-                nostrilAsym: captureData.stage1.metrics.nostrilAsym
-            };
-
-            const questionnaireScores = questionnaireData.normalizedScores;
-
-            // Run INTEGRATED pattern fusion (Body 50%, Face 30%, Questionnaire 20%)
-            const integratedResult = integrateAllModalities(bodyMetrics, faceMetrics, questionnaireScores);
-            setPatternResults(integratedResult);
-        }
-    }, [appStage, captureData, questionnaireData]);
+    // Pattern analysis runs inside handleContinue() when stage 4 completes.
 
     // ── Retry-with-backoff helper (for CDN/network timeouts) ─────────────
     const retryWithBackoff = async (fn, retries = 3, delayMs = 2000) => {
@@ -240,7 +202,6 @@ function CapturePage() {
             const video = webcamRef.current.video;
             const canvas = canvasRef.current;
             const ctx = canvas.getContext("2d");
-            const drawingUtils = new DrawingUtils(ctx);
 
             try {
                 // Show loading UI immediately — model init takes 10-60s on slow devices
@@ -355,7 +316,7 @@ function CapturePage() {
                         hiddenCtx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
                     }
 
-                    if (shouldRunInference && !showResults) {
+                    if (shouldRunInference) {
                         lastInferenceTimeRef.current = now;
 
                         try {
@@ -423,62 +384,14 @@ function CapturePage() {
                                 // Landmarks are drawn on HIDDEN canvas only (see lines below)
                                 // This keeps the visible canvas clean for user experience
 
-                                // METRIC 4: Shoulder Height Asymmetry (Normalized by Body Height)
-                                // Uses Left Shoulder (11), Right Shoulder (12), Ankles (27, 28)
-                                // Expected: <2% (normal), 2-4% (mild), 4-6% (moderate), >6% (severe)
+                                // Body metrics
                                 const shoulderHeight = calculateShoulderHeightAsymmetry(pl);
-
-                                // Handle null return (missing landmarks)
-                                if (shoulderHeight === null) {
-                                    console.warn('Could not calculate shoulder asymmetry - missing landmarks');
-                                }
-
-                                // METRIC 5: Forward Head Posture (Craniovertebral Angle - CVA)
-                                // Uses Nose (0), Ear (7), Shoulder (11)
-                                // Expected: 50-60° (normal), <40° (severe FHP)
-                                const nose = pl[0];
-                                const ear = pl[7];
-                                const leftShoulder = pl[11]; // Left shoulder landmark
+                                const nose = pl[0], ear = pl[7], leftShoulder = pl[11];
                                 const fhpAngle = calculateCraniovertebralAngle(nose, ear, leftShoulder);
-
-                                // Handle null return (missing landmarks)
-                                if (fhpAngle === null) {
-                                    console.warn('Could not calculate CVA - missing landmarks');
-                                }
-
-                                // METRIC 6: Anterior Pelvic Tilt
-                                // Uses Hip (23), Knee (25) for side view
-                                // Expected: 5-12° (normal), >15° (hyperlordotic), <5° (posterior tilt)
                                 const pelvicTilt = calculatePelvicTilt(pl, 'side');
-
-                                // Get interpretation
-                                const pelvicInterpretation = interpretPelvicTilt(pelvicTilt, 'side');
-
-                                // Handle null return (missing landmarks)
-                                if (pelvicTilt === null) {
-                                    console.warn('Could not calculate pelvic tilt - missing landmarks');
-                                }
-
-                                // METRIC 7: Knee Valgus Angle (Joint Angle at Knee)
-                                // Uses Hip (23) -> Knee (25) -> Ankle (27)
-                                // Expected: 165-180° (170-180° is normal, 165-170° is mild valgus)
-                                const leftHip = pl[23]; // Left hip landmark
-                                const leftKnee = pl[25]; // Left knee landmark
-                                const leftAnkle = pl[27];
+                                const leftHip = pl[23], leftKnee = pl[25], leftAnkle = pl[27];
                                 const kneeAngle = calculateAngle3Points(leftHip, leftKnee, leftAnkle);
-
-                                // METRIC 8: Foot Arch Collapse Ratio (NEW METHOD)
-                                // Uses Ankle (27/28), Heel (29/30), Foot Index (31/32)
-                                // Expected: 0.30-0.40 (normal arch), 0.20-0.30 (mild pronation), <0.20 (severe flat foot)
-                                // NEW: Vertical arch height ratio (navicular to heel / ankle to heel)
-                                const footArchData = calculateFootArchBothSides(pl);
-                                const footArchRatio = footArchData.average;
-
-                                // Handle null return (missing landmarks)
-                                if (footArchRatio === null) {
-                                    console.warn('Could not calculate foot arch ratio - missing landmarks');
-                                }
-
+                                const footArchRatio = calculateFootArchBothSides(pl).average;
 
 
                                 currentBodyMetrics = {
@@ -989,44 +902,22 @@ function CapturePage() {
         setShowReviewButtons(true);
     };
 
-    // Restart handler
     const handleRestart = () => {
-        console.log('🔄 Restarting application - cleaning up resources...');
-
-        // CRITICAL: Stop camera stream
+        // Stop camera stream
         if (webcamRef.current?.video?.srcObject) {
-            const stream = webcamRef.current.video.srcObject;
-            stream.getTracks().forEach(track => {
-                track.stop();
-                console.log('📹 Stopped camera track:', track.kind);
-            });
+            webcamRef.current.video.srcObject.getTracks().forEach(t => t.stop());
             webcamRef.current.video.srcObject = null;
         }
 
-        // CRITICAL: Cancel animation frame loop
-        if (window.requestAnimationFrame && renderLoopRef.current) {
-            cancelAnimationFrame(renderLoopRef.current);
-            console.log('🎬 Cancelled animation frame');
-        }
-
-        // CRITICAL: Reset camera running flag
+        // Reset refs
         cameraRunningRef.current = false;
-        console.log('🚫 Reset camera running flag');
-
-        // CRITICAL: Clear MediaPipe model refs (they will be reloaded)
         faceLandmarkerRef.current = null;
         poseLandmarkerRef.current = null;
-        console.log('🧹 Cleared MediaPipe model refs');
-
-        // Reset timing refs
         lastInferenceTimeRef.current = 0;
         lastAlignmentCheckRef.current = 0;
-        console.log('⏱️ Reset timing refs');
-
-        // Clear render loop ref
         renderLoopRef.current = null;
 
-        // Reset state variables
+        // Reset state
         setAppStage('LANDING');
         setCaptureStage('STAGE_1_FACE');
         setIsAligned(false);
@@ -1035,121 +926,61 @@ function CapturePage() {
         setShowReviewButtons(false);
         setValidationError('');
         setHoldDuration(0);
-
-        // Reset capture data
         setCaptureData({
-            stage1: {
-                image: null,
-                metrics: { eyeSym: 0, jawShift: 0, headTilt: 0, nostrilAsym: 0 },
-                landmarks: { face: null, pose: null }
-            },
-            stage2: {
-                image: null,
-                metrics: { shoulderHeight: 0 },
-                landmarks: { face: null, pose: null }
-            },
-            stage3: {
-                image: null,
-                metrics: { fhpAngle: 0 },
-                landmarks: { face: null, pose: null }
-            },
-            stage4: {
-                image: null,
-                metrics: { pelvicTilt: 0, kneeAngle: 0, footArchRatio: 0 },
-                landmarks: { face: null, pose: null }
-            }
+            stage1: { image: null, metrics: { eyeSym: 0, jawShift: 0, headTilt: 0, nostrilAsym: 0 } },
+            stage2: { image: null, metrics: { shoulderHeight: 0 } },
+            stage3: { image: null, metrics: { fhpAngle: 0 } },
+            stage4: { image: null, metrics: { pelvicTilt: 0, kneeAngle: 0, footArchRatio: 0 } },
         });
 
-        // Clear sessionStorage
         sessionStorage.removeItem('bodiKemistriCapture');
         sessionStorage.removeItem('bodiKemistriQuestionnaire');
-
-        console.log('✅ Restart complete - ready for new analysis');
     };
-
-    // ── videoConstraints state ─────────────────────────────────────────
-    // Starts with facingMode: { ideal: 'user' } as a first-pass attempt.
-    // handleUserMedia() (called after permission granted) will override this
-    // with a specific deviceId once labels are available — which is far more
-    // reliable than facingMode on Android.
-    const [videoConstraints, setVideoConstraints] = useState({
-        facingMode: { ideal: 'user' },
-    });
 
     // Prevents infinite loop in OverconstrainedError fallback
     const cameraFallbackUsedRef = useRef(false);
 
-    // ── onUserMedia handler ─────────────────────────────────────────
-    // This fires the moment the user taps Allow (or auto-grant fires on Android).
-    // At this exact point, enumerateDevices() returns LABELLED devices for the
-    // first time. We use those labels to find the real front camera deviceId
-    // and update videoConstraints — react-webcam then re-initialises with the
-    // correct camera. This is the ONLY reliable cross-Android approach.
+    // Called by react-webcam when permission is granted + stream is live.
+    // At this point enumerateDevices() returns labelled devices, so we can
+    // reliably identify and switch to the front camera by deviceId.
     const handleUserMedia = async () => {
         setCameraReady(true);
-
         try {
             if (!navigator.mediaDevices?.enumerateDevices) return;
-
             const devices = await navigator.mediaDevices.enumerateDevices();
             const videoDevices = devices.filter(d => d.kind === 'videoinput');
-            console.log('[Camera] Available cameras after permission:', videoDevices.map(d => d.label));
-
             if (videoDevices.length === 0) return;
 
-            // ── Strategy 1: Match by label (most reliable) ────────────────
-            // Covers Samsung, Xiaomi, Oppo, Huawei, iOS and most OEMs.
+            // Strategy 1: match by label (covers Samsung, Xiaomi, Oppo, iOS…)
             const byLabel = videoDevices.find(d => {
-                const label = d.label.toLowerCase();
-                return (
-                    label.includes('front') ||
-                    label.includes('selfie') ||
-                    label.includes('facing front') ||
-                    label.includes('facetime') ||  // iOS
-                    label.includes('user')         // some Samsung devices
-                );
+                const l = d.label.toLowerCase();
+                return l.includes('front') || l.includes('selfie') ||
+                    l.includes('facing front') || l.includes('facetime') || l.includes('user');
             });
-
             if (byLabel?.deviceId) {
-                console.log('[Camera] ✅ Front camera selected by label:', byLabel.label);
                 setVideoConstraints({ deviceId: { exact: byLabel.deviceId } });
                 return;
             }
 
-            // ── Strategy 2: Index-based fallback ─────────────────────────
-            // Labels may still be empty on some Android builds even after Allow.
-            // On most Android OEMs the cameras are ordered: [back, front].
-            // So index 1 (second device) is typically the front camera.
+            // Strategy 2: index-based fallback — most Android OEMs order [back, front]
             if (videoDevices.length > 1 && videoDevices[1]?.deviceId) {
-                console.log('[Camera] ⚠️ Labels empty, trying index 1 as front camera');
                 setVideoConstraints({ deviceId: { exact: videoDevices[1].deviceId } });
-                return;
             }
-
-            console.warn('[Camera] Only one camera found, keeping current stream');
         } catch (err) {
-            console.warn('[Camera] Post-permission enumeration failed:', err.message);
+            console.warn('[Camera] Device enumeration failed:', err.message);
         }
     };
 
     const handleCameraError = (err) => {
-        const isOverconstrained =
-            err?.name === 'OverconstrainedError' ||
-            err?.name === 'ConstraintNotSatisfiedError';
-
+        const isOverconstrained = err?.name === 'OverconstrainedError' || err?.name === 'ConstraintNotSatisfiedError';
         if (isOverconstrained && !cameraFallbackUsedRef.current) {
-            // Silently retry with no constraints — at least the camera opens
             cameraFallbackUsedRef.current = true;
             setVideoConstraints({ video: true });
             return;
         }
-
-        // Any other error (NotAllowedError, NotFoundError, etc.) — show message
         setCameraError(getCameraErrorMessage(err));
     };
 
-    // Show results screen
-    // Navigation Flow - Show different screens based on appStage
     if (appStage === 'LANDING') {
         return <LandingPage onStart={() => setAppStage('QUESTIONNAIRE')} />;
     }
@@ -1252,27 +1083,27 @@ function CapturePage() {
     return (
         <div
             style={{
-                height: "100dvh", // FIXED: Dynamic viewport height for mobile
+                height: "100dvh",
                 width: "100vw",
                 margin: 0,
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
                 background: "#EFE9DF",
-                position: 'fixed', // FIXED: Fixed positioning for full screen
+                position: 'fixed',
                 top: 0,
                 left: 0,
                 overflow: 'hidden',
-                padding: 0 // FIXED: Remove padding for full screen
+                padding: 0
             }}
         >
             <div
                 style={{
                     position: "relative",
                     width: '100%',
-                    height: '100%', // FIXED: Fill parent container
+                    height: '100%',
                     maxWidth: '100vw',
-                    maxHeight: '100dvh' // FIXED: Use dynamic viewport height
+                    maxHeight: '100dvh'
                 }}
             >
                 {/* Background Layer (Subtle Gradient) */}
@@ -1312,7 +1143,7 @@ function CapturePage() {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain', // FIXED: Preserve aspect ratio, prevent distortion
+                        objectFit: 'contain',
                         transform: "scaleX(-1)",
                         zIndex: 2
                     }}
