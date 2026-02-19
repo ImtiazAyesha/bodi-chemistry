@@ -6,7 +6,6 @@ import PatternCard from './PatternCard';
 
 /**
  * Results Screen Component
- * Displays all 4 captured images and calculated metrics
  */
 
 const ResultsScreen = ({ captureData, questionnaireData, patternResults, onRestart }) => {
