@@ -119,54 +119,6 @@ function CapturePage() {
         }
     }, []);
 
-    // ── Front camera selection via device enumeration ─────────────────────
-    // facingMode: "user" / { ideal } / { exact } are ALL unreliable on Android.
-    // Different manufacturers (Samsung, Xiaomi, Oppo, etc.) label cameras
-    // differently and Chrome Android often ignores facingMode entirely.
-    //
-    // The only guaranteed approach: enumerate physical camera devices and select
-    // the front camera by its label string. This requires camera permission to
-    // already be granted (which it is by the time the user reaches CAPTURE).
-    useEffect(() => {
-        if (appStage !== 'CAPTURE') return;
-
-        const selectFrontCamera = async () => {
-            try {
-                if (!navigator.mediaDevices?.enumerateDevices) return;
-
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(d => d.kind === 'videoinput');
-
-                if (videoDevices.length === 0) return;
-
-                // Labels are only populated after permission is granted.
-                // Match common front camera label patterns across Android OEMs:
-                const frontCamera = videoDevices.find(d => {
-                    const label = d.label.toLowerCase();
-                    return (
-                        label.includes('front') ||
-                        label.includes('selfie') ||
-                        label.includes('facing front') ||
-                        label.includes('facetime') ||    // iOS
-                        label.includes('user')           // some Samsung
-                    );
-                });
-
-                if (frontCamera?.deviceId) {
-                    console.log('[Camera] Front camera found by label:', frontCamera.label);
-                    setVideoConstraints({ deviceId: { exact: frontCamera.deviceId } });
-                } else {
-                    // Labels empty (unlikely if permission granted) — keep facingMode fallback
-                    console.warn('[Camera] Could not find front camera by label, using facingMode fallback');
-                }
-            } catch (err) {
-                console.warn('[Camera] Device enumeration failed:', err.message);
-            }
-        };
-
-        selectFrontCamera();
-    }, [appStage]);
-
     // Load questionnaire data from sessionStorage on mount
     useEffect(() => {
         const storedData = sessionStorage.getItem('questionnaireData');
@@ -1115,17 +1067,70 @@ function CapturePage() {
         console.log('✅ Restart complete - ready for new analysis');
     };
 
-    // ─── Video constraints — cascaded fallback for Android front camera ───
-    // Start with ideal front camera (soft — never throws OverconstrainedError).
-    // If even that fails, onUserMediaError drops to bare { video: true }.
-    // DO NOT use plain string facingMode:"user" + exact width/height together —
-    // that causes Chrome Android to pick the rear camera silently.
+    // ── videoConstraints state ─────────────────────────────────────────
+    // Starts with facingMode: { ideal: 'user' } as a first-pass attempt.
+    // handleUserMedia() (called after permission granted) will override this
+    // with a specific deviceId once labels are available — which is far more
+    // reliable than facingMode on Android.
     const [videoConstraints, setVideoConstraints] = useState({
-        facingMode: { ideal: 'user' },   // soft preference: always tries front, never hard-fails
+        facingMode: { ideal: 'user' },
     });
 
-    // Tracks whether we already tried the bare fallback, to avoid an infinite loop
+    // Prevents infinite loop in OverconstrainedError fallback
     const cameraFallbackUsedRef = useRef(false);
+
+    // ── onUserMedia handler ─────────────────────────────────────────
+    // This fires the moment the user taps Allow (or auto-grant fires on Android).
+    // At this exact point, enumerateDevices() returns LABELLED devices for the
+    // first time. We use those labels to find the real front camera deviceId
+    // and update videoConstraints — react-webcam then re-initialises with the
+    // correct camera. This is the ONLY reliable cross-Android approach.
+    const handleUserMedia = async () => {
+        setCameraReady(true);
+
+        try {
+            if (!navigator.mediaDevices?.enumerateDevices) return;
+
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+            console.log('[Camera] Available cameras after permission:', videoDevices.map(d => d.label));
+
+            if (videoDevices.length === 0) return;
+
+            // ── Strategy 1: Match by label (most reliable) ────────────────
+            // Covers Samsung, Xiaomi, Oppo, Huawei, iOS and most OEMs.
+            const byLabel = videoDevices.find(d => {
+                const label = d.label.toLowerCase();
+                return (
+                    label.includes('front') ||
+                    label.includes('selfie') ||
+                    label.includes('facing front') ||
+                    label.includes('facetime') ||  // iOS
+                    label.includes('user')         // some Samsung devices
+                );
+            });
+
+            if (byLabel?.deviceId) {
+                console.log('[Camera] ✅ Front camera selected by label:', byLabel.label);
+                setVideoConstraints({ deviceId: { exact: byLabel.deviceId } });
+                return;
+            }
+
+            // ── Strategy 2: Index-based fallback ─────────────────────────
+            // Labels may still be empty on some Android builds even after Allow.
+            // On most Android OEMs the cameras are ordered: [back, front].
+            // So index 1 (second device) is typically the front camera.
+            if (videoDevices.length > 1 && videoDevices[1]?.deviceId) {
+                console.log('[Camera] ⚠️ Labels empty, trying index 1 as front camera');
+                setVideoConstraints({ deviceId: { exact: videoDevices[1].deviceId } });
+                return;
+            }
+
+            console.warn('[Camera] Only one camera found, keeping current stream');
+        } catch (err) {
+            console.warn('[Camera] Post-permission enumeration failed:', err.message);
+        }
+    };
 
     const handleCameraError = (err) => {
         const isOverconstrained =
@@ -1283,7 +1288,7 @@ function CapturePage() {
                     ref={webcamRef}
                     audio={false}
                     videoConstraints={videoConstraints}
-                    onUserMedia={() => setCameraReady(true)}
+                    onUserMedia={handleUserMedia}
                     onUserMediaError={handleCameraError}
                     style={{
                         position: "absolute",
