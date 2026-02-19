@@ -519,7 +519,7 @@ function CapturePage() {
 
     // Auto-capture timer effect - 5 seconds total (2s green hold + 3s countdown)
     useEffect(() => {
-        if (isAligned && !showResults) {
+        if (isAligned && appStage === 'CAPTURE') {
             // Start countdown timer
             alignmentTimerRef.current = setInterval(() => {
                 setHoldDuration(prev => {
@@ -547,7 +547,7 @@ function CapturePage() {
                 clearInterval(alignmentTimerRef.current);
             }
         };
-    }, [isAligned, showResults]);
+    }, [isAligned, appStage]);
 
     const captureFrameWithLandmarks = (faceLandmarks, poseLandmarks, isStage4) => {
         const video = webcamRef.current?.video;
