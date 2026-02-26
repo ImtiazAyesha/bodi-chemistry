@@ -149,7 +149,110 @@ export const generatePDF = ( captureData, questionnaireData, patternResults, sco
   doc.text(`Foot Arch Ratio: ${captureData.stage4.metrics.footArchRatio}`, 30, yPos);
   yPos += 15;
 
-  // New page for questionnaire
+  // ─────────────────────────────────────────────────────────────────
+  // PAGE 2 — CAPTURE EVIDENCE (2×2 image grid)
+  // ─────────────────────────────────────────────────────────────────
+  doc.addPage();
+  yPos = 15;
+
+  // Page title
+  doc.setFontSize( 16 );
+  doc.setFont( undefined, 'bold' );
+  doc.text( 'CAPTURE EVIDENCE', pageWidth / 2, yPos, { align: 'center' } );
+  yPos += 6;
+
+  doc.setFontSize( 9 );
+  doc.setFont( undefined, 'normal' );
+  doc.text( 'Composite captures with MediaPipe landmark overlays', pageWidth / 2, yPos, { align: 'center' } );
+  yPos += 8;
+
+  // Separator
+  doc.setLineWidth( 0.5 );
+  doc.line( 20, yPos, pageWidth - 20, yPos );
+  yPos += 8;
+
+  // ── Grid layout constants ──────────────────────────────────────
+  const gridMargin = 15;          // left/right page margin (mm)
+  const gridGap = 5;           // gap between columns (mm)
+  const colWidth = ( pageWidth - gridMargin * 2 - gridGap ) / 2;   // ~85mm per cell
+  const imgW = colWidth;
+  const imgH = imgW * ( 3 / 4 );   // 4:3 camera ratio → ~64mm tall
+  const labelH = 14;               // mm reserved below each image for text
+
+  // 4 stage definitions
+  const s1 = captureData.stage1.metrics;
+  const s2 = captureData.stage2.metrics;
+  const s3 = captureData.stage3.metrics;
+  const s4 = captureData.stage4.metrics;
+
+  const gridStages = [
+    {
+      image: captureData.stage1?.image,
+      label: 'Stage 1 — Face (Front)',
+      metrics: `Eye Sym: ${ s1.eyeSym }  |  Jaw Shift: ${ s1.jawShift }  |  Head Tilt: ${ s1.headTilt }°`
+    },
+    {
+      image: captureData.stage2?.image,
+      label: 'Stage 2 — Upper Body (Front)',
+      metrics: `Shoulder Asymmetry: ${ s2.shoulderHeight }%`
+    },
+    {
+      image: captureData.stage3?.image,
+      label: 'Stage 3 — Upper Body (Side)',
+      metrics: `Forward Head Posture (CVA): ${ s3.fhpAngle }°`
+    },
+    {
+      image: captureData.stage4?.image,
+      label: 'Stage 4 — Lower Body (Side)',
+      metrics: `Pelvic Tilt: ${ s4.pelvicTilt }°  |  Foot Arch: ${ s4.footArchRatio }`
+    }
+  ];
+
+  // Render the 2×2 grid
+  const gridStartY = yPos;
+
+  gridStages.forEach( ( stage, i ) => {
+    const col = i % 2;                // 0 = left, 1 = right
+    const row = Math.floor( i / 2 );  // 0 = top row, 1 = bottom row
+
+    const x = gridMargin + col * ( colWidth + gridGap );
+    const y = gridStartY + row * ( imgH + labelH );
+
+    // Draw image or grey placeholder
+    if ( stage.image ) {
+      try {
+        doc.addImage( stage.image, 'JPEG', x, y, imgW, imgH );
+      } catch ( err ) {
+        // Fallback: grey box if image fails to decode
+        doc.setFillColor( 220, 220, 220 );
+        doc.rect( x, y, imgW, imgH, 'F' );
+        doc.setFontSize( 10 );
+        doc.setFont( undefined, 'normal' );
+        doc.text( 'Image Error', x + imgW / 2, y + imgH / 2, { align: 'center' } );
+      }
+    } else {
+      // No capture — draw placeholder
+      doc.setFillColor( 220, 220, 220 );
+      doc.rect( x, y, imgW, imgH, 'F' );
+      doc.setFontSize( 10 );
+      doc.setFont( undefined, 'normal' );
+      doc.text( 'No Capture', x + imgW / 2, y + imgH / 2, { align: 'center' } );
+    }
+
+    // Stage label (bold)
+    doc.setFontSize( 8 );
+    doc.setFont( undefined, 'bold' );
+    doc.text( stage.label, x, y + imgH + 4 );
+
+    // Metrics text (normal)
+    doc.setFontSize( 7 );
+    doc.setFont( undefined, 'normal' );
+    doc.text( stage.metrics, x, y + imgH + 9 );
+  } );
+
+  // ─────────────────────────────────────────────────────────────────
+  // PAGE 3 — QUESTIONNAIRE RESPONSES
+  // ─────────────────────────────────────────────────────────────────
   doc.addPage();
   yPos = 20;
 
