@@ -58,8 +58,9 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
 
   const score = calculateOverallScore();
 
-  // Get primary pattern description
-  const primaryPatternId = patternResults?.primaryPattern?.id || 'upper_compression';
+  // Get primary pattern description — normalize kebab-case ID to snake_case
+  const rawId = patternResults?.primaryPattern?.id || 'upper_compression';
+  const primaryPatternId = rawId.replace( /-/g, '_' );
   const desc = PATTERN_DESCRIPTIONS[ primaryPatternId ] || PATTERN_DESCRIPTIONS.upper_compression;
 
   // Collect all metrics for markers section
@@ -133,9 +134,14 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
           <p style={ { fontSize: 11, fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8FA99B', margin: '0 0 6px' } }>
             Your Primary Pressure Pattern
           </p>
-          <h2 style={ { fontSize: 'clamp(22px, 5vw, 32px)', fontWeight: 700, margin: '0 0 16px' } }>
+          <h2 style={ { fontSize: 'clamp(22px, 5vw, 32px)', fontWeight: 700, margin: '0 0 4px' } }>
             { desc.plainName }
           </h2>
+          { desc.formerName && (
+            <p style={ { fontSize: 11, fontStyle: 'italic', color: 'rgba(47,74,92,0.45)', margin: '0 0 16px' } }>
+              Formerly: { desc.formerName }
+            </p>
+          ) }
           <p style={ { fontSize: 'clamp(14px, 3.5vw, 16px)', lineHeight: 1.6, color: 'rgba(47,74,92,0.7)', maxWidth: 480, margin: '0 auto 20px' } }>
             { desc.summary }
           </p>
@@ -162,10 +168,17 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
             padding: 'clamp(20px, 4vw, 32px)', marginBottom: 24,
           } }
         >
-          <h3 style={ { fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, marginBottom: 12 } }>What This Means</h3>
-          <p style={ { fontSize: 'clamp(14px, 3.5vw, 16px)', lineHeight: 1.7, color: 'rgba(47,74,92,0.75)', margin: 0 } }>
-            { desc.whatItMeans }
-          </p>
+          <h3 style={ { fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, marginBottom: 12 } }>What Your Body Is Trying To Do</h3>
+          { desc.whatBodyIsDoing && desc.whatBodyIsDoing.map( ( para, i ) => (
+            <p key={ i } style={ { fontSize: 'clamp(14px, 3.5vw, 16px)', lineHeight: 1.7, color: 'rgba(47,74,92,0.75)', margin: '0 0 8px' } }>
+              { para }
+            </p>
+          ) ) }
+          { desc.goalStatement && (
+            <p style={ { fontSize: 'clamp(14px, 3.5vw, 16px)', lineHeight: 1.7, color: '#2F4A5C', fontWeight: 600, margin: '8px 0 0' } }>
+              { desc.goalStatement }
+            </p>
+          ) }
         </motion.section>
 
         {/* ─── SECTION 3: MARKERS DETECTED ─── */ }
@@ -257,7 +270,7 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
                   background: 'rgba(143,169,155,0.06)', border: '1px solid rgba(143,169,155,0.1)',
                   borderRadius: 16, padding: '16px 20px',
                 } }>
-                  <div style={ { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 } }>
+                  <div style={ { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 } }>
                     <span style={ {
                       width: 28, height: 28, borderRadius: 8, background: '#2F4A5C',
                       color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -267,11 +280,24 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
                     </span>
                     <span style={ { fontSize: 15, fontWeight: 700 } }>Week { i + 1 }: { week.title }</span>
                   </div>
-                  <ul style={ { margin: 0, paddingLeft: 44, listStyle: 'disc' } }>
-                    { week.bullets.map( ( b, j ) => (
-                      <li key={ j } style={ { fontSize: 13, color: 'rgba(47,74,92,0.7)', lineHeight: 1.6, marginBottom: 4 } }>{ b }</li>
+                  <p style={ { fontSize: 13, fontWeight: 600, color: '#2F4A5C', margin: '0 0 6px', paddingLeft: 38 } }>
+                    { week.exercise }
+                  </p>
+                  <ul style={ { margin: 0, paddingLeft: 54, listStyle: 'disc' } }>
+                    { week.steps.map( ( s, j ) => (
+                      <li key={ j } style={ { fontSize: 13, color: 'rgba(47,74,92,0.7)', lineHeight: 1.6, marginBottom: 4 } }>{ s }</li>
                     ) ) }
                   </ul>
+                  { week.videoUrl && (
+                    <a href={ week.videoUrl } target="_blank" rel="noopener noreferrer" style={ { display: 'block', fontSize: 12, color: '#4A7FB5', paddingLeft: 38, marginTop: 6, textDecoration: 'none' } }>
+                      ▶ Watch Video
+                    </a>
+                  ) }
+                  { week.goal && (
+                    <p style={ { fontSize: 12, fontStyle: 'italic', color: 'rgba(47,74,92,0.55)', paddingLeft: 38, marginTop: 4, marginBottom: 0 } }>
+                      Goal: { week.goal }
+                    </p>
+                  ) }
                 </div>
               );
             } ) }
@@ -294,7 +320,7 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
         {/* ─── ACTION BUTTONS ─── */ }
         <div style={ { display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' } }>
           <button
-            onClick={() => generatePDF(captureData, questionnaireData, patternResults, score)}
+            onClick={ async () => await generatePDF( captureData, questionnaireData, patternResults, score ) }
             style={ {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               background: '#2F4A5C', color: '#FFFFFF', border: 'none', borderRadius: 16,
