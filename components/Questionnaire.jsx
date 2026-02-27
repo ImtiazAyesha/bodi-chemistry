@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FiCheck, FiArrowRight } from 'react-icons/fi';
 import { QUESTIONNAIRE_DATA, PATTERN_NAMES } from '../config/questionnaireData.js';
 import { calculateQuestionnaireScores } from '../utils/questionnaireScoring.js';
 
 const Questionnaire = ({ onComplete }) => {
+  const [ showIntro, setShowIntro ] = useState( true );
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState(Array(20).fill(null));
 
@@ -51,7 +52,78 @@ const Questionnaire = ({ onComplete }) => {
     }
   };
 
-  // Question Screen
+  // ── Intro card (before Q1) ──────────────────────────────────
+  if ( showIntro ) {
+    return (
+      <div
+        className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6 selection:bg-brand-sage/30"
+        style={ { background: 'linear-gradient(165deg, #F8F5F0 0%, #F0EBE3 40%, #E8E1D7 100%)' } }
+      >
+        <motion.div
+          initial={ { opacity: 0, y: 20 } }
+          animate={ { opacity: 1, y: 0 } }
+          className="w-full max-w-md text-center"
+        >
+          <div
+            style={ {
+              background: 'rgba(255,255,255,0.5)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(47,74,92,0.1)',
+              borderRadius: 100,
+              padding: '6px 18px',
+              display: 'inline-block',
+              marginBottom: 20,
+            } }
+          >
+            <span style={ { color: '#2F4A5C', fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' } }>
+              Assessment
+            </span>
+          </div>
+
+          <h1 style={ { color: '#2F4A5C', fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.3, margin: '0 0 24px' } }>
+            Body Awareness Assessment
+          </h1>
+
+          <ul style={ { listStyle: 'none', padding: 0, margin: '0 0 36px', textAlign: 'left', maxWidth: 380, marginLeft: 'auto', marginRight: 'auto' } }>
+            { [
+              'You may relate to more than one answer',
+              'Choose the option that feels most dominant or most consistent over time',
+              'There are no right or wrong answers',
+              'Respond honestly for the most accurate results',
+            ].map( ( text, i ) => (
+              <li key={ i } style={ { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14, color: '#2F4A5C', fontSize: 'clamp(13px, 3.2vw, 15px)', lineHeight: 1.5 } }>
+                <span style={ { flexShrink: 0, width: 6, height: 6, borderRadius: '50%', background: '#8FA99B', marginTop: 7 } } />
+                { text }
+              </li>
+            ) ) }
+          </ul>
+
+          <button
+            onClick={ () => setShowIntro( false ) }
+            style={ {
+              background: '#2F4A5C',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 16,
+              padding: '16px 40px',
+              fontSize: 14,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(47,74,92,0.2)',
+              width: '100%',
+              maxWidth: 320,
+            } }
+          >
+            Start Assessment →
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ── Question Screen ─────────────────────────────────────────
   return (
     <div
       className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-3 sm:p-4 md:p-6 selection:bg-brand-sage/30"

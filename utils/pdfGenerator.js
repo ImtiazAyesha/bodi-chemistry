@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { QUESTIONNAIRE_DATA } from '../config/questionnaireData.js';
+import { PATTERN_DESCRIPTIONS } from '../config/patternDescriptions.js';
 
 export const generatePDF = ( captureData, questionnaireData, patternResults, scores ) => {
   const doc = new jsPDF();
@@ -40,6 +41,80 @@ export const generatePDF = ( captureData, questionnaireData, patternResults, sco
   doc.setLineWidth(0.5);
   doc.line(20, yPos, pageWidth - 20, yPos);
   yPos += 10;
+
+  // ── PLAIN-ENGLISH SUMMARY (NEW) ────────────────────────────
+  if ( patternResults && patternResults.primaryPattern ) {
+    const patternId = patternResults.primaryPattern.id || 'upper_compression';
+    const desc = PATTERN_DESCRIPTIONS[ patternId ];
+
+    if ( desc ) {
+      doc.setFontSize( 16 );
+      doc.setFont( undefined, 'bold' );
+      doc.text( 'YOUR PRIMARY PRESSURE PATTERN', 20, yPos );
+      yPos += 10;
+
+      doc.setFontSize( 18 );
+      doc.setFont( undefined, 'bold' );
+      doc.text( desc.plainName, 20, yPos );
+      yPos += 10;
+
+      doc.setFontSize( 11 );
+      doc.setFont( undefined, 'normal' );
+      yPos = addText( desc.summary, 20, yPos, pageWidth - 40, 11 );
+      yPos += 8;
+
+      doc.setFontSize( 12 );
+      doc.setFont( undefined, 'bold' );
+      doc.text( 'This often feels like:', 20, yPos );
+      yPos += 7;
+
+      doc.setFontSize( 10 );
+      doc.setFont( undefined, 'normal' );
+      desc.feelsLike.forEach( item => {
+        doc.text( `• ${ item }`, 28, yPos );
+        yPos += 6;
+      } );
+      yPos += 6;
+
+      doc.setFontSize( 12 );
+      doc.setFont( undefined, 'bold' );
+      doc.text( 'What This Means:', 20, yPos );
+      yPos += 7;
+
+      doc.setFontSize( 10 );
+      doc.setFont( undefined, 'normal' );
+      yPos = addText( desc.whatItMeans, 20, yPos, pageWidth - 40, 10 );
+      yPos += 10;
+
+      // 3-Week Plan
+      doc.setFontSize( 12 );
+      doc.setFont( undefined, 'bold' );
+      doc.text( 'YOUR STARTING PLAN', 20, yPos );
+      yPos += 8;
+
+      [ 'week1', 'week2', 'week3' ].forEach( ( wk, i ) => {
+        const week = desc.weeklyPlan[ wk ];
+        doc.setFontSize( 11 );
+        doc.setFont( undefined, 'bold' );
+        doc.text( `Week ${ i + 1 }: ${ week.title }`, 28, yPos );
+        yPos += 6;
+
+        doc.setFontSize( 10 );
+        doc.setFont( undefined, 'normal' );
+        week.bullets.forEach( b => {
+          doc.text( `  • ${ b }`, 34, yPos );
+          yPos += 5;
+        } );
+        yPos += 3;
+      } );
+
+      // Separator
+      yPos += 5;
+      doc.setLineWidth( 0.5 );
+      doc.line( 20, yPos, pageWidth - 20, yPos );
+      yPos += 10;
+    }
+  }
 
   // PATTERN ANALYSIS SECTION (if available)
   if ( patternResults && patternResults.primaryPattern ) {
