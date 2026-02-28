@@ -82,280 +82,262 @@ const fadeUp = {
   }),
 };
 
-/* Shared glassmorphic card style */
-const cardStyle = {
+/* Shared glassmorphic card base — responsive padding handled via CSS class */
+const cardStyleBase = {
   background: 'rgba(255,255,255,0.52)',
   backdropFilter: 'blur(16px)',
   border: '1px solid rgba(143,169,155,0.2)',
   boxShadow: '0 4px 24px rgba(47,74,92,0.07)',
   borderRadius: 20,
-  padding: '28px 24px',
   flex: 1,
   minWidth: 0,
 };
 
 const OnboardingSlides = ({ onComplete }) => {
   return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        background: 'linear-gradient(165deg, #F8F5F0 0%, #F0EBE3 40%, #E8E1D7 100%)',
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: '40px 20px 52px',
-        boxSizing: 'border-box',
-        position: 'relative', overflow: 'hidden',
-        fontFamily: 'var(--font-body)',
-      }}
-    >
-      {/* Ambient glows */}
-      <div aria-hidden style={{
-        position: 'absolute', top: '-8%', left: '50%', transform: 'translateX(-50%)',
-        width: '70%', height: '45%',
-        background: 'radial-gradient(ellipse, rgba(143,169,155,0.14) 0%, transparent 70%)',
-        filter: 'blur(60px)', pointerEvents: 'none',
-      }} />
-      <div aria-hidden style={{
-        position: 'absolute', bottom: '-10%', right: '-5%',
-        width: '40%', height: '40%',
-        background: 'radial-gradient(ellipse, rgba(47,74,92,0.06) 0%, transparent 70%)',
-        filter: 'blur(60px)', pointerEvents: 'none',
-      }} />
+    <>
+      <div className="ob-root">
+        {/* Ambient glows */}
+        <div aria-hidden style={{
+          position: 'absolute', top: '-8%', left: '50%', transform: 'translateX(-50%)',
+          width: '70%', height: '45%',
+          background: 'radial-gradient(ellipse, rgba(143,169,155,0.14) 0%, transparent 70%)',
+          filter: 'blur(60px)', pointerEvents: 'none',
+        }} />
+        <div aria-hidden style={{
+          position: 'absolute', bottom: '-10%', right: '-5%',
+          width: '40%', height: '40%',
+          background: 'radial-gradient(ellipse, rgba(47,74,92,0.06) 0%, transparent 70%)',
+          filter: 'blur(60px)', pointerEvents: 'none',
+        }} />
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 960 }}>
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 960 }}>
 
-        {/* ── Horizontal Timeline Header ── */}
-        <motion.div
-          initial="hidden" animate="visible" variants={fadeUp} custom={0}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 36 }}
-        >
-          {/* Step 1 node */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: '50%',
-              background: '#2F4A5C',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(47,74,92,0.25)',
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><polyline points="12 8 12 12 14 14" />
-              </svg>
-            </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#2F4A5C', whiteSpace: 'nowrap' }}>
-              1 of 2 · Overview
-            </span>
-          </div>
-
-          {/* Connecting line */}
-          <div style={{ flex: 1, maxWidth: 140, margin: '0 12px', position: 'relative', height: 2, marginBottom: 22 }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(143,169,155,0.35)', borderRadius: 2 }} />
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(to right, #5A7A6E, rgba(143,169,155,0.4))',
-                borderRadius: 2, transformOrigin: 'left',
-              }}
-            />
-            {/* Arrow chevron on line */}
-            <div style={{
-              position: 'absolute', right: -6, top: '50%', transform: 'translateY(-50%)',
-              color: '#8FA99B', fontSize: 12, lineHeight: 1,
-            }}>›</div>
-          </div>
-
-          {/* Step 2 node */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.7)',
-              border: '2px solid #5A7A6E',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A7A6E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" /><path d="M12 6v6l4 2" />
-              </svg>
-            </div>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5A7A6E', whiteSpace: 'nowrap' }}>
-              2 of 2 · Assessment
-            </span>
-          </div>
-        </motion.div>
-
-        {/* ── Two Panels Side by Side ── */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'row',
-          gap: 16,
-          alignItems: 'stretch',
-          flexWrap: 'wrap',
-        }}>
-
-          {/* ── PANEL 1: What to Expect ── */}
+          {/* ── Horizontal Timeline Header ── */}
           <motion.div
-            initial="hidden" animate="visible" variants={fadeUp} custom={1}
-            style={cardStyle}
+            initial="hidden" animate="visible" variants={fadeUp} custom={0}
+            className="ob-timeline"
           >
-            {/* Panel header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            {/* Step 1 node */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               <div style={{
-                width: 36, height: 36, borderRadius: '50%',
+                width: 40, height: 40, borderRadius: '50%',
                 background: '#2F4A5C',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 16px rgba(47,74,92,0.25)',
               }}>
-                <span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>1</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><polyline points="12 8 12 12 14 14" />
+                </svg>
               </div>
-              <div>
-                <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8FA99B', margin: 0 }}>
-                  Overview
-                </p>
-                <h2 style={{ fontSize: 'clamp(1.15rem, 3vw, 1.5rem)', fontWeight: 800, color: '#2F4A5C', letterSpacing: '-0.02em', margin: 0 }}>
-                  What to <span style={{ color: '#5A7A6E' }}>Expect</span>
-                </h2>
-              </div>
+              <span className="ob-timeline-label" style={{ color: '#2F4A5C' }}>
+                1 of 2 · Overview
+              </span>
             </div>
 
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(143,169,155,0.2)', marginBottom: 18 }} />
-
-            {/* Step rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {STEPS_OVERVIEW.map((step) => (
-                <motion.div
-                  key={step.num}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 12,
-                    padding: '12px 14px', borderRadius: 14,
-                    background: 'rgba(255,255,255,0.6)',
-                    border: '1px solid rgba(143,169,155,0.15)',
-                  }}
-                >
-                  <div style={{
-                    flexShrink: 0, width: 34, height: 34, borderRadius: 10,
-                    background: 'rgba(143,169,155,0.12)', border: '1px solid rgba(143,169,155,0.28)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
-                  }}>
-                    {step.icon}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5A7A6E', margin: '0 0 4px' }}>
-                      {step.num} · {step.label}
-                    </p>
-                    <p style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', lineHeight: 1.6, color: '#1A1A1A', margin: 0 }}>
-                      {step.text}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* ── PANEL 2: Body Awareness Assessment ── */}
-          <motion.div
-            initial="hidden" animate="visible" variants={fadeUp} custom={2}
-            style={{
-              ...cardStyle,
-              border: '1px solid rgba(90,122,110,0.3)',
-              boxShadow: '0 4px 32px rgba(47,74,92,0.1)',
-            }}
-          >
-            {/* Panel header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            {/* Connecting line */}
+            <div className="ob-timeline-line">
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(143,169,155,0.35)', borderRadius: 2 }} />
+              <motion.div
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to right, #5A7A6E, rgba(143,169,155,0.4))',
+                  borderRadius: 2, transformOrigin: 'left',
+                }}
+              />
+              {/* Arrow chevron on line */}
               <div style={{
-                width: 36, height: 36, borderRadius: '50%',
+                position: 'absolute', right: -6, top: '50%', transform: 'translateY(-50%)',
+                color: '#8FA99B', fontSize: 12, lineHeight: 1,
+              }}>›</div>
+            </div>
+
+            {/* Step 2 node */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
                 background: 'rgba(255,255,255,0.7)',
                 border: '2px solid #5A7A6E',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <motion.div
-                  animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                  style={{
-                    position: 'absolute', inset: -5, borderRadius: '50%',
-                    border: '1.5px solid rgba(90,122,110,0.4)',
-                  }}
-                />
-                <span style={{ color: '#5A7A6E', fontSize: 13, fontWeight: 800 }}>2</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A7A6E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" /><path d="M12 6v6l4 2" />
+                </svg>
               </div>
-              <div>
-                <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8FA99B', margin: 0 }}>
-                  Before You Begin
-                </p>
-                <h2 style={{ fontSize: 'clamp(1.15rem, 3vw, 1.5rem)', fontWeight: 800, color: '#2F4A5C', letterSpacing: '-0.02em', margin: 0 }}>
-                  Body <span style={{ color: '#5A7A6E' }}>Awareness</span>
-                </h2>
-              </div>
+              <span className="ob-timeline-label" style={{ color: '#5A7A6E' }}>
+                2 of 2 · Assessment
+              </span>
             </div>
-
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(143,169,155,0.2)', marginBottom: 18 }} />
-
-            {/* Instruction cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-              {INSTRUCTIONS.map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.5 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '11px 14px', borderRadius: 12,
-                    background: 'rgba(255,255,255,0.6)',
-                    border: '1px solid rgba(143,169,155,0.15)',
-                  }}
-                >
-                  <div style={{
-                    flexShrink: 0, width: 30, height: 30, borderRadius: 9,
-                    background: 'rgba(143,169,155,0.12)', border: '1px solid rgba(143,169,155,0.25)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {item.icon}
-                  </div>
-                  <p style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', lineHeight: 1.55, color: '#1A1A1A', margin: 0 }}>
-                    {item.text}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* CTA — lives in panel 2, visually anchored here */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.0, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <motion.button
-                whileHover={{ scale: 1.025, boxShadow: '0 12px 40px rgba(47,74,92,0.28)' }}
-                whileTap={{ scale: 0.975 }}
-                onClick={onComplete}
-                style={{
-                  width: '100%',
-                  background: '#2F4A5C', color: '#fff',
-                  border: 'none', borderRadius: 14,
-                  padding: '15px 28px',
-                  fontSize: 12, fontWeight: 700,
-                  letterSpacing: '0.14em', textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 20px rgba(47,74,92,0.22)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  transition: 'box-shadow 0.3s ease',
-                }}
-              >
-                Begin Assessment
-                <FiArrowRight style={{ width: 15, height: 15 }} />
-              </motion.button>
-            </motion.div>
           </motion.div>
 
+          {/* ── Two Panels ── */}
+          <div className="ob-panels">
+
+            {/* ── PANEL 1: What to Expect ── */}
+            <motion.div
+              initial="hidden" animate="visible" variants={fadeUp} custom={1}
+              className="ob-card"
+              style={cardStyleBase}
+            >
+              {/* Panel header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: '#2F4A5C',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>1</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8FA99B', margin: 0 }}>
+                    Overview
+                  </p>
+                  <h2 style={{ fontSize: 'clamp(1.05rem, 4vw, 1.5rem)', fontWeight: 800, color: '#2F4A5C', letterSpacing: '-0.02em', margin: 0 }}>
+                    What to <span style={{ color: '#5A7A6E' }}>Expect</span>
+                  </h2>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: 1, background: 'rgba(143,169,155,0.2)', marginBottom: 18 }} />
+
+              {/* Step rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {STEPS_OVERVIEW.map((step) => (
+                  <motion.div
+                    key={step.num}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 12,
+                      padding: '12px 14px', borderRadius: 14,
+                      background: 'rgba(255,255,255,0.6)',
+                      border: '1px solid rgba(143,169,155,0.15)',
+                    }}
+                  >
+                    <div style={{
+                      flexShrink: 0, width: 34, height: 34, borderRadius: 10,
+                      background: 'rgba(143,169,155,0.12)', border: '1px solid rgba(143,169,155,0.28)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+                    }}>
+                      {step.icon}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5A7A6E', margin: '0 0 4px' }}>
+                        {step.num} · {step.label}
+                      </p>
+                      <p style={{ fontSize: 'clamp(12px, 3.5vw, 13px)', lineHeight: 1.6, color: '#1A1A1A', margin: 0 }}>
+                        {step.text}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* ── PANEL 2: Body Awareness Assessment ── */}
+            <motion.div
+              initial="hidden" animate="visible" variants={fadeUp} custom={2}
+              className="ob-card ob-card-accent"
+              style={cardStyleBase}
+            >
+              {/* Panel header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.7)',
+                  border: '2px solid #5A7A6E',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative',
+                }}>
+                  <motion.div
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                    style={{
+                      position: 'absolute', inset: -5, borderRadius: '50%',
+                      border: '1.5px solid rgba(90,122,110,0.4)',
+                    }}
+                  />
+                  <span style={{ color: '#5A7A6E', fontSize: 13, fontWeight: 800 }}>2</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8FA99B', margin: 0 }}>
+                    Before You Begin
+                  </p>
+                  <h2 style={{ fontSize: 'clamp(1.05rem, 4vw, 1.5rem)', fontWeight: 800, color: '#2F4A5C', letterSpacing: '-0.02em', margin: 0 }}>
+                    Body <span style={{ color: '#5A7A6E' }}>Awareness</span>
+                  </h2>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: 1, background: 'rgba(143,169,155,0.2)', marginBottom: 18 }} />
+
+              {/* Instruction cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+                {INSTRUCTIONS.map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.5 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '11px 14px', borderRadius: 12,
+                      background: 'rgba(255,255,255,0.6)',
+                      border: '1px solid rgba(143,169,155,0.15)',
+                    }}
+                  >
+                    <div style={{
+                      flexShrink: 0, width: 30, height: 30, borderRadius: 9,
+                      background: 'rgba(143,169,155,0.12)', border: '1px solid rgba(143,169,155,0.25)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {item.icon}
+                    </div>
+                    <p style={{ fontSize: 'clamp(12px, 3.5vw, 13px)', lineHeight: 1.55, color: '#1A1A1A', margin: 0 }}>
+                      {item.text}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* CTA — lives in panel 2, visually anchored here */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.0, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <motion.button
+                  whileHover={{ scale: 1.025, boxShadow: '0 12px 40px rgba(47,74,92,0.28)' }}
+                  whileTap={{ scale: 0.975 }}
+                  onClick={onComplete}
+                  style={{
+                    width: '100%',
+                    background: '#2F4A5C', color: '#fff',
+                    border: 'none', borderRadius: 14,
+                    padding: '15px 28px',
+                    fontSize: 12, fontWeight: 700,
+                    letterSpacing: '0.14em', textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 20px rgba(47,74,92,0.22)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                    transition: 'box-shadow 0.3s ease',
+                  }}
+                >
+                  Begin Assessment
+                  <FiArrowRight style={{ width: 15, height: 15 }} />
+                </motion.button>
+              </motion.div>
+            </motion.div>
+
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
