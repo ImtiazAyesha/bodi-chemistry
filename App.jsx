@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 // Pages
 import HomePage from './pages/HomePage';
+import OnboardingPage from './pages/OnboardingPage';
 import QuestionnairePage from './pages/QuestionnairePage';
 import InstructionsPage from './pages/InstructionsPage';
 import CapturePage from './pages/CapturePage';
@@ -20,6 +21,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/onboarding" element={ <OnboardingPage /> } />
         <Route path="/questionnaire" element={<QuestionnairePage />} />
         <Route path="/instructions" element={<InstructionsPage />} />
         <Route path="/capture" element={<CapturePage />} />

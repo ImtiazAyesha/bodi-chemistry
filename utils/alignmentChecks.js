@@ -109,9 +109,6 @@ export const checkStage2Alignment = (poseLandmarks) => {
     } else if (!hasShoulders) {
         feedbackMsg = 'SHOW YOUR SHOULDERS';
         feedbackIcon = '⬆️';
-    } else if (!hasHips) {
-        feedbackMsg = 'SHOW YOUR HIPS';
-        feedbackIcon = '⬇️';
     } else if (!hasKnees) {
         feedbackMsg = 'SHOW YOUR KNEES';
         feedbackIcon = '⬇️';
@@ -258,14 +255,6 @@ export const checkStage4Alignment = (poseLandmarks) => {
 
     // ══════════════════════════════════════════════════════════════════════
     // ✅ GATE 1 — SIDE-VIEW ORIENTATION (PRIMARY GATE)
-    //
-    // In a true side profile the two hips stack almost directly behind each
-    // other, so their X-coordinates are very close together.
-    // Threshold < 0.10 means the hips are within 10% of frame width apart.
-    //
-    // We ALSO check shoulder separation as a second confirmation:
-    // shoulders must be similarly stacked (< 0.12) to rule out a pose where
-    // the hips happen to be close but the torso is still facing forward.
     // ══════════════════════════════════════════════════════════════════════
     const hipDistance = Math.abs(leftHip.x - rightHip.x);
 
@@ -284,10 +273,6 @@ export const checkStage4Alignment = (poseLandmarks) => {
 
     // ══════════════════════════════════════════════════════════════════════
     // ✅ GATE 2 — RIGHT-SIDE DIRECTION (Z-depth)
-    //
-    // For a RIGHT side profile the left hip is CLOSER to the camera
-    // (more negative Z in MediaPipe's coordinate system).
-    // We require a clear separation of at least 0.05 to avoid noise.
     // ══════════════════════════════════════════════════════════════════════
     const leftHipZ = leftHip.z || 0;
     const rightHipZ = rightHip.z || 0;
@@ -328,26 +313,6 @@ export const checkStage4Alignment = (poseLandmarks) => {
     // ✅ FINAL ALIGNMENT — ALL GATES MUST PASS
     // ══════════════════════════════════════════════════════════════════════
     const aligned = isSideView && isRightSide && hasRequiredLandmarks && isInFrame;
-
-    // ── Debug logging ──────────────────────────────────────────────────────
-    console.log('Stage 4 Debug:', {
-        hipDistance: hipDistance.toFixed(3),
-        shoulderDistance: shoulderDistance.toFixed(3),
-        hipsAreSideOn,
-        shouldersAreSideOn,
-        isSideView,
-        leftHipZ: leftHipZ.toFixed(3),
-        rightHipZ: rightHipZ.toFixed(3),
-        isRightSide,
-        hasHead,
-        hasKnee,
-        hasFeet,
-        hasRequiredLandmarks,
-        hipCenterX: hipCenterX.toFixed(3),
-        hipCenterY: hipCenterY.toFixed(3),
-        isInFrame,
-        aligned
-    });
 
     // ── Feedback (GATE ORDER drives priority) ─────────────────────────────
     // Gate 1 (orientation) is always evaluated first so a front-facing user

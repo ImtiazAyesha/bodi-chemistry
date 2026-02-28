@@ -315,32 +315,42 @@ export const QUESTIONNAIRE_DATA = [
         label: "D",
         text: "My breathing feels uneven or asymmetrical",
         scoring: { lateralAsymmetry: 2 }
+      },
+      {
+        label: "E",
+        text: "I don't really notice my breathing",
+        scoring: { upperCompression: 0.5, lowerCompression: 0.5, thoracicCollapse: 0.5, lateralAsymmetry: 0.5 }
       }
     ]
   },
   {
     id: 13,
-    question: "Do you experience regular pain, stiffness, or compression in joints?",
+    question: "Where does your body most often feel restricted or limited?",
     options: [
       {
         label: "A",
-        text: "Neck, jaw, or headaches",
+        text: "Neck / Jaw / Head",
         scoring: { upperCompression: 2 }
       },
       {
         label: "B",
-        text: "Lower back, SI joint, or knee pain",
-        scoring: { lowerCompression: 2 }
-      },
-      {
-        label: "C",
-        text: "Upper back, between shoulder blades",
+        text: "Shoulders / Upper Back",
         scoring: { thoracicCollapse: 2 }
       },
       {
+        label: "C",
+        text: "Low Back / Hips",
+        scoring: { lowerCompression: 2 }
+      },
+      {
         label: "D",
-        text: "One-sided pain patterns",
+        text: "One Side More Than the Other",
         scoring: { lateralAsymmetry: 3 }
+      },
+      {
+        label: "E",
+        text: "I rarely experience restriction",
+        scoring: { upperCompression: -1, lowerCompression: -1, thoracicCollapse: -1, lateralAsymmetry: -1 }
       }
     ]
   },
