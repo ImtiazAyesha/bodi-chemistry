@@ -6,7 +6,7 @@ const HomePage = () => {
     const navigate = useNavigate();
 
     const handleStart = () => {
-        navigate('/questionnaire');
+        navigate( '/onboarding' );
     };
 
     return <LandingPage onStart={handleStart} />;

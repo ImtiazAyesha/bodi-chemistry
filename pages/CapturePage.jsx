@@ -58,10 +58,37 @@ function CapturePage() {
     const [isFrozen, setIsFrozen] = useState(false);
     const [frozenImage, setFrozenImage] = useState(null);
 
+    // Stage intro card state
+    const [ showStageIntro, setShowStageIntro ] = useState( true );
+
     // Capture review states
     const [showReviewButtons, setShowReviewButtons] = useState(false);
     const [validationError, setValidationError] = useState('');
     const [isValidating, setIsValidating] = useState(false);
+
+    // Stage intro card config
+    const STAGE_INTRO_CONFIG = {
+        STAGE_1_FACE: {
+            headline: 'Face Capture',
+            body: 'Position your face and shoulders inside the outline. Stand tall. Neutral expression. Eyes forward.',
+            cta: 'Take Photo',
+        },
+        STAGE_2_UPPER_FRONT: {
+            headline: 'Front Capture',
+            body: 'Position your full body inside the outline. Stand tall. Neutral expression. Eyes forward.',
+            cta: 'Take Photo',
+        },
+        STAGE_3_UPPER_SIDE: {
+            headline: 'Side Profile Capture',
+            body: 'Turn your body sideways. Keep your head in a natural position. Look straight ahead — not at the floor. You can look to check your frame, but face forward once the countdown begins.\n\nPlease look forward so that the image captured is a true profile. The outline will guide you.',
+            cta: 'Take Photo',
+        },
+        STAGE_4_LOWER_SIDE: {
+            headline: 'Side Profile Capture',
+            body: 'Turn your body sideways. Keep your head in a natural position. Look straight ahead — not at the floor. You can look to check your frame, but face forward once the countdown begins.\n\nPlease look forward so that the image captured is a true profile. The outline will guide you.',
+            cta: 'Take Photo',
+        },
+    };
 
     // Capture Data Storage
     const [captureData, setCaptureData] = useState({
@@ -681,12 +708,15 @@ function CapturePage() {
             switch (captureStage) {
                 case 'STAGE_1_FACE':
                     setCaptureStage('STAGE_2_UPPER_FRONT');
+                    setShowStageIntro( true );
                     break;
                 case 'STAGE_2_UPPER_FRONT':
                     setCaptureStage('STAGE_3_UPPER_SIDE');
+                    setShowStageIntro( true );
                     break;
                 case 'STAGE_3_UPPER_SIDE':
                     setCaptureStage('STAGE_4_LOWER_SIDE');
+                    setShowStageIntro( true );
                     break;
                 case 'STAGE_4_LOWER_SIDE':
                     // All captures complete - run pattern analysis
@@ -1081,11 +1111,71 @@ function CapturePage() {
                     style={{ display: 'none' }}
                 />
 
+                {/* Stage Intro Card Overlay */ }
+                { showStageIntro && !isFrozen && ( () => {
+                    const intro = STAGE_INTRO_CONFIG[ captureStage ];
+                    return (
+                        <div style={ {
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            zIndex: 30,
+                            background: 'rgba(239,233,223,0.97)',
+                            backdropFilter: 'blur(12px)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '24px',
+                        } }>
+                            <div style={ {
+                                background: 'rgba(255,255,255,0.5)',
+                                border: '1px solid rgba(47,74,92,0.1)',
+                                borderRadius: 100,
+                                padding: '6px 18px',
+                                marginBottom: 20,
+                            } }>
+                                <span style={ { color: '#2F4A5C', fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' } }>
+                                    { captureStage.replace( 'STAGE_', 'Step ' ).replace( '_FACE', '' ).replace( '_UPPER_FRONT', '' ).replace( '_UPPER_SIDE', '' ).replace( '_LOWER_SIDE', '' ) }
+                                </span>
+                            </div>
+                            <h2 style={ { color: '#2F4A5C', fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' } }>
+                                { intro.headline }
+                            </h2>
+                            <p style={ { color: 'rgba(47,74,92,0.7)', fontSize: 'clamp(13px, 3.5vw, 16px)', lineHeight: 1.6, textAlign: 'center', maxWidth: 400, margin: '0 0 36px' } }>
+                                { intro.body }
+                            </p>
+                            <button
+                                onClick={ () => setShowStageIntro( false ) }
+                                style={ {
+                                    background: '#2F4A5C',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    borderRadius: 16,
+                                    padding: '16px 40px',
+                                    fontSize: 14,
+                                    fontWeight: 700,
+                                    letterSpacing: '0.1em',
+                                    textTransform: 'uppercase',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 20px rgba(47,74,92,0.2)',
+                                    width: '100%',
+                                    maxWidth: 320,
+                                } }
+                            >
+                                { intro.cta } →
+                            </button>
+                        </div>
+                    );
+                } )() }
+
                 {/* Ghost Overlays - Show based on stage */}
-                {captureStage === 'STAGE_1_FACE' && !isFrozen && <FaceGhost isAligned={isAligned} holdDuration={holdDuration} stage1Debug={stage1Debug} />}
-                {captureStage === 'STAGE_2_UPPER_FRONT' && !isFrozen && <UpperBodyFrontGhost isAligned={isAligned} holdDuration={holdDuration} stage2Debug={stage2Debug} />}
-                {captureStage === 'STAGE_3_UPPER_SIDE' && !isFrozen && <UpperBodySideGhost isAligned={isAligned} holdDuration={holdDuration} stage3Debug={stage3Debug} />}
-                {captureStage === 'STAGE_4_LOWER_SIDE' && !isFrozen && <LowerBodySideGhost isAligned={isAligned} holdDuration={holdDuration} stage4Debug={stage4Debug} />}
+                { captureStage === 'STAGE_1_FACE' && !isFrozen && !showStageIntro && <FaceGhost isAligned={ isAligned } holdDuration={ holdDuration } stage1Debug={ stage1Debug } /> }
+                { captureStage === 'STAGE_2_UPPER_FRONT' && !isFrozen && !showStageIntro && <UpperBodyFrontGhost isAligned={ isAligned } holdDuration={ holdDuration } stage2Debug={ stage2Debug } /> }
+                { captureStage === 'STAGE_3_UPPER_SIDE' && !isFrozen && !showStageIntro && <UpperBodySideGhost isAligned={ isAligned } holdDuration={ holdDuration } stage3Debug={ stage3Debug } /> }
+                { captureStage === 'STAGE_4_LOWER_SIDE' && !isFrozen && !showStageIntro && <LowerBodySideGhost isAligned={ isAligned } holdDuration={ holdDuration } stage4Debug={ stage4Debug } /> }
 
                 {/* Frozen Image Overlay */}
                 {
@@ -1143,6 +1233,29 @@ function CapturePage() {
                                     animation: 'fadeIn 0.2s ease-out'
                                 }}>
                                     ✓ Captured
+                                </div>
+
+                                {/* Review headline */ }
+                                <div style={ {
+                                    position: 'absolute',
+                                    top: 16,
+                                    left: 0,
+                                    width: '100%',
+                                    textAlign: 'center',
+                                    zIndex: 2,
+                                } }>
+                                    <span style={ {
+                                        background: 'rgba(0,0,0,0.6)',
+                                        color: '#FFFFFF',
+                                        padding: '8px 20px',
+                                        borderRadius: 100,
+                                        fontSize: 'clamp(12px, 3vw, 14px)',
+                                        fontWeight: 700,
+                                        letterSpacing: '0.1em',
+                                        textTransform: 'uppercase',
+                                    } }>
+                                        Review Your Image
+                                    </span>
                                 </div>
                             </div>
 
@@ -1217,7 +1330,7 @@ function CapturePage() {
                                             e.target.style.boxShadow = '0 4px 12px rgba(0, 255, 0, 0.3)';
                                         }}
                                     >
-                                        Continue
+                                        Confirm & Continue
                                     </button>
                                 </div>
                             )}

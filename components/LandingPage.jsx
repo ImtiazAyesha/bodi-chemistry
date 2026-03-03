@@ -75,40 +75,116 @@ const LandingPage = ({ onStart }) => {
 
                     {/* LEFT COLUMN: BRAND & HERO */}
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left pt-6 sm:pt-8 md:pt-12 lg:pt-12">
+
+
+
+                        {/* ── Headline ── */}
                         <motion.div
-                            initial={{ opacity: 0, y: 30 }}
+                            initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                            className="mb-6 sm:mb-8 md:mb-10"
+                            transition={{ duration: 0.9, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                            className="mb-5 sm:mb-6"
                         >
-                            <h1 className="font-display font-extrabold leading-[0.9] tracking-tight text-brand-slate">
-                                <span className="block text-[clamp(2.5rem,10vw,6.5rem)]">BODY</span>
-                                <span className="shimmer-text block text-[clamp(3.5rem,12vw,8.5rem)] mt-[-0.05em]">MATRIX</span>
+                            <h1 className="font-display tracking-tight text-brand-slate" style={ { lineHeight: 1.1 } }>
+                                <span
+                                    className="block font-semibold"
+                                    style={ { fontSize: 'clamp(1.1rem, 2.8vw, 1.75rem)', color: '#000000', letterSpacing: '-0.01em', marginBottom: '0.2em' } }
+                                >
+                                    Welcome to
+                                </span>
+                                <span
+                                    className="block font-extrabold"
+                                    style={{ fontSize: 'clamp(2.8rem, 7.5vw, 5.5rem)', color: '#5A7A6E', letterSpacing: '-0.03em', lineHeight: 1 }}
+                                >
+                                    Bodi KEMISTRI<sup style={ { fontSize: '0.35em', verticalAlign: 'super', fontWeight: 600 } }>™</sup>
+                                </span>
                             </h1>
-                            <div className="mt-4 sm:mt-6 md:mt-8 h-1 sm:h-1.5 w-20 sm:w-28 md:w-32 bg-brand-sage rounded-full opacity-60 mx-auto lg:mx-0" />
+                            {/* Animated underline accent */}
+                            <motion.div
+                                initial={{ scaleX: 0, originX: 0 }}
+                                animate={{ scaleX: 1 }}
+                                transition={{ duration: 0.8, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                                className="mt-4 h-[3px] w-24 sm:w-32 rounded-full mx-auto lg:mx-0"
+                                style={{ background: 'linear-gradient(to right, #8FA99B, rgba(143,169,155,0.2))' }}
+                            />
                         </motion.div>
 
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 1, delay: 0.4 }}
-                            className="text-base sm:text-lg md:text-xl lg:text-2xl font-body font-light text-brand-slate/70 mb-8 sm:mb-10 md:mb-12 max-w-xl leading-relaxed px-2 sm:px-0"
+                        {/* ── Timing callout card ── */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                            className="mb-6 sm:mb-8 max-w-lg w-full"
                         >
-                            Advanced structural diagnostics powered by <span className="text-brand-deepSage font-semibold">biomechanical optics</span>.
-                            Reveal the precision metrics of your physical architecture.
-                        </motion.p>
+                            <p
+                                className="font-body font-light text-sm sm:text-[15px] leading-relaxed"
+                                style={{ color: 'rgba(47,74,92,0.68)' }}
+                            >
+                                This assessment takes approximately{' '}
+                                <strong style={{ color: '#2F4A5C', fontWeight: 600 }}>12–15 minutes</strong>.
+                                {' '}If you leave and come back you'll start from the beginning — please ensure you have{' '}
+                                <strong style={{ color: '#2F4A5C', fontWeight: 600 }}>12–15 consecutive minutes</strong>{' '}
+                                of uninterrupted time.
+                            </p>
+                        </motion.div>
 
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={onStart}
-                            className="btn-scan group relative w-full sm:w-auto px-10 sm:px-12 md:px-14 lg:px-16 py-4 sm:py-5 md:py-6 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl transition-all duration-300"
+                        {/* ── Body bullets — visible on small screens only ── */}
+                        <motion.ul
+                            initial="hidden"
+                            animate="visible"
+                            variants={{ visible: { transition: { staggerChildren: 0.12, delayChildren: 0.5 } } }}
+                            className="lg:hidden mb-8 sm:mb-10 space-y-3 max-w-md w-full text-left"
                         >
-                            <span className="relative flex items-center justify-center gap-3 sm:gap-4 md:gap-5 text-white font-bold tracking-[0.2em] sm:tracking-[0.25em] uppercase text-xs sm:text-sm">
-                                Start Session
-                                <FiArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform duration-500" />
-                            </span>
-                        </motion.button>
+                            {[
+                                { text: 'This scan identifies how your body is organizing internal pressure and stability.' },
+                                { text: 'Your body works as one system.' },
+                                { text: 'When one area compensates, the entire structure adjusts.' },
+                            ].map(({ text }, i) => (
+                                <motion.li
+                                    key={i}
+                                    variants={{
+                                        hidden: { opacity: 0, x: -12 },
+                                        visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+                                    }}
+                                    className="flex items-start gap-3"
+                                >
+                                    <span
+                                        className="flex-shrink-0 mt-[5px] w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
+                                        style={{
+                                            background: 'rgba(143,169,155,0.18)',
+                                            border: '1px solid rgba(143,169,155,0.35)',
+                                            color: '#5A7A6E',
+                                        }}
+                                    >
+                                        {i + 1}
+                                    </span>
+                                    <span className="font-body text-sm sm:text-[15px] leading-relaxed" style={{ color: '#000000' }}>
+                                        {text}
+                                    </span>
+                                </motion.li>
+                            ))}
+                        </motion.ul>
+
+                        {/* ── CTA ── */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.7, delay: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                            className="flex flex-col items-center lg:items-start gap-3 w-full sm:w-auto"
+                        >
+                            <motion.button
+                                whileHover={{ scale: 1.025, boxShadow: '0 12px 40px rgba(47,74,92,0.3)' }}
+                                whileTap={{ scale: 0.975 }}
+                                onClick={onStart}
+                                className="btn-scan group relative w-full sm:w-auto px-10 sm:px-12 md:px-14 lg:px-16 py-4 sm:py-5 md:py-6 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl transition-all duration-300"
+                            >
+                                <span className="relative flex items-center justify-center gap-3 sm:gap-4 text-white font-bold tracking-[0.2em] sm:tracking-[0.25em] uppercase text-xs sm:text-sm">
+                                    Begin Scan
+                                    <FiArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform duration-500" />
+                                </span>
+                            </motion.button>
+                        </motion.div>
+
                     </div>
 
                     {/* RIGHT COLUMN: PROFESSIONAL DIAGNOSTIC VISUALIZATION */}
@@ -158,35 +234,99 @@ const LandingPage = ({ onStart }) => {
 
                             </motion.div>
 
+                            {/* ── Bullet annotation cards — large screen only ── */}
                             <div className="absolute inset-0 z-10 pointer-events-none">
-                                {steps.map((step, index) => (
-                                    <motion.div
-                                        key={step.id}
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: 1 + (index * 0.3), duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                                        className={`absolute ${step.pos} pointer-events-auto group`}
-                                    >
-                                        <div className="relative flex flex-col items-center gap-4">
-                                            {/* Circular Node */}
-                                            <div className="relative w-20 h-20 rounded-full bg-white/30 backdrop-blur-xl border border-brand-slate/5 flex items-center justify-center shadow-sm transition-all duration-500 group-hover:scale-110 group-hover:bg-white/80 group-hover:border-brand-sage/40 group-hover:shadow-2xl overflow-hidden">
-                                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <ScanLine />
-                                                </div>
-                                                <div className="text-brand-slate/60 group-hover:text-brand-sage transition-colors duration-500">
-                                                    {React.cloneElement(step.icon, { className: 'w-8 h-8' })}
-                                                </div>
-                                            </div>
 
-                                            {/* Label Info - always visible */}
-                                            <div className="flex flex-col items-center transition-all duration-500">
-                                                <h3 className="font-display font-bold text-xs text-brand-slate/60 group-hover:text-brand-slate uppercase tracking-[0.2em] whitespace-nowrap transition-colors duration-500">
-                                                    {step.title}
-                                                </h3>
-                                            </div>
+                                {/* Card 1 — top left, tethered to upper body */}
+                                <motion.div
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.8, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                                    className="absolute top-[14%] left-0"
+                                    style={{ maxWidth: 200 }}
+                                >
+                                    <div
+                                        className="p-3 rounded-xl"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.55)',
+                                            backdropFilter: 'blur(14px)',
+                                            border: '1px solid rgba(143,169,155,0.25)',
+                                            boxShadow: '0 4px 20px rgba(47,74,92,0.07)',
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <span
+                                                className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                                                style={{ background: 'rgba(90,122,110,0.15)', border: '1px solid rgba(90,122,110,0.35)', color: '#5A7A6E' }}
+                                            >1</span>
+                                            <div className="h-px flex-1" style={{ background: 'rgba(143,169,155,0.4)', borderTop: '1px dashed rgba(143,169,155,0.5)' }} />
                                         </div>
-                                    </motion.div>
-                                ))}
+                                        <p className="font-body text-[12px] leading-snug" style={{ color: '#000000' }}>
+                                            This scan identifies how your body is organizing internal pressure and stability.
+                                        </p>
+                                    </div>
+                                </motion.div>
+
+                                {/* Card 2 — middle right, tethered to torso */}
+                                <motion.div
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 1.05, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                                    className="absolute right-0"
+                                    style={{ top: '44%', maxWidth: 190 }}
+                                >
+                                    <div
+                                        className="p-3 rounded-xl"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.55)',
+                                            backdropFilter: 'blur(14px)',
+                                            border: '1px solid rgba(143,169,155,0.25)',
+                                            boxShadow: '0 4px 20px rgba(47,74,92,0.07)',
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <div className="h-px flex-1" style={{ borderTop: '1px dashed rgba(143,169,155,0.5)' }} />
+                                            <span
+                                                className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                                                style={{ background: 'rgba(90,122,110,0.15)', border: '1px solid rgba(90,122,110,0.35)', color: '#5A7A6E' }}
+                                            >2</span>
+                                        </div>
+                                        <p className="font-body text-[12px] leading-snug text-right" style={{ color: '#000000' }}>
+                                            Your body works as one system.
+                                        </p>
+                                    </div>
+                                </motion.div>
+
+                                {/* Card 3 — bottom left, tethered to lower body */}
+                                <motion.div
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 1.3, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                                    className="absolute bottom-[14%] left-0"
+                                    style={{ maxWidth: 200 }}
+                                >
+                                    <div
+                                        className="p-3 rounded-xl"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.55)',
+                                            backdropFilter: 'blur(14px)',
+                                            border: '1px solid rgba(143,169,155,0.25)',
+                                            boxShadow: '0 4px 20px rgba(47,74,92,0.07)',
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <span
+                                                className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                                                style={{ background: 'rgba(90,122,110,0.15)', border: '1px solid rgba(90,122,110,0.35)', color: '#5A7A6E' }}
+                                            >3</span>
+                                            <div className="h-px flex-1" style={{ borderTop: '1px dashed rgba(143,169,155,0.5)' }} />
+                                        </div>
+                                        <p className="font-body text-[12px] leading-snug" style={{ color: '#000000' }}>
+                                            When one area compensates, the entire structure adjusts.
+                                        </p>
+                                    </div>
+                                </motion.div>
+
                             </div>
                         </div>
                     </div>
