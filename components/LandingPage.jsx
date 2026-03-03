@@ -76,31 +76,7 @@ const LandingPage = ({ onStart }) => {
                     {/* LEFT COLUMN: BRAND & HERO */}
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left pt-6 sm:pt-8 md:pt-12 lg:pt-12">
 
-                        {/* ── Eyebrow badge ── */}
-                        <motion.div
-                            initial={{ opacity: 0, y: -12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                            className="inline-flex items-center gap-2 mb-5 sm:mb-6"
-                        >
-                            <div
-                                className="flex items-center gap-2 px-4 py-1.5 rounded-full border"
-                                style={{
-                                    background: 'rgba(255,255,255,0.5)',
-                                    backdropFilter: 'blur(12px)',
-                                    borderColor: 'rgba(143,169,155,0.35)',
-                                }}
-                            >
-                                {/* Pulsing dot */}
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: '#8FA99B' }} />
-                                    <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: '#8FA99B' }} />
-                                </span>
-                                <span className="font-display font-bold text-[10px] tracking-[0.18em] uppercase" style={{ color: '#2F4A5C' }}>
-                                    Bodi KEMISTRI · Body Scan
-                                </span>
-                            </div>
-                        </motion.div>
+
 
                         {/* ── Headline ── */}
                         <motion.div
@@ -109,27 +85,18 @@ const LandingPage = ({ onStart }) => {
                             transition={{ duration: 0.9, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
                             className="mb-5 sm:mb-6"
                         >
-                            <h1 className="font-display tracking-tight text-brand-slate" style={{ lineHeight: 1.05 }}>
-                                {/* Prelude — medium, lighter weight */}
+                            <h1 className="font-display tracking-tight text-brand-slate" style={ { lineHeight: 1.1 } }>
                                 <span
                                     className="block font-semibold"
-                                    style={{ fontSize: 'clamp(1.1rem, 2.8vw, 1.75rem)', color: '#000000', letterSpacing: '-0.01em', marginBottom: '0.15em' }}
+                                    style={ { fontSize: 'clamp(1.1rem, 2.8vw, 1.75rem)', color: '#000000', letterSpacing: '-0.01em', marginBottom: '0.2em' } }
                                 >
-                                    Welcome to the
+                                    Welcome to
                                 </span>
-                                {/* Brand name — large, extrabold, sage accent */}
                                 <span
                                     className="block font-extrabold"
                                     style={{ fontSize: 'clamp(2.8rem, 7.5vw, 5.5rem)', color: '#5A7A6E', letterSpacing: '-0.03em', lineHeight: 1 }}
                                 >
-                                    Bodi KEMISTRI
-                                </span>
-                                {/* "Body Scan" — large, extrabold, dark */}
-                                <span
-                                    className="block font-extrabold"
-                                    style={{ fontSize: 'clamp(2.8rem, 7.5vw, 5.5rem)', color: '#2F4A5C', letterSpacing: '-0.03em', lineHeight: 1.05 }}
-                                >
-                                    Body Scan
+                                    Bodi KEMISTRI<sup style={ { fontSize: '0.35em', verticalAlign: 'super', fontWeight: 600 } }>™</sup>
                                 </span>
                             </h1>
                             {/* Animated underline accent */}

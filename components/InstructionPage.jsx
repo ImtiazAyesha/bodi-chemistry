@@ -30,6 +30,7 @@ const SLIDES = [
             'A visible 3-2-1 countdown triggers the photo',
         ],
         footer: 'After capture, you\'ll review the image and may retake if needed.',
+        narrative: 'You enter the ghost frame → green light shows you\'re positioned correctly → system waits 2 seconds to ensure you\'re stable → then 3-second countdown begins → capture. This gives users time to settle and prepare rather than feeling rushed.',
         cta: 'Start First Capture',
     },
 ];
@@ -183,6 +184,27 @@ const InstructionPage = ({ onStart }) => {
                 </li>
             ) ) }
                   </ul>
+
+                    {/* Narrative summary */ }
+                    { slide.narrative && (
+                        <p
+                            style={ {
+                                color: 'rgba(47,74,92,0.72)',
+                                fontSize: 'clamp(12px, 3vw, 14px)',
+                                lineHeight: 1.7,
+                                maxWidth: 440,
+                                margin: '0 0 20px',
+                                textAlign: 'left',
+                                fontStyle: 'italic',
+                                padding: '12px 16px',
+                                background: 'rgba(143,169,155,0.08)',
+                                borderLeft: '3px solid rgba(143,169,155,0.4)',
+                                borderRadius: '0 8px 8px 0',
+                            } }
+                        >
+                            { slide.narrative }
+                        </p>
+                    ) }
 
                   {/* Footer note */ }
                   { slide.footer && (
