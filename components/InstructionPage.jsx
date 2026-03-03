@@ -38,6 +38,7 @@ const SLIDES = [
     },
 ];
 
+
 /* ─── BULLET STAGGER ─── */
 const itemVariants = {
     hidden: { opacity: 0, y: 14 },
