@@ -247,7 +247,62 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
           </div>
         </motion.section>
 
-
+        {/* ─── SECTION 5: YOUR STARTING PLAN ─── */ }
+        <motion.section
+          initial={ { opacity: 0, y: 20 } } animate={ { opacity: 1, y: 0 } } transition={ { delay: 0.55 } }
+          style={ {
+            background: '#FFFFFF', border: '1px solid rgba(143,169,155,0.15)',
+            borderRadius: 24, padding: 'clamp(24px, 5vw, 40px)', marginBottom: 24,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.04)',
+          } }
+        >
+          <h3 style={ { fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, marginBottom: 20, textAlign: 'center' } }>
+            Your Starting Plan
+          </h3>
+          <p style={ { fontSize: 13, color: 'rgba(47,74,92,0.6)', textAlign: 'center', marginBottom: 24 } }>
+            For the next 3 weeks:
+          </p>
+          <div style={ { display: 'grid', gap: 16 } }>
+            { [ 'week1', 'week2', 'week3' ].map( ( wk, i ) => {
+              const week = desc.weeklyPlan[ wk ];
+              return (
+                <div key={ wk } style={ {
+                  background: 'rgba(143,169,155,0.06)', border: '1px solid rgba(143,169,155,0.1)',
+                  borderRadius: 16, padding: '16px 20px',
+                } }>
+                  <div style={ { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 } }>
+                    <span style={ {
+                      width: 28, height: 28, borderRadius: 8, background: '#2F4A5C',
+                      color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 700, flexShrink: 0,
+                    } }>
+                      { i + 1 }
+                    </span>
+                    <span style={ { fontSize: 15, fontWeight: 700 } }>Week { i + 1 }: { week.title }</span>
+                  </div>
+                  <p style={ { fontSize: 13, fontWeight: 600, color: '#2F4A5C', margin: '0 0 6px', paddingLeft: 38 } }>
+                    { week.exercise }
+                  </p>
+                  <ul style={ { margin: 0, paddingLeft: 54, listStyle: 'disc' } }>
+                    { week.steps.map( ( s, j ) => (
+                      <li key={ j } style={ { fontSize: 13, color: 'rgba(47,74,92,0.7)', lineHeight: 1.6, marginBottom: 4 } }>{ s }</li>
+                    ) ) }
+                  </ul>
+                  { week.videoUrl && (
+                    <a href={ week.videoUrl } target="_blank" rel="noopener noreferrer" style={ { display: 'block', fontSize: 12, color: '#4A7FB5', paddingLeft: 38, marginTop: 6, textDecoration: 'none' } }>
+                      ▶ Watch Video
+                    </a>
+                  ) }
+                  { week.goal && (
+                    <p style={ { fontSize: 12, fontStyle: 'italic', color: 'rgba(47,74,92,0.55)', paddingLeft: 38, marginTop: 4, marginBottom: 0 } }>
+                      Goal: { week.goal }
+                    </p>
+                  ) }
+                </div>
+              );
+            } ) }
+          </div>
+        </motion.section>
 
         {/* ─── PDF CALLOUT ─── */ }
         <motion.div
