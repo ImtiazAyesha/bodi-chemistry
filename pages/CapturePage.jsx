@@ -80,12 +80,12 @@ function CapturePage() {
         },
         STAGE_3_UPPER_SIDE: {
             headline: 'Side Profile Capture',
-            body: 'Turn your body sideways. Keep your head in a natural position. Look straight ahead — not at the floor. You can look to check your frame, but face forward once the countdown begins.',
+            body: 'Turn your body sideways. Keep your head in a natural position. Look straight ahead (not at the floor). You can look to make sure you\u2019re in frame but as soon as the countdown begins please look forward so that the image captured is a true profile. The outline will guide you.',
             cta: 'Take Photo',
         },
         STAGE_4_LOWER_SIDE: {
             headline: 'Side Profile Capture',
-            body: 'Turn your body sideways. Keep your head in a natural position. Look straight ahead — not at the floor. You can look to check your frame, but face forward once the countdown begins.',
+            body: 'Turn your body sideways. Keep your head in a natural position. Look straight ahead (not at the floor). You can look to make sure you\u2019re in frame but as soon as the countdown begins please look forward so that the image captured is a true profile. The outline will guide you.',
             cta: 'Take Photo',
         },
     };
