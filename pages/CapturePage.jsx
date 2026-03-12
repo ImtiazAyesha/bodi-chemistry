@@ -589,26 +589,47 @@ function CapturePage() {
         // Step 2: Export the clean frame — used for the post-capture preview shown to the user
         const cleanDataURL = tempCanvas.toDataURL('image/jpeg', 0.95);
 
-        // Step 3: Bake landmarks on top of the same canvas — same coordinate space,
+        // Step 3: Bake grid + landmarks on top of the same canvas — same coordinate space,
         // so DrawingUtils normalized coords map perfectly to the video pixels.
         // This composite version is stored for the results screen.
+
+        // Step 3a: Draw grid overlay (graph-paper style, matching client reference)
+        const cellSize = Math.round(tempCanvas.width * 0.05); // ~5% of width per cell
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = 1;
+        // Vertical lines
+        for (let x = 0; x <= tempCanvas.width; x += cellSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, tempCanvas.height);
+            ctx.stroke();
+        }
+        // Horizontal lines
+        for (let y = 0; y <= tempCanvas.height; y += cellSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(tempCanvas.width, y);
+            ctx.stroke();
+        }
+        // Centre vertical plumb line (green, like PostureScreen reference)
+        ctx.strokeStyle = 'rgba(0, 200, 100, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(tempCanvas.width / 2, 0);
+        ctx.lineTo(tempCanvas.width / 2, tempCanvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
         try {
             const drawingUtils = new DrawingUtils(ctx);
 
-            // Face landmarks (Stages 1, 2, 3)
-            if (!isStage4 && faceLandmarks && faceLandmarks.length > 0) {
-                drawingUtils.drawConnectors(
-                    faceLandmarks,
-                    FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-                    { color: 'rgba(0, 255, 0, 0.3)', lineWidth: 0.5 }
-                );
-                drawingUtils.drawLandmarks(
-                    faceLandmarks,
-                    { color: '#00FF00', radius: 1.5, fillColor: '#00FF00' }
-                );
-            }
+            // Face landmarks intentionally NOT drawn on captured image
+            // (client request: face mesh is visually chaotic — metrics still calculated separately)
 
-            // Pose landmarks (All stages)
+            // Pose landmarks (All stages) — kept for visual alignment reference
             if (poseLandmarks && poseLandmarks.length > 0) {
                 drawingUtils.drawConnectors(
                     poseLandmarks,
