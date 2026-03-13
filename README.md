@@ -1,4 +1,4 @@
-# Bodi Kemistri: AI-Powered Postural Wellness Platform
+# Bodi Kemistri - AI-Powered Postural Wellness Platform
 
 **Bodi Kemistri** is an advanced web-based wellness assessment platform that uses AI-powered computer vision to analyze body alignment, facial symmetry, and postural patterns. The platform provides users with personalized wellness insights through a comprehensive 9-step assessment process.
 
