@@ -1351,7 +1351,7 @@ function CapturePage() {
                                             e.target.style.boxShadow = '0 4px 12px rgba(0, 255, 0, 0.3)';
                                         }}
                                     >
-                                        Confirm & Continue
+                                        Continue
                                     </button>
                                 </div>
                             )}

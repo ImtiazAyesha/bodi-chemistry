@@ -15,10 +15,10 @@ export const checkStage1Alignment = (faceLandmarks) => {
         return { aligned: false, feedbackMessage: 'FACE NOT DETECTED', feedbackIcon: '❌' };
     }
 
-    // Check if nose is inside face ghost circle (centered) - TIGHTENED
+    // Check if nose is inside face ghost circle (centered)
     const noseTip = faceLandmarks[1];
-    const isXAligned = noseTip.x >= 0.40 && noseTip.x <= 0.60; // Stricter: 0.40-0.60
-    const isYAligned = noseTip.y >= 0.25 && noseTip.y <= 0.45; // Stricter: 0.25-0.45
+    const isXAligned = noseTip.x >= 0.35 && noseTip.x <= 0.65; 
+    const isYAligned = noseTip.y >= 0.35 && noseTip.y <= 0.65; 
 
     // Generate granular feedback
     let feedbackMsg = '';
@@ -26,18 +26,18 @@ export const checkStage1Alignment = (faceLandmarks) => {
 
     if (!isXAligned) {
         if (noseTip.x < 0.35) {
-            feedbackMsg = noseTip.x < 0.25 ? 'MOVE LEFT' : 'A BIT LEFT';
+            feedbackMsg = noseTip.x < 0.20 ? 'MOVE LEFT' : 'A BIT LEFT';
         } else {
-            feedbackMsg = noseTip.x > 0.75 ? 'MOVE RIGHT' : 'A BIT RIGHT';
+            feedbackMsg = noseTip.x > 0.80 ? 'MOVE RIGHT' : 'A BIT RIGHT';
         }
         feedbackIcon = noseTip.x < 0.35 ? '⬅' : '➡️';
     } else if (!isYAligned) {
-        if (noseTip.y < 0.20) {
-            feedbackMsg = noseTip.y < 0.10 ? 'MOVE DOWN' : 'A BIT DOWN';
+        if (noseTip.y < 0.35) {
+            feedbackMsg = noseTip.y < 0.20 ? 'MOVE DOWN' : 'A BIT DOWN';
         } else {
-            feedbackMsg = noseTip.y > 0.60 ? 'MOVE UP' : 'A BIT UP';
+            feedbackMsg = noseTip.y > 0.80 ? 'COME CLOSER' : 'MOVE CLOSER TO CAMERA';
         }
-        feedbackIcon = noseTip.y < 0.20 ? '⬇️' : '⬆️';
+        feedbackIcon = noseTip.y < 0.35 ? '⬇️' : '⬆️';
     }
 
     const aligned = isXAligned && isYAligned;
