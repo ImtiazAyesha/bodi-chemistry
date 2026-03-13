@@ -17,8 +17,8 @@ export const checkStage1Alignment = (faceLandmarks) => {
 
     // Check if nose is inside face ghost circle (centered)
     const noseTip = faceLandmarks[1];
-    const isXAligned = noseTip.x >= 0.35 && noseTip.x <= 0.65; 
-    const isYAligned = noseTip.y >= 0.35 && noseTip.y <= 0.65; 
+    const isXAligned = noseTip.x >= 0.35 && noseTip.x <= 0.65;
+    const isYAligned = noseTip.y >= 0.35 && noseTip.y <= 0.65;
 
     // Generate granular feedback
     let feedbackMsg = '';
@@ -35,7 +35,7 @@ export const checkStage1Alignment = (faceLandmarks) => {
         if (noseTip.y < 0.35) {
             feedbackMsg = noseTip.y < 0.20 ? 'MOVE DOWN' : 'A BIT DOWN';
         } else {
-            feedbackMsg = noseTip.y > 0.80 ? 'COME CLOSER' : 'MOVE CLOSER TO CAMERA';
+            feedbackMsg = noseTip.y > 0.80 ? 'MOVE YOUR FACE UP AND LOOK FORWARD' : 'MOVE YOUR FACE A BIT UP AND LOOK FORWARD';
         }
         feedbackIcon = noseTip.y < 0.35 ? '⬇️' : '⬆️';
     }
