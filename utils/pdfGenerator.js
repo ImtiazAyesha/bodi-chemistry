@@ -152,14 +152,7 @@ export const generatePDF = async ( captureData, questionnaireData, patternResult
   doc.text( desc.plainName, margin, y );
   y += 10;
 
-  // Formerly called
-  doc.setFontSize( 10 );
-  doc.setFont( undefined, 'italic' );
-  doc.setTextColor( 120 );
-  doc.text( `Formerly Called: ${ desc.formerName }`, margin, y );
-  doc.setTextColor( 0 );
-  doc.setFont( undefined, 'normal' );
-  y += 10;
+  y += 4;
 
   separator();
 
@@ -469,87 +462,70 @@ export const generatePDF = async ( captureData, questionnaireData, patternResult
     y += 2;
     doc.setFontSize( 11 );
     doc.setFont( undefined, 'normal' );
-    doc.text( `Primary: ${ patternResults.primaryPattern.name } — Score: ${ patternResults.primaryPattern.score.toFixed( 1 ) }/100 — Severity: ${ patternResults.primaryPattern.severity.toUpperCase() }`, margin + 4, y );
+    // Use plain name from PATTERN_DESCRIPTIONS, not the internal fusion name
+    const primaryPlainName = desc.plainName || patternResults.primaryPattern.name;
+    doc.text( `Primary: ${ primaryPlainName } — Severity: ${ patternResults.primaryPattern.severity.toUpperCase() }`, margin + 4, y );
     y += 7;
 
     if ( patternResults.secondaryPattern ) {
-      doc.text( `Secondary: ${ patternResults.secondaryPattern.name } — Score: ${ patternResults.secondaryPattern.score.toFixed( 1 ) }/100`, margin + 4, y );
-      y += 7;
-    }
-
-    if ( patternResults.confidence ) {
-      doc.text( `Confidence: ${ patternResults.confidence.level } (${ patternResults.confidence.percentage }%)`, margin + 4, y );
+      const secId = normalizePatternId( patternResults.secondaryPattern.id );
+      const secDesc = PATTERN_DESCRIPTIONS[ secId ];
+      const secondaryPlainName = secDesc ? secDesc.plainName : patternResults.secondaryPattern.name;
+      doc.text( `Secondary: ${ secondaryPlainName }`, margin + 4, y );
       y += 7;
     }
     y += 6;
   }
 
-  // Assessment Scores
-  heading( 'Assessment Scores', 14 );
-  y += 2;
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
-  doc.text( `Face Score: ${ scores.face }/100`, margin + 4, y ); y += 6;
-  doc.text( `Body Score: ${ scores.body }/100`, margin + 4, y ); y += 6;
-  doc.text( `Questionnaire Score: ${ scores.questionnaire }/100`, margin + 4, y ); y += 8;
-  doc.setFont(undefined, 'bold');
-  doc.text( `OVERALL SCORE: ${ scores.total }/100`, margin + 4, y ); y += 10;
-
   separator();
 
-  // Face Metrics
+  // Face Metrics — names only, no values (client request)
   heading( 'Face Metrics', 14 );
   y += 2;
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
-  doc.text( `Eye Height Symmetry: ${ captureData.stage1.metrics.eyeSym }`, margin + 4, y ); y += 6;
-  doc.text( `Jaw Midline Shift: ${ captureData.stage1.metrics.jawShift }`, margin + 4, y ); y += 6;
-  doc.text( `Head Tilt: ${ captureData.stage1.metrics.headTilt }°`, margin + 4, y ); y += 6;
-  doc.text( `Nostril Asymmetry: ${ captureData.stage1.metrics.nostrilAsym }`, margin + 4, y ); y += 10;
+  doc.setFontSize( 10 );
+  doc.setFont( undefined, 'normal' );
+  doc.text( 'Eye Symmetry', margin + 4, y ); y += 6;
+  doc.text( 'Jaw Line', margin + 4, y ); y += 6;
+  doc.text( 'Head Tilt', margin + 4, y ); y += 6;
+  doc.text( 'Nostril Asymmetry', margin + 4, y ); y += 10;
 
-  // Body Metrics
+  // Body Metrics — names only, no values (client request)
   heading( 'Body Metrics', 14 );
   y += 2;
   doc.setFontSize( 10 );
   doc.setFont( undefined, 'normal' );
-  doc.text( `Shoulder Height: ${ captureData.stage2.metrics.shoulderHeight }`, margin + 4, y ); y += 6;
-  doc.text( `Forward Head Posture Angle: ${ captureData.stage3.metrics.fhpAngle }°`, margin + 4, y ); y += 6;
-  doc.text( `Pelvic Tilt: ${ captureData.stage4.metrics.pelvicTilt }°`, margin + 4, y ); y += 6;
-  doc.text( `Knee Angle: ${ captureData.stage4.metrics.kneeAngle }°`, margin + 4, y ); y += 6;
-  doc.text( `Foot Arch Ratio: ${ captureData.stage4.metrics.footArchRatio }`, margin + 4, y ); y += 10;
+  doc.text( 'Shoulder Asymmetry', margin + 4, y ); y += 6;
+  doc.text( 'Forward Head Posture', margin + 4, y ); y += 6;
+  doc.text( 'Pelvic Tilt', margin + 4, y ); y += 6;
+  doc.text( 'Knee Angle', margin + 4, y ); y += 6;
+  doc.text( 'Foot Arch', margin + 4, y ); y += 10;
 
   separator();
 
-  // ── Capture Evidence (2×2 image grid on same page) ─────
+  // ── Capture Evidence — force new page so all 4 images are never cut off ──
+  doc.addPage();
+  y = 20;
   heading( 'Capture Evidence', 14 );
   y += 4;
 
   const gridMargin = 15;
   const gridGap = 5;
   const colWidth = ( W - gridMargin * 2 - gridGap ) / 2;
+
+  // Calculate image height so both rows + labels fit within one page
+  // Available vertical space: page height minus top (y) minus bottom margin minus label rows
+  const labelH = 14; // px reserved below each image for caption + metrics
+  const availableH = H - y - 15; // 15 = bottom margin
+  const imgH = ( availableH - labelH * 2 - gridGap ) / 2; // 2 rows, account for 2 label blocks + gap
   const imgW = colWidth;
-  const imgH = imgW * ( 3 / 4 );
-  const labelH = 14;
 
-  const s1 = captureData.stage1.metrics;
-  const s2 = captureData.stage2.metrics;
-  const s3 = captureData.stage3.metrics;
-  const s4 = captureData.stage4.metrics;
-
+  // Updated captions and metric labels — names only, no values
   const gridStages = [
-    { image: captureData.stage1?.image, label: 'Stage 1 — Face (Front)', metrics: `Eye Sym: ${ s1.eyeSym }  |  Jaw Shift: ${ s1.jawShift }  |  Head Tilt: ${ s1.headTilt }°` },
-    { image: captureData.stage2?.image, label: 'Stage 2 — Upper Body (Front)', metrics: `Shoulder Asymmetry: ${ s2.shoulderHeight }%` },
-    { image: captureData.stage3?.image, label: 'Stage 3 — Upper Body (Side)', metrics: `Forward Head Posture (CVA): ${ s3.fhpAngle }°` },
-    { image: captureData.stage4?.image, label: 'Stage 4 — Lower Body (Side)', metrics: `Pelvic Tilt: ${ s4.pelvicTilt }°  |  Foot Arch: ${ s4.footArchRatio }` },
+    { image: captureData.stage1?.image, label: '1  Face (Front)', metrics: 'Eye Symmetry  •  Jaw Line  •  Head Tilt' },
+    { image: captureData.stage2?.image, label: '2  Body (Front)', metrics: 'Shoulder Asymmetry' },
+    { image: captureData.stage3?.image, label: '3  Upper Body (Side)', metrics: 'Forward Head Posture' },
+    { image: captureData.stage4?.image, label: '4  Full Body (Side)', metrics: 'Pelvic Tilt  •  Foot Arch' },
   ];
-
-  // Check if we need a new page for the grid
-  if ( y + imgH + labelH > H - 20 ) {
-    doc.addPage();
-    y = 20;
-    heading( 'Capture Evidence (continued)', 14 );
-    y += 4;
-  }
 
   const gridStartY = y;
   gridStages.forEach( ( stage, i ) => {
@@ -576,13 +552,18 @@ export const generatePDF = async ( captureData, questionnaireData, patternResult
       doc.text( 'No Capture', x + imgW / 2, gy + imgH / 2, { align: 'center' } );
     }
 
+    // Caption (bold, slightly larger)
     doc.setFontSize( 8 );
     doc.setFont( undefined, 'bold' );
-    doc.text( stage.label, x, gy + imgH + 4 );
+    doc.setTextColor( 40 );
+    doc.text( stage.label, x, gy + imgH + 5 );
 
+    // Metric names (normal, sage-ish colour)
     doc.setFontSize( 7 );
     doc.setFont( undefined, 'normal' );
-    doc.text( stage.metrics, x, gy + imgH + 9 );
+    doc.setTextColor( 60, 100, 80 );
+    doc.text( stage.metrics, x, gy + imgH + 10 );
+    doc.setTextColor( 0 );
   } );
 
   // ═══════════════════════════════════════════════════════════
@@ -632,10 +613,10 @@ export const generatePDF = async ( captureData, questionnaireData, patternResult
       y += 2;
       doc.setFontSize( 10 );
       doc.setFont( undefined, 'normal' );
-      doc.text( `Upper Compression: ${ questionnaireData.normalizedScores.upperCompression.toFixed( 1 ) }%`, margin + 4, y ); y += 6;
-      doc.text( `Lower Compression: ${ questionnaireData.normalizedScores.lowerCompression.toFixed( 1 ) }%`, margin + 4, y ); y += 6;
-      doc.text( `Thoracic Collapse: ${ questionnaireData.normalizedScores.thoracicCollapse.toFixed( 1 ) }%`, margin + 4, y ); y += 6;
-      doc.text( `Lateral Asymmetry: ${ questionnaireData.normalizedScores.lateralAsymmetry.toFixed( 1 ) }%`, margin + 4, y ); y += 8;
+      doc.text( `Forward Compression: ${ questionnaireData.normalizedScores.upperCompression.toFixed( 1 ) }%`, margin + 4, y ); y += 6;
+      doc.text( `Back Bracing: ${ questionnaireData.normalizedScores.lowerCompression.toFixed( 1 ) }%`, margin + 4, y ); y += 6;
+      doc.text( `Collapse: ${ questionnaireData.normalizedScores.thoracicCollapse.toFixed( 1 ) }%`, margin + 4, y ); y += 6;
+      doc.text( `Lateral Shift: ${ questionnaireData.normalizedScores.lateralAsymmetry.toFixed( 1 ) }%`, margin + 4, y ); y += 8;
     }
   }
 

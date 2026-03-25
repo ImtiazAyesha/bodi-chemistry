@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FiZap, FiDownload, FiRefreshCw } from 'react-icons/fi';
 import { generatePDF } from '../utils/pdfGenerator';
+import { saveScan } from '../utils/dbService';
 import { PATTERN_DESCRIPTIONS, METRIC_DISPLAY_NAMES } from '../config/patternDescriptions';
 
 /**
@@ -62,6 +63,23 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
   const rawId = patternResults?.primaryPattern?.id || 'upper_compression';
   const primaryPatternId = rawId.replace( /-/g, '_' );
   const desc = PATTERN_DESCRIPTIONS[ primaryPatternId ] || PATTERN_DESCRIPTIONS.upper_compression;
+
+  // Saving state for the download button
+  const [ isSaving, setIsSaving ] = React.useState( false );
+
+  const handleDownload = async () => {
+    setIsSaving( true );
+    try {
+      // 1. Save scan record + metrics + images to Supabase
+      await saveScan( captureData, questionnaireData, patternResults, score );
+      // 2. Generate and download the PDF
+      await generatePDF( captureData, questionnaireData, patternResults, score );
+    } catch ( err ) {
+      console.error( 'Download/save error:', err );
+    } finally {
+      setIsSaving( false );
+    }
+  };
 
   // Collect all metrics for markers section
   const allMetrics = [
@@ -192,18 +210,15 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
         >
           <h3 style={ { fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, marginBottom: 16 } }>Markers Detected</h3>
           <div style={ { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 } }>
-            { allMetrics.map( ( { key, value } ) => {
+            { allMetrics.map( ( { key } ) => {
               const meta = METRIC_DISPLAY_NAMES[ key ];
               if ( !meta ) return null;
-              const displayVal = typeof value === 'number' ? ( Math.abs( value ) < 0.01 ? '0' : Number( value ).toFixed( 2 ) ) : value;
               return (
                 <div key={ key } style={ {
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '10px 14px', background: '#FFFFFF', borderRadius: 12,
                   border: '1px solid rgba(143,169,155,0.1)',
                 } }>
                   <span style={ { fontSize: 12, fontWeight: 600, color: 'rgba(47,74,92,0.6)' } }>{ meta.name }</span>
-                  <span style={ { fontSize: 14, fontWeight: 700 } }>{ displayVal }{ meta.unit }</span>
                 </div>
               );
             } ) }
@@ -247,62 +262,7 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
           </div>
         </motion.section>
 
-        {/* ─── SECTION 5: YOUR STARTING PLAN ─── */ }
-        <motion.section
-          initial={ { opacity: 0, y: 20 } } animate={ { opacity: 1, y: 0 } } transition={ { delay: 0.55 } }
-          style={ {
-            background: '#FFFFFF', border: '1px solid rgba(143,169,155,0.15)',
-            borderRadius: 24, padding: 'clamp(24px, 5vw, 40px)', marginBottom: 24,
-            boxShadow: '0 8px 40px rgba(0,0,0,0.04)',
-          } }
-        >
-          <h3 style={ { fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, marginBottom: 20, textAlign: 'center' } }>
-            Your Starting Plan
-          </h3>
-          <p style={ { fontSize: 13, color: 'rgba(47,74,92,0.6)', textAlign: 'center', marginBottom: 24 } }>
-            For the next 3 weeks:
-          </p>
-          <div style={ { display: 'grid', gap: 16 } }>
-            { [ 'week1', 'week2', 'week3' ].map( ( wk, i ) => {
-              const week = desc.weeklyPlan[ wk ];
-              return (
-                <div key={ wk } style={ {
-                  background: 'rgba(143,169,155,0.06)', border: '1px solid rgba(143,169,155,0.1)',
-                  borderRadius: 16, padding: '16px 20px',
-                } }>
-                  <div style={ { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 } }>
-                    <span style={ {
-                      width: 28, height: 28, borderRadius: 8, background: '#2F4A5C',
-                      color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 12, fontWeight: 700, flexShrink: 0,
-                    } }>
-                      { i + 1 }
-                    </span>
-                    <span style={ { fontSize: 15, fontWeight: 700 } }>Week { i + 1 }: { week.title }</span>
-                  </div>
-                  <p style={ { fontSize: 13, fontWeight: 600, color: '#2F4A5C', margin: '0 0 6px', paddingLeft: 38 } }>
-                    { week.exercise }
-                  </p>
-                  <ul style={ { margin: 0, paddingLeft: 54, listStyle: 'disc' } }>
-                    { week.steps.map( ( s, j ) => (
-                      <li key={ j } style={ { fontSize: 13, color: 'rgba(47,74,92,0.7)', lineHeight: 1.6, marginBottom: 4 } }>{ s }</li>
-                    ) ) }
-                  </ul>
-                  { week.videoUrl && (
-                    <a href={ week.videoUrl } target="_blank" rel="noopener noreferrer" style={ { display: 'block', fontSize: 12, color: '#4A7FB5', paddingLeft: 38, marginTop: 6, textDecoration: 'none' } }>
-                      ▶ Watch Video
-                    </a>
-                  ) }
-                  { week.goal && (
-                    <p style={ { fontSize: 12, fontStyle: 'italic', color: 'rgba(47,74,92,0.55)', paddingLeft: 38, marginTop: 4, marginBottom: 0 } }>
-                      Goal: { week.goal }
-                    </p>
-                  ) }
-                </div>
-              );
-            } ) }
-          </div>
-        </motion.section>
+
 
         {/* ─── PDF CALLOUT ─── */ }
         <motion.div
@@ -320,7 +280,8 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
         {/* ─── ACTION BUTTONS ─── */ }
         <div style={ { display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' } }>
           <button
-            onClick={ async () => await generatePDF( captureData, questionnaireData, patternResults, score ) }
+            onClick={ handleDownload }
+            disabled={ isSaving }
             style={ {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               background: '#2F4A5C', color: '#FFFFFF', border: 'none', borderRadius: 16,
