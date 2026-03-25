@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FiZap, FiDownload, FiRefreshCw } from 'react-icons/fi';
 import { generatePDF } from '../utils/pdfGenerator';
+import { saveScan } from '../utils/dbService';
 import { PATTERN_DESCRIPTIONS, METRIC_DISPLAY_NAMES } from '../config/patternDescriptions';
 
 /**
@@ -62,6 +63,23 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
   const rawId = patternResults?.primaryPattern?.id || 'upper_compression';
   const primaryPatternId = rawId.replace( /-/g, '_' );
   const desc = PATTERN_DESCRIPTIONS[ primaryPatternId ] || PATTERN_DESCRIPTIONS.upper_compression;
+
+  // Saving state for the download button
+  const [ isSaving, setIsSaving ] = React.useState( false );
+
+  const handleDownload = async () => {
+    setIsSaving( true );
+    try {
+      // 1. Save scan record + metrics + images to Supabase
+      await saveScan( captureData, questionnaireData, patternResults, score );
+      // 2. Generate and download the PDF
+      await generatePDF( captureData, questionnaireData, patternResults, score );
+    } catch ( err ) {
+      console.error( 'Download/save error:', err );
+    } finally {
+      setIsSaving( false );
+    }
+  };
 
   // Collect all metrics for markers section
   const allMetrics = [
@@ -192,18 +210,15 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
         >
           <h3 style={ { fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, marginBottom: 16 } }>Markers Detected</h3>
           <div style={ { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 } }>
-            { allMetrics.map( ( { key, value } ) => {
+            { allMetrics.map( ( { key } ) => {
               const meta = METRIC_DISPLAY_NAMES[ key ];
               if ( !meta ) return null;
-              const displayVal = typeof value === 'number' ? ( Math.abs( value ) < 0.01 ? '0' : Number( value ).toFixed( 2 ) ) : value;
               return (
                 <div key={ key } style={ {
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '10px 14px', background: '#FFFFFF', borderRadius: 12,
                   border: '1px solid rgba(143,169,155,0.1)',
                 } }>
                   <span style={ { fontSize: 12, fontWeight: 600, color: 'rgba(47,74,92,0.6)' } }>{ meta.name }</span>
-                  <span style={ { fontSize: 14, fontWeight: 700 } }>{ displayVal }{ meta.unit }</span>
                 </div>
               );
             } ) }
@@ -265,7 +280,8 @@ const ResultsScreen = ({ captureData, questionnaireData, patternResults, onResta
         {/* ─── ACTION BUTTONS ─── */ }
         <div style={ { display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' } }>
           <button
-            onClick={ async () => await generatePDF( captureData, questionnaireData, patternResults, score ) }
+            onClick={ handleDownload }
+            disabled={ isSaving }
             style={ {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               background: '#2F4A5C', color: '#FFFFFF', border: 'none', borderRadius: 16,

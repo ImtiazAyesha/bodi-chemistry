@@ -623,27 +623,8 @@ function CapturePage() {
         ctx.setLineDash([]);
         ctx.restore();
 
-        try {
-            const drawingUtils = new DrawingUtils(ctx);
-
-            // Face landmarks intentionally NOT drawn on captured image
-            // (client request: face mesh is visually chaotic — metrics still calculated separately)
-
-            // Pose landmarks (All stages) — kept for visual alignment reference
-            if (poseLandmarks && poseLandmarks.length > 0) {
-                drawingUtils.drawConnectors(
-                    poseLandmarks,
-                    PoseLandmarker.POSE_CONNECTIONS,
-                    { color: 'rgba(0, 255, 0, 0.6)', lineWidth: 2 }
-                );
-                drawingUtils.drawLandmarks(
-                    poseLandmarks,
-                    { color: '#00FF00', radius: 3, fillColor: '#00FF00' }
-                );
-            }
-        } catch (err) {
-            console.warn('captureFrameWithLandmarks: landmark draw error', err);
-        }
+        // Pose landmarks intentionally NOT drawn on captured image
+        // (client request: clean images with grid only — metrics still calculated silently)
 
         const compositeDataURL = tempCanvas.toDataURL('image/jpeg', 0.95);
 
